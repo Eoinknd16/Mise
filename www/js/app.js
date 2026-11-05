@@ -1,12 +1,13 @@
 // Mise — UI layer. Plain ES modules, string templates, event delegation. No build step.
 import * as C from './core.js';
 import * as M from './smart.js';
+import * as G from './builder.js';
 import { SHOPS, AISLES, CATALOG, ITEM, B_PROTEIN, B_BASE, B_STYLE, B_VEG } from './data.js';
 
 let S = null;               // persisted state
 let R = {};                 // all recipes (built-in + saved), normalized
 const ui = {
-  route: 'plan', weekOffset: 0, listWeek: 0, recTab: 'all', recQuery: '', onlineCat: null, online: [], onlineLoading: false, onlineErr: '',
+  route: 'plan', weekOffset: 0, listWeek: 0, recTab: 'regular', recQuery: '', onlineCat: null, online: [], onlineLoading: false, onlineErr: '',
   builder: null, builderSpec: {}, builderOpts: { pantryFirst: false }, builderBusy: false, receiptDraft: null, ocr: null,
   sheetServes: null, sheetCtx: null, shopFilter: null, aiStatus: { chrome: false, puter: true }
 };
@@ -46,9 +47,9 @@ const stars = (n, act, key) => `<div class="stars" role="group" aria-label="Rati
 const shopsOpts = sel => S.settings.shops.concat(SHOPS.filter(s => !S.settings.shops.includes(s))).map(s => `<option${s === sel ? ' selected' : ''}>${esc(s)}</option>`).join('');
 
 /* ================= Router ================= */
-const TITLES = { plan: 'This week', recipes: 'Recipes', list: 'Shopping list', pantry: 'Pantry', more: 'Menu', make: 'What can I make?', builder: 'Create a meal', receipts: 'Receipts', deals: 'Deals', insights: 'Stats', settings: 'Settings', install: 'Install', quiz: 'Taste quiz', add: 'Your recipe', tastes: 'Your tastes', discover: 'Discover' };
+const TITLES = { plan: 'This week', recipes: 'Your meals', list: 'Shopping list', pantry: 'Pantry', more: 'Menu', make: 'What can I make?', builder: 'Make a meal', receipts: 'Receipts', deals: 'Deals', insights: 'Stats', settings: 'Settings', install: 'Install', quiz: 'Taste quiz', add: 'Your recipe', tastes: 'Your tastes', discover: 'Discover', week: 'Plan the week' };
 const TAB_OF = { make: 'pantry' };
-const SUBPAGE = { discover: 'recipes', tastes: 'more', add: 'recipes', make: 'pantry', receipts: 'more', deals: 'more', insights: 'more', settings: 'more', install: 'more', quiz: 'more', more: 'plan' };
+const SUBPAGE = { week: 'plan', discover: 'recipes', tastes: 'more', add: 'recipes', make: 'pantry', receipts: 'more', deals: 'more', insights: 'more', settings: 'more', install: 'more', quiz: 'more', more: 'plan' };
 function checkShared() { const shared = M.readShareLink(location.hash); if (!shared) return false; ui.importing = shared; history.replaceState(null, '', location.pathname + '#recipes'); ui.route = 'recipes'; render(true); setTimeout(() => openSheet(`<h2>${esc(shared.title)}</h2><p class="small muted">Someone shared this recipe with you. ${shared.ings.length} ingredients, ${shared.steps.length} steps.</p><button class="btn primary block" data-act="importKeep">Save to my recipes</button>`), 200); return true; }
 function route() {
   if (/#import=/.test(location.hash)) { if (!$('#sheet').hidden) closeSheet(true); if (checkShared()) return; }
@@ -121,32 +122,22 @@ function tonightCard() {
 }
 /* ================= Recipes ================= */
 function viewRecipes() {
-  const tab = ui.recTab;
-  let h = `<div class="seg" role="group" data-tour="recTabs">${[['all', 'All'], ['mine', 'Mine'], ['liked', 'Liked'], ['online', 'Online']].map(([k, n]) => `<button data-act="recTab" data-val="${k}" aria-pressed="${tab === k}">${n}</button>`).join('')}</div>
-  <div class="quick3"><a href="#discover" data-tour="discoverCta">${ICON.spark}<b>Discover</b><span>Swipe & learn</span></a><a href="#builder" data-tour="buildCta">${ICON.pot}<b>Create</b><span>Ideas & freestyle</span></a><a href="#add" data-act="newRecipe" data-tour="addRecipe"><span style="font:700 22px var(--display)">+</span><b>Add yours</b><span>Type, link, photo</span></a></div>
-  <input type="search" id="recSearch" placeholder="${tab === 'online' ? 'Search online recipes, then press Enter' : 'Search by name or ingredient'}" value="${esc(ui.recQuery)}" data-in="recQuery" enterkeyhint="search">`;
-  if (tab === 'online') {
-    h += `<div class="chips">${C.MDB_CATEGORIES.map(c => `<button class="chip" data-act="mdbCat" data-val="${c}" aria-pressed="${ui.onlineCat === c}">${c}</button>`).join('')}<button class="chip" data-act="mdbRandom">Random</button></div>`;
-    if (ui.onlineLoading) h += `<div class="empty"><span class="spinner"></span></div>`;
-    else if (ui.onlineErr) h += `<div class="empty"><h3>Couldn't reach the recipe library</h3><p>${esc(ui.onlineErr)} Check your connection and try again.</p></div>`;
-    else if (!ui.online.length && ui.onlineSearched) h += `<div class="empty"><h3>Nothing online for that</h3><p>Make it your own way instead.</p></div><a class="btn block" href="#builder" data-act="createFrom" data-val="${esc(ui.recQuery)}">Create "${esc(ui.recQuery)}"</a>`;
-    else if (!ui.online.length) h += `<div class="empty"><h3>Hundreds of free recipes</h3><p>Pick a category or search. Recipes come from TheMealDB; anything you add to your plan is saved for offline use.</p></div>`;
-    else h += `<div class="rlist">${ui.online.map(card).join('')}</div>`;
-    h += `<p class="tiny muted">Recipe library: <a href="https://www.themealdb.com" target="_blank" rel="noopener">TheMealDB</a>.</p>`;
-    return h;
+  if (!['regular', 'mine', 'easy', 'recent'].includes(ui.recTab)) ui.recTab = 'regular';
+  const tab = ui.recTab, q = (ui.recQuery || '').toLowerCase().trim();
+  let h = `<div class="quick3"><a href="#discover" data-tour="discoverCta">${ICON.spark}<b>Discover</b><span>Swipe to teach Mise</span></a><a href="#builder" data-tour="buildCta">${ICON.pot}<b>Make a meal</b><span>Say what you fancy</span></a><a href="#add" data-act="newRecipe" data-tour="addRecipe"><span style="font:700 22px var(--display)">+</span><b>Add yours</b><span>Type, link, photo</span></a></div>
+  <div class="seg" role="group" data-tour="recTabs">${[['regular', 'Regulars'], ['mine', 'Yours'], ['easy', 'Easy'], ['recent', 'Recent']].map(([k, n]) => `<button data-act="recTab" data-val="${k}" aria-pressed="${tab === k}">${n}</button>`).join('')}</div>
+  <input type="search" id="recSearch" placeholder="Search" value="${esc(ui.recQuery)}" data-in="recQuery" enterkeyhint="search">`;
+  let list = [];
+  if (tab === 'regular') list = Object.values(R).filter(r => r.regular);
+  if (tab === 'mine') list = Object.values(R).filter(r => ['mine', 'ai', 'builder'].includes(r.src) && !r.regular);
+  if (tab === 'easy') list = easyMeals();
+  if (tab === 'recent') { const seen = new Set(); const ids = (S.cookLog || []).slice().reverse().map(x => x.rid).concat(Object.entries(S.plan).sort((a, b) => b[0].localeCompare(a[0])).flatMap(([, es]) => es.map(e => e.rid))); for (const id of ids) if (id && R[id] && R[id].src === 'built' && !seen.has(id)) { seen.add(id); list.push(R[id]); } list = list.slice(0, 40); }
+  if (q) list = list.filter(r => r.title.toLowerCase().includes(q) || r.ings.some(i => i.name.toLowerCase().includes(q)));
+  if (!list.length) {
+    const msg = { regular: ['No regulars yet', 'Meals you love become regulars. Tap "Loved it" after cooking twice, or "Save as a regular" on any meal.'], mine: ['None of your own yet', 'Add family favourites: type them in, paste them, or import from a link or photo.'], easy: ['Nothing here', 'Easy oven and freezer meals show here.'], recent: ['Nothing yet', 'Plan a week and the meals Mise builds will show here.'] }[tab];
+    return h + `<div class="empty"><h3>${q ? 'No match' : msg[0]}</h3><p>${q ? 'Try Make a meal to build it.' : msg[1]}</p></div>${tab === 'mine' && !q ? '<a class="btn primary block" href="#add" data-act="newRecipe">Add a recipe</a>' : ''}${q ? `<a class="btn block" href="#builder" data-act="createFrom" data-val="${esc(ui.recQuery)}">Make "${esc(ui.recQuery)}"</a>` : ''}`;
   }
-  const q = ui.recQuery.toLowerCase().trim();
-  const mine = r => S.recipes[r.id] && !r.lib || r.src === 'mine' || r.src === 'builder' || r.src === 'ai';
-  let list;
-  const liked = r => (S.dishVotes || {})[r.id] > 0 || ((S.ratings[r.id] || {}).r || 0) >= 4;
-  const inTab = r => tab === 'all' || (tab === 'liked' ? liked(r) : mine(r));
-  if (q) list = C.searchRecipes(S, q, { includeAll: true, limit: 120 }).filter(inTab);
-  else { list = Object.values(R).filter(r => tab === 'all' ? !['Dessert', 'Starter', 'Side'].includes(r.cat) || S.recipes[r.id] : inTab(r)); list.sort((a, b) => (C.ruledOut(S, a) - C.ruledOut(S, b)) || C.prefScore(S, b) - C.prefScore(S, a) || a.title.localeCompare(b.title)); }
-  const total = list.length, more = q ? `<a class="btn block" href="#builder" data-act="createFrom" data-val="${esc(ui.recQuery)}">Create "${esc(ui.recQuery)}" in the builder</a>` : '';
-  list = list.slice(0, ui.recShow || 60);
-  const lib = C.libraryInfo();
-  if (!list.length) return h + (tab === 'liked' && !q ? `<div class="empty"><h3>Nothing liked yet</h3><p>Swipe right in Discover or rate meals 4★ and up.</p></div><a class="btn primary block" href="#discover">Start swiping</a>` : tab === 'mine' && !q ? `<div class="empty"><h3>No saved recipes yet</h3><p>Add your own, build a meal, or save one you find.</p></div>` : `<div class="empty"><h3>Nothing matches</h3><p>Try the Online tab, or make it yourself.</p></div>${more}`);
-  return h + `${tab === 'all' && !q ? `<p class="tiny muted" style="margin:0">${Object.keys(R).length} recipes${lib.count ? '' : ' · <a href="#settings">download the full library</a>'}</p>` : ''}<div class="rlist">${list.map(card).join('')}</div>${total > list.length ? `<button class="btn block" data-act="recMore">Show more (${total - list.length})</button>` : ''}${more}`;
+  return h + `<div class="rlist">${list.map(card).join('')}</div>`;
 }
 function card(r) {
   const rt = S.ratings[r.id];
@@ -183,12 +174,13 @@ function renderRecipeSheet() {
   if (lo.length) h += `<div class="tag" style="white-space:normal;padding:8px 10px;margin-bottom:8px;font-size:13px">Leave out the ${esc(lo.map(i => i.name).join(', '))}. You don't like ${lo.length > 1 ? 'them' : 'it'}.</div>`;
   if (bad.length) h += `<div class="tag ${bad.some(i => C.likeOf(S, i) <= -9) ? 'deal' : 'warn'}" style="white-space:normal;padding:8px 10px;margin-bottom:8px;font-size:13px">Contains ${esc(bad.map(i => i.name).join(', '))}, which you marked as ${bad.some(i => C.likeOf(S, i) <= -9) ? "can't eat" : "don't like"}.</div>`;
   h += `<h2>${esc(r.title)}</h2>
-  <div class="row wrap small muted" style="gap:6px;margin:6px 0 10px"><span class="tag">${(() => { const ef = C.effort(r); return ef.slow ? `${r.time} min (mostly hands-off)` : `≈ ${ef.total} min all in`; })()}</span>${C.effort(r).easy ? '<span class="tag yours">Easy</span>' : ''}${r.area ? `<span class="tag">${esc(r.area)}</span>` : ''}${r.cat && r.cat !== 'Easy' ? `<span class="tag">${esc(r.cat)}</span>` : ''}<span class="tag yours">≈ ${C.eur(cost.perServe)} a serving</span>${r.src === 'builder' ? '<span class="tag">Built by you</span>' : r.src === 'ai' ? '<span class="tag">AI recipe</span>' : r.src === 'mealdb' ? '<span class="tag">TheMealDB</span>' : ''}</div>
+  <div class="row wrap small muted" style="gap:6px;margin:6px 0 10px"><span class="tag">${(() => { const ef = C.effort(r); return ef.slow ? `${r.time} min (mostly hands-off)` : `≈ ${ef.total} min all in`; })()}</span>${C.effort(r).easy ? '<span class="tag yours">Easy</span>' : ''}${r.area ? `<span class="tag">${esc(r.area)}</span>` : ''}${r.cat && r.cat !== 'Easy' && r.cat !== 'Built' ? `<span class="tag">${esc(r.cat)}</span>` : ''}<span class="tag yours">≈ ${C.eur(cost.perServe)} a serving</span>${r.src === 'builder' ? '<span class="tag">Built by you</span>' : r.src === 'ai' ? '<span class="tag">AI recipe</span>' : r.src === 'mealdb' ? '<span class="tag">TheMealDB</span>' : ''}</div>
   ${(() => { if (r.stub) return ''; const w = C.whyRecipe(S, r); return w.length ? `<div class="why">${w.map(([v, t]) => `<span class="${v < 0 ? 'neg' : ''}">${v < 0 ? '−' : '+'} ${esc(t)}</span>`).join('')}</div>` : ''; })()}
   ${(() => { if (r.stub || !S.settings.health) return ''; const n = M.nutrition(S, r, serves); return n ? `<div class="small muted" style="margin:-4px 0 8px">≈ ${n.kcal} kcal · ${n.protein} g protein a serving</div>` : ''; })()}
   ${(() => { if (r.stub) return ''; const tp = M.tipsFor(S, r, ctx && ctx.date); return tp.map(t => `<div class="tag" style="white-space:normal;display:block;margin-bottom:6px;font-size:13px">${esc(t)}</div>`).join(''); })()}
+  ${r.src === 'built' && r.spec ? builtExtras(r, ctx) : ''}
   <div class="row between" data-tour="servings"><div class="stepper"><button data-act="sheetServes" data-val="-1" aria-label="Fewer servings">−</button><span>${serves}</span><button data-act="sheetServes" data-val="1" aria-label="More servings">+</button></div><span class="small muted">servings · ${C.eur(cost.total)} total</span></div>`;
-  if (!r.stub && !(entry && entry.leftover)) { const hh = S.settings.household || 2, b = C.isBatch(S, r), extra = serves - hh;
+  if (!r.stub && r.src !== 'built' && !(entry && entry.leftover)) { const hh = S.settings.household || 2, b = C.isBatch(S, r), extra = serves - hh;
     h += `<div class="row between" style="margin-top:8px"><span class="small">${b ? (extra >= hh ? `<b>Batch cook.</b> ${Math.floor(extra / hh)} more night${extra >= 2 * hh ? 's' : ''} of leftovers${extra % hh ? ` + ${extra % hh} portion${extra % hh > 1 ? 's' : ''} spare` : ''}` : extra > 0 ? `<b>Batch cook.</b> ${extra} portion${extra > 1 ? 's' : ''} spare` : '<b>Batch cook.</b> Raise servings for leftovers') : 'Always cook the full batch?'}</span><button class="chip" data-act="toggleBatch" aria-pressed="${b}">${b ? 'On' : 'Off'}</button></div>`; }
   if (entry && !entry.leftover && (S.people || []).length) { const ids = M.eaters(S, ctx.date); h += `<div class="small muted" style="font-weight:700;margin-top:10px">Who's eating?</div><div class="chips wrap">${M.people(S).map(p => `<button class="chip" data-act="whoToggle" data-key="${p.id}" aria-pressed="${ids.includes(p.id)}">${esc(p.name)}</button>`).join('')}</div>`; }
   if (entry && entry.leftover) h += `<p class="small muted" style="margin-top:12px">Leftovers from ${fmtDay(entry.leftover)}. Nothing extra on your list.</p><div class="row"><button class="btn grow" data-act="freezeLeft" data-date="${ctx.date}" data-idx="${ctx.idx}">Freeze it instead</button><button class="btn" data-act="swap" data-date="${ctx.date}" data-idx="${ctx.idx}">Cook something else</button></div>`;
@@ -197,7 +189,7 @@ function renderRecipeSheet() {
   h += `<h3 style="margin:16px 0 0">Ingredients</h3><p class="tiny muted" style="margin:2px 0 4px">Tap one to like, dislike or swap it</p><ul class="ings" data-tour="ings">${r.ings.map((i, idx) => { const it = ITEM[i.item]; const b = it ? C.toBase(i.q * f, i.u, it) : null; const have = it && C.pantryQty(S, it.id) >= (b || 1) * 0.75; const lk = C.likeOf(S, i), pk = i.prep && S.likes[C.prepKey(i)] != null; return `<li class="${have ? 'have' : ''}" data-act="ingMenu" data-idx="${idx}" style="cursor:pointer"><span class="q">${esc(fmtIng(i.q * f, i.u))}</span><span class="grow">${(() => { const sb = C.subOf(S, i); return sb ? (sb.skip ? `<s class="muted">${esc(i.name)}</s> <span class="tiny muted">left out</span>` : `${esc(sb.name)} <span class="tiny muted">instead of ${esc(i.name)}</span>`) : esc(i.name); })()}${it && it.staple ? ' <span class="tiny muted">(cupboard)</span>' : ''}${C.notAt(S, i) && !C.subOf(S, i) ? ` <span class="tiny" style="color:var(--hot)">not at ${esc(S.settings.defaultShop)}</span>` : ''}</span>${lk <= -9 ? '<span class="tag deal">can\'t eat</span>' : lk < 0 ? `<span class="tag ${pk && C.prepAlt(i) ? 'yours' : 'warn'}">${pk ? (C.prepAlt(i) ? 'swapped' : 'not ' + C.PREP_NAMES[i.prep]) : 'don\'t like'}</span>` : lk > 0 ? `<span class="tag yours">love${pk ? ' ' + C.PREP_NAMES[i.prep] : ''}</span>` : ''}</li>`; }).join('')}</ul>
   <h3 style="margin:16px 0 8px">Method</h3><ol class="steps">${r.steps.map(st => { const n = sw.find(i => { const re = (C.PREPS.find(p => p[0] === i.prep) || [])[1]; return re && re.test(st.toLowerCase()); }); return `<li>${esc(st)}${n ? `<div class="tag yours" style="white-space:normal;display:block;margin-top:4px">Swap: ${esc(C.prepAlt(n)[1])}</div>` : ''}</li>`; }).join('')}</ol>
   <h3 style="margin:16px 0 4px">Your rating</h3><div data-tour="rating">${stars(rt.r || 0, 'rateSheet', r.id)}</div>
-  <div class="row wrap" style="margin-top:14px"><label class="btn" for="recipePhoto">${S.photos[r.id] ? 'Change photo' : 'Add your photo'}</label><input type="file" id="recipePhoto" accept="image/*" hidden data-change="recipePhoto">${S.photos[r.id] ? '<button class="btn" data-act="removePhoto">Remove photo</button>' : ''}${!saved ? `<button class="btn" data-act="saveRecipe">Save to my recipes</button>` : ''}${saved && !String(r.id).startsWith('b:') && r.src !== 'mealdb' ? `<button class="btn" data-act="editRecipe" data-key="${esc(r.id)}">Edit</button>` : ''}${String(r.id).startsWith('b:') ? `<button class="btn" data-act="editRecipe" data-key="${esc(r.id)}">Edit a copy</button>` : ''}${r.src !== 'builtin' && saved && !String(r.id).startsWith('b:') ? `<button class="btn" data-act="deleteRecipe" data-key="${esc(r.id)}">Delete</button>` : ''}${r.stub ? '' : '<button class="btn" data-act="cookFromSheet">Cook mode</button><button class="btn" data-act="shareRecipe">Share</button>'}${r.url ? `<a class="btn ghost" href="${esc(r.url)}" target="_blank" rel="noopener">Original source</a>` : ''}${r.video ? `<a class="btn ghost" href="${esc(r.video)}" target="_blank" rel="noopener">Video</a>` : ''}</div>`;
+  <div class="row wrap" style="margin-top:14px"><label class="btn" for="recipePhoto">${S.photos[r.id] ? 'Change photo' : 'Add your photo'}</label><input type="file" id="recipePhoto" accept="image/*" hidden data-change="recipePhoto">${S.photos[r.id] ? '<button class="btn" data-act="removePhoto">Remove photo</button>' : ''}${!saved ? `<button class="btn" data-act="saveRecipe">Save to my recipes</button>` : ''}${saved && !String(r.id).startsWith('b:') && r.src !== 'mealdb' ? `<button class="btn" data-act="editRecipe" data-key="${esc(r.id)}">Edit</button>` : ''}${String(r.id).startsWith('b:') ? `<button class="btn" data-act="editRecipe" data-key="${esc(r.id)}">Edit a copy</button>` : ''}${r.src !== 'builtin' && saved && !String(r.id).startsWith('b:') ? `<button class="btn" data-act="deleteRecipe" data-key="${esc(r.id)}">Delete</button>` : ''}${r.stub ? '' : '<button class="btn" data-act="cookFromSheet">Cook mode</button><button class="btn" data-act="shareRecipe">Share</button>'}${r.src === 'built' ? `<button class="btn" data-act="makeRegular">${r.regular ? 'One of your regulars ✓' : 'Save as a regular'}</button>` : ''}${r.url ? `<a class="btn ghost" href="${esc(r.url)}" target="_blank" rel="noopener">Original source</a>` : ''}${r.video ? `<a class="btn ghost" href="${esc(r.video)}" target="_blank" rel="noopener">Video</a>` : ''}</div>`;
   setSheet(h);
 }
 
@@ -219,14 +211,14 @@ function pickerSheet(date) {
   renderPicker();
 }
 function renderPicker(keepFocus) {
-  const q = (ui.pickQuery || '').toLowerCase();
-  const all = Object.values(R).filter(r => !['Dessert', 'Starter', 'Side'].includes(r.cat) && !C.ruledOut(S, r));
-  let list;
-  if (q) list = C.searchRecipes(S, q).filter(r => !C.ruledOut(S, r));
-  else { const can = C.whatCanIMake(S).filter(x => x.cover >= 0.6).slice(0, 4).map(x => x.r.id); list = all.sort((a, b) => (can.includes(b.id) - can.includes(a.id)) || (C.prefScore(S, b) - C.prefScore(S, a))).slice(0, 30); }
-  const body = `<h2>Add a meal · ${fmtDay(ui.pickDate)}</h2><input type="search" id="pickSearch" data-in="pickQuery" placeholder="Search your recipes" value="${esc(ui.pickQuery)}" style="margin:10px 0">
-  <div class="row" style="margin-bottom:8px"><button class="btn sm grow" data-act="pickSuggest">Suggest one</button><a class="btn sm grow" href="#builder" data-act="closeSheet">Build a meal</a><button class="btn sm grow" data-act="pickOnline">Online</button></div>
-  <div class="card flat">${list.map(r => `<button class="meal" style="width:100%;border:0;background:none;cursor:pointer;color:inherit;text-align:left;border-top:1px solid var(--line)" data-act="pickRecipe" data-key="${esc(r.id)}">${thumb(r)}<div class="grow"><div class="t">${esc(r.title)}</div><div class="small muted">${C.effort(r).slow ? r.time + ' min' : '≈ ' + C.effort(r).total + ' min all in'} · ${esc(r.area || r.cat || '')}</div></div></button>`).join('') || '<div class="empty">No matches.</div>'}</div>`;
+  const q = (ui.pickQuery || '').toLowerCase().trim(), d = ui.pickDate, ctx = nightCtx(d);
+  if (!ui.pickOpts || ui.pickOptsFor !== d + '|' + q) { const p = q ? G.parseWant(S, q) : null; ui.pickOpts = G.options(S, { want: p ? p.want : {}, exclude: p ? p.exclude : undefined, serves: ctx.serves || M.servesFor(S, d), stock: G.pantryStock(S), maxTime: q ? null : ctx.maxTime, kids: ctx.kids, quick: (p && p.mods.quick) || ctx.quick, spicy: p && p.mods.spicy, vegOnly: (p && p.mods.veggie) || ctx.vegOnly, mood: (p && p.mods.mood) || ctx.mood, cheap: p && p.mods.cheap, healthy: p && p.mods.healthy }, 3); ui.pickOptsFor = d + '|' + q; }
+  const mine = yourMeals().concat(easyMeals()).filter(r => !q || r.title.toLowerCase().includes(q) || r.ings.some(i => i.name.toLowerCase().includes(q))).slice(0, 20);
+  const row = (r, act, key) => `<button class="meal" style="width:100%;border:0;background:none;cursor:pointer;color:inherit;text-align:left;border-top:1px solid var(--line)" data-act="${act}" ${key}>${thumb(r)}<div class="grow"><div class="t">${esc(r.title)}</div><div class="small muted">≈ ${C.effort(r).total} min all in${r.regular ? ' · regular' : r.cat === 'Easy' ? ' · easy' : r.src === 'mine' ? ' · yours' : ''}</div></div></button>`;
+  const body = `<h2>Add a meal · ${fmtDay(d)}</h2><input type="search" id="pickSearch" data-in="pickQuery" placeholder="What do you fancy? e.g. chicken wraps" value="${esc(ui.pickQuery)}" style="margin:10px 0">
+  <div class="small muted" style="font-weight:700">${q ? 'Made for that' : 'Ideas for this night'}</div>
+  <div class="card flat">${ui.pickOpts.map((r, i) => row(r, 'pickBuilt', `data-idx="${i}"`)).join('')}</div><button class="btn sm" data-act="pickMore">Other ideas</button>
+  ${mine.length ? `<div class="small muted" style="font-weight:700;margin-top:10px">Your meals</div><div class="card flat">${mine.map(r => row(r, 'pickRecipe', `data-key="${esc(r.id)}"`)).join('')}</div>` : ''}`;
   setSheet(body);
   if (keepFocus) { const i = $('#pickSearch'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }
 }
@@ -376,11 +368,25 @@ function showReview(rec) {
 
 /* ================= Builder ================= */
 function sel(id, obj, cur, any = 'Any') { return `<select id="${id}" data-bspec="${id.replace('b-', '')}"><option value="">${any}</option>${Object.entries(obj).map(([k, v]) => `<option value="${k}"${k === cur ? ' selected' : ''}>${esc(v.n)}</option>`).join('')}</select>`; }
+const MAKE_CHIPS = [['have', 'Use what I have'], ['quick', 'Quick'], ['comfort', 'Comfort'], ['healthy', 'Healthy'], ['cheap', 'Cheap'], ['spicy', 'Spicy'], ['veggie', 'Veggie']];
 function viewBuilder() {
-  const mode = ui.bMode || 'ideas';
-  const seg = `<div class="seg" role="group" data-tour="bMode">${[['ideas', 'Recipe ideas'], ['together', 'Throw it together']].map(([k, n]) => `<button data-act="bMode" data-val="${k}" aria-pressed="${mode === k}">${n}</button>`).join('')}</div>`;
-  if (mode === 'together') return seg + viewTogether();
-  return seg + viewBuilderIdeas();
+  const B = ui.make || (ui.make = { text: '', chips: [], res: null });
+  let h = `<div class="card" data-tour="bDesc"><textarea id="makeText" placeholder="What do you fancy? e.g. chicken and rice, something creamy, beef tacos, salmon no mushrooms" style="min-height:76px">${esc(B.text)}</textarea>
+    <div class="chips wrap">${MAKE_CHIPS.map(([k, n]) => `<button class="chip" data-act="makeChip" data-val="${k}" aria-pressed="${B.chips.includes(k)}">${n}</button>`).join('')}</div>
+    <div class="row" data-tour="bGo"><button class="btn primary grow" data-act="makeGo">Show me</button><button class="btn" data-act="makeSurprise">Surprise me</button></div></div>`;
+  if (B.res) h += B.res.length ? B.res.map((r, k) => { const like = G.likeThis(S, r), c = C.recipeCost(S, r, r.serves), why = C.whyRecipe(S, r).filter(w => w[0] > 0).slice(0, 2);
+    return `<div class="card fs"><button class="mealbtn" data-act="makeOpen" data-idx="${k}" style="width:100%"><div class="grow"><div class="eyebrow">${esc(G.METHODS[r.spec.method].n)} · ≈ ${C.effort(r).total} min all in · ${C.eur(c.perServe)} each</div><h3 style="margin:2px 0 0;white-space:normal">${esc(r.title)}</h3>${like ? `<div class="tiny muted">Like the ${esc(like)} you liked</div>` : ''}</div></button>
+      <p class="small muted" style="margin:0">${esc(r.ings.filter(i => i.u !== 'taste' && !(ITEM[i.item] || {}).staple).slice(0, 6).map(i => i.name).join(' · '))}</p>${why.length ? `<div class="why" style="margin:0">${why.map(w => `<span>+ ${esc(w[1])}</span>`).join('')}</div>` : ''}
+      <div class="row"><button class="btn primary grow" data-act="makeTonight" data-idx="${k}">Tonight</button><button class="btn grow" data-act="makeOpen" data-idx="${k}">See it / pick a day</button></div></div>`; }).join('') + '<button class="btn block" data-act="makeGo">Show me others</button>'
+    : `<div class="empty"><h3>Couldn't make that work</h3><p>Try fewer conditions, or check your dislikes in Your tastes.</p></div>`;
+  return h;
+}
+function makeRun(surprise) {
+  const B = ui.make, p = G.parseWant(S, B.text || ''), ch = B.chips, t = C.today();
+  const stock = G.pantryStock(S), ctx = nightCtx(t);
+  const opts = { want: p.want, exclude: p.exclude, serves: M.servesFor(S, t), stock, quick: p.mods.quick || ch.includes('quick'), cheap: p.mods.cheap || ch.includes('cheap'), healthy: p.mods.healthy || ch.includes('healthy'), spicy: p.mods.spicy || ch.includes('spicy'), vegOnly: p.mods.veggie || ch.includes('veggie'), mood: p.mods.mood || (ch.includes('comfort') ? 'comfort' : null), kids: ctx.kids, onlyStockMains: ch.includes('have') && [...stock.keys()].some(id => G.MAINS[id]), noise: surprise ? 4 : 1.4, allowSlow: true };
+  if (ch.includes('have')) opts.priority = 'save';
+  B.res = G.options(S, opts, 3);
 }
 function viewTogether() {
   const T = ui.together || (ui.together = { sel: S.pantry.filter(p => p.item && ITEM[p.item] && !ITEM[p.item].staple && ['veg', 'meat', 'fish', 'dairy', 'pantry', 'bakery', 'chilled'].includes(ITEM[p.item].cat) && (!p.exp || C.daysBetween(C.today(), p.exp) >= 0)).sort((a, b) => (a.exp || '9').localeCompare(b.exp || '9')).map(p => p.item).filter((v, i, a) => a.indexOf(v) === i).slice(0, 8), ideas: null });
@@ -589,10 +595,11 @@ const A = {
   uncook: el => { const e = S.plan[el.dataset.date][+el.dataset.idx]; e.cooked = false; save(); closeSheet(); render(); },
   swap: el => {
     const d = el.dataset.date, i = +el.dataset.idx, e = S.plan[d][i]; const old = R[e.rid];
-    S.plan[d].splice(i, 1); if (e.leftover) { save(); closeSheet(false, () => { ui.sheetServes = null; openSheet(''); pickerSheet(d); }); return; } C.clearLeftovers(S, d, e.rid); C.markSkipped(S, e.rid, old);
-    const p = keepSuggestion(C.suggestWeek(S, [d]).find(x => x.rid !== e.rid));
-    if (p) S.plan[d].splice(i, 0, { rid: p.rid, serves: e.serves });
-    save(); closeSheet(); render(); toast(p ? `Swapped for ${R[p.rid].title}` : 'Removed');
+    if (!e.leftover) { C.clearLeftovers(S, d, e.rid); if (old) C.markSkipped(S, e.rid, old); }
+    const ctx = nightCtx(d); const opts = G.options(S, { serves: e.serves, stock: G.pantryStock(S), maxTime: ctx.maxTime, kids: ctx.kids, quick: ctx.quick, noise: 2 }, 3).filter(x => x.id !== e.rid && !(old && old.spec && x.spec.kit === old.spec.kit));
+    const nw = opts[0] ? saveBuilt(opts[0]) : null;
+    if (nw) { S.plan[d][i] = { rid: nw.id, serves: e.serves }; if (old && old.spec) G.learnSwap(S, 'kit', old.spec.kit, null); } else S.plan[d].splice(i, 1);
+    save(); closeSheet(); render(); toast(nw ? `Swapped for ${nw.title}` : 'Removed');
   },
   freezeLeft: el => { const d = el.dataset.date, [e] = S.plan[d].splice(+el.dataset.idx, 1); const r = R[e.rid]; M.addFreezer(S, e.rid, r ? r.title : 'Leftovers', e.serves); const L = M.learn(S); L.leftFrozen = (L.leftFrozen || 0) + 1; save(); closeSheet(); render(); toast('In the freezer. It will show up on a busy night.'); },
   removeMeal: el => { const d = el.dataset.date, [e] = S.plan[d].splice(+el.dataset.idx, 1); if (e && !e.leftover) C.clearLeftovers(S, d, e.rid); save(); closeSheet(); render(); },
@@ -624,7 +631,7 @@ const A = {
   addUsual: el => { const it = ITEM[el.dataset.key]; S.list.extras.push({ item: it.id, name: it.n, qty: it.packs[0] }); save(); render(); toast(`${it.n} added`); },
   pantryTab: el => { ui.pantryTab = el.dataset.val; render(); },
   freezerDel: el => { S.freezer = M.freezer(S).filter(f => f.id !== el.dataset.key); save(); render(); },
-  togetherGo: () => { ui.bMode = 'together'; ui.together = null; location.hash = 'builder'; },
+  togetherGo: () => { ui.make = { text: '', chips: ['have'], res: null }; makeRun(false); location.hash = 'builder'; },
   snapFridge: () => { if (S.settings.ai !== 'puter') { openSheet(`<h2>Snap your fridge</h2><p class="muted">This uses free AI (Puter) to spot what's in the photo and add it to your pantry. You sign in to a free Puter account once.</p><div class="row"><button class="btn grow" data-act="closeSheet">Not now</button><button class="btn primary grow" data-act="fridgeEnable">Turn on AI</button></div>`); return; } $('#fridgePhoto').click(); },
   fridgeEnable: () => { S.settings.ai = 'puter'; save(); closeSheet(false, () => { const f = $('#fridgePhoto'); if (f) f.click(); }); },
   fridgeAdd: () => { let n = 0; for (const [k, x] of (ui.fridge || []).entries()) { if (!$('#fr' + k) || !$('#fr' + k).checked) continue; const it = ITEM[x.item]; C.addPantry(S, x.item || null, it ? (x.unit === it.u ? x.qty : it.packs[0] * (x.qty || 1)) : x.qty, it ? it.n : x.name); n++; } save(); closeSheet(false, () => render()); toast(`Added ${n} thing${n !== 1 ? 's' : ''}`); },
@@ -780,15 +787,14 @@ const A = {
   moodGoDirect: el => { openSheet(''); A.moodGo(el); },
   moodGo: el => {
     const m = el.dataset.val;
-    if (m === 'fridge') { ui.bMode = 'together'; ui.together = null; closeSheet(false, () => { location.hash = 'builder'; }); return; }
     if (m === 'takeaway') { const t = C.today(), es = (S.plan[t] || []).filter(e => !e.cooked); S.plan[t] = (S.plan[t] || []).filter(e => e.cooked); let moved = null; for (const d of C.weekDates(0).filter(d => d > t)) if (!(S.plan[d] || []).length && M.cooksOn(S, d) && es.length) { S.plan[d] = es; moved = d; break; } save(); closeSheet(false, () => render()); toast(moved ? `Enjoy! Moved tonight's dinner to ${fmtDay(moved)}.` : 'Enjoy your takeaway!'); return; }
     const opts = moodOptions(m); ui.moodOpts = opts;
     setSheet(`<h2>${esc(MOODS.find(x => x[0] === m)[1])}</h2><div class="card flat">${opts.map(r => `<button class="meal" style="width:100%;border:0;background:none;cursor:pointer;color:inherit;text-align:left;border-top:1px solid var(--line)" data-act="moodTake" data-key="${esc(r.id)}">${thumb(r)}<div class="grow"><div class="t">${esc(r.title)}</div><div class="small muted">${C.effort(r).slow ? r.time + ' min' : '≈ ' + C.effort(r).total + ' min all in'}${C.whyRecipe(S, r).filter(w => w[0] > 0)[0] ? ' · ' + esc(C.whyRecipe(S, r).filter(w => w[0] > 0)[0][1]) : ''}</div></div></button>`).join('')}</div><div class="row"><button class="btn grow" data-act="moodGo" data-val="${m}">Show others</button><button class="btn grow" data-act="mood">Back</button></div>`);
   },
-  moodTake: el => { const r = (ui.moodOpts || []).find(x => x.id === el.dataset.key) || R[el.dataset.key]; setTonight(r.id, r); closeSheet(false, () => render()); toast(`Tonight: ${r.title}`); },
+  moodTake: el => { const r = (ui.moodOpts || []).find(x => x.id === el.dataset.key) || R[el.dataset.key]; saveBuilt(r); setTonight(r.id, r); closeSheet(false, () => render()); toast(`Tonight: ${r.title}`); },
   freezerPick: () => { const fz = M.freezer(S); setSheetOrOpen(`<h2>From the freezer</h2><div class="card flat">${fz.map(f => `<button class="pi" style="width:100%;border:0;background:none;text-align:left;cursor:pointer;color:inherit" data-act="freezerUse" data-key="${f.id}"><div class="grow"><b>${esc(f.title)}</b><div class="tiny muted">${f.portions} portion${f.portions > 1 ? 's' : ''} · frozen ${M.freezerAge(f)} days ago${M.freezerAge(f) > 90 ? ' · eat soon' : ''}</div></div><span class="small muted">Tonight ›</span></button>`).join('')}</div>`); },
   freezerUse: el => { const f = M.freezer(S).find(x => x.id === el.dataset.key); if (!f) return; const t = C.today(), sv = Math.min(f.portions, M.servesFor(S, t)); M.takeFreezer(S, f.id, sv); S.plan[t] = (S.plan[t] || []).filter(e => e.cooked); S.plan[t].push({ rid: f.rid, serves: sv, fromFreezer: f.id }); save(); closeSheet(false, () => render()); toast(`Tonight: ${f.title} from the freezer`); },
-  planWeek: () => weekCheckSheet(),
+  planWeek: () => { location.hash = 'week'; },
   planMore: () => planMoreSheet(),
   goRhythm: () => { ui.scrollTo = 'sRhythm'; closeSheet(false, () => { location.hash = 'settings'; }); },
   wcPace: el => { const W = S.weekCheck[M.weekKey(C.weekDates(ui.weekOffset)[0])]; W.pace = el.dataset.val; save(); weekCheckSheetKeep(); },
@@ -810,7 +816,36 @@ const A = {
   reactChip: el => { const k = ui.react, c = el.dataset.val; k.chips = k.chips.includes(c) ? k.chips.filter(x => x !== c) : [...k.chips, c]; renderReaction(); },
   reactSkip: () => closeSheet(),
   reactSave: () => { const k = ui.react; const fz = $('#reactFreeze'); if (fz && fz.checked && k.spare > 0) { M.addFreezer(S, k.r.id, k.r.title, k.spare); if (k.e) k.e.serves -= 0; }
-    M.applyReaction(S, k.r, k.v, k.chips); save(); closeSheet(); render(); toast(k.v === 'love' ? "Noted. It'll come round again." : k.v === 'never' ? "Got it. You won't see it again." : 'Thanks, noted.'); },
+    M.applyReaction(S, k.r, k.v, k.chips); if (k.r.spec) { if (G.learnReaction(S, k.r.spec, k.v) && S.recipes[k.r.id] && !S.recipes[k.r.id].regular) { S.recipes[k.r.id].regular = true; refreshRecipes(); setTimeout(() => toast('Loved it twice, so it\'s now one of your regulars'), 1800); } } save(); closeSheet(); render(); toast(k.v === 'love' ? "Noted. It'll come round again." : k.v === 'never' ? "Got it. You won't see it again." : 'Thanks, noted.'); },
+  bkAddId: id => { const wk = M.weekKey(C.weekDates(ui.weekOffset)[0]); const bk = S.baskets[wk]; const ex = bk.find(b => b.item === id); if (ex) ex.packs++; else bk.push({ item: id, packs: 1 }); save(); const y = scrollY; render(); scrollTo(0, y); },
+  bkQuick: el => A.bkAddId(el.dataset.key),
+  bkPacks: el => { const wk = M.weekKey(C.weekDates(ui.weekOffset)[0]); const bk = S.baskets[wk], i = +el.dataset.idx; bk[i].packs += +el.dataset.val; if (bk[i].packs <= 0) bk.splice(i, 1); save(); const y = scrollY; render(); scrollTo(0, y); },
+  wkPace: el => { S.weekCheck[M.weekKey(C.weekDates(ui.weekOffset)[0])].pace = el.dataset.val; save(); const y = scrollY; render(); scrollTo(0, y); },
+  wkPriority: el => { S.settings.priority = el.dataset.val; save(); const y = scrollY; render(); scrollTo(0, y); },
+  wkGuest: el => { const W = S.weekCheck[M.weekKey(C.weekDates(ui.weekOffset)[0])], d = el.dataset.date; W.guests[d] = ((W.guests[d] || 0) + 1) % 5; if (!W.guests[d]) delete W.guests[d]; save(); const y = scrollY; render(); scrollTo(0, y); },
+  wkAway: el => { const W = S.weekCheck[M.weekKey(C.weekDates(ui.weekOffset)[0])], k = el.dataset.key; W.away = W.away.includes(k) ? W.away.filter(x => x !== k) : [...W.away, k]; save(); const y = scrollY; render(); scrollTo(0, y); },
+  buildWeek: el => buildWeekNow(el.dataset.val === 'auto'),
+  swapPart: el => {
+    const r = ui.sheetRecipe, part = el.dataset.val; ui.swapPartName = part;
+    const alts = G.alternatives(S, r.spec, part, { stock: G.pantryStock(S) }).map(sp => G.buildMeal(S, sp, r.serves)).filter((x, i, a) => x.id !== r.id && a.findIndex(y => y.id === x.id) === i).slice(0, 5); ui.swapAlts = alts;
+    setSheet(`<h2>Swap the ${({ main: 'main', kit: 'flavour', base: 'base', veg: 'veg', method: 'way it\'s cooked' })[part]}</h2><div class="card flat">${alts.map((x, i) => `<button class="pi" style="width:100%;border:0;background:none;text-align:left;cursor:pointer;color:inherit" data-act="swapPick" data-idx="${i}"><div class="grow"><b>${esc(x.title)}</b><div class="tiny muted">≈ ${C.effort(x).total} min all in · ${esc(x.ings.filter(i2 => i2.u !== 'taste' && !(ITEM[i2.item] || {}).staple).slice(0, 5).map(i2 => i2.name).join(', '))}</div></div><span class="small muted">›</span></button>`).join('') || '<p class="small muted">Nothing else fits with the rest of this meal.</p>'}</div><button class="btn block" data-act="backToRecipe">Back</button>`);
+  },
+  swapPick: el => {
+    const old = ui.sheetRecipe, nw = saveBuilt(ui.swapAlts[+el.dataset.idx]), part = ui.swapPartName, ctx = ui.sheetCtx;
+    G.learnSwap(S, part, part === 'veg' ? old.spec.veg : old.spec[part], part === 'veg' ? nw.spec.veg : nw.spec[part]);
+    if (ctx && S.plan[ctx.date] && S.plan[ctx.date][ctx.idx]) { const e = S.plan[ctx.date][ctx.idx]; for (const x of Object.values(S.plan)) for (const y of x) if (y.leftover === ctx.date && y.rid === e.rid) y.rid = nw.id; e.rid = nw.id; }
+    save(); render(); ui.sheetServes = null; openRecipe(nw.id, ctx); toast('Swapped. Mise will remember you prefer that.');
+  },
+  makeRegular: () => { const r = ui.sheetRecipe; if (!S.recipes[r.id]) S.recipes[r.id] = r; S.recipes[r.id].regular = !S.recipes[r.id].regular; refreshRecipes(); save(); ui.sheetRecipe = R[r.id]; renderRecipeSheet(); toast(S.recipes[r.id].regular ? 'Added to your regulars' : 'Removed from regulars'); },
+  makeChip: el => { const B = ui.make, k = el.dataset.val; B.chips = B.chips.includes(k) ? B.chips.filter(x => x !== k) : [...B.chips, k]; render(); },
+  makeGo: () => { const t = $('#makeText'); if (t) ui.make.text = t.value; makeRun(false); render(); setTimeout(() => { const c = $('.card.fs'); if (c) c.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 30); },
+  makeSurprise: () => { ui.make.text = ''; ui.make.chips = ui.make.chips.filter(x => x === 'have'); makeRun(true); render(); },
+  makeOpen: el => openRecipeObj(ui.make.res[+el.dataset.idx]),
+  makeTonight: el => { const r = saveBuilt(ui.make.res[+el.dataset.idx]); setTonight(r.id, r); toast('Tonight: ' + r.title); location.hash = 'plan'; },
+  discMake: () => { const r = ui.disc.deck[ui.disc.i]; if (!r) return; const p = G.guessParts(r); const res = G.options(S, { want: { kit: p.kit || undefined, main: p.main && G.MAINS[p.main] ? p.main : undefined, method: p.method || undefined }, serves: M.servesFor(S, C.today()), stock: G.pantryStock(S) }, 3); ui.make = { text: '', chips: [], res };
+    openSheet(`<h2>Your way</h2><p class="small muted">Built from what you like about ${esc(r.title)}, using things you can get easily.</p><div class="card flat">${res.map((x, k) => `<button class="pi" style="width:100%;border:0;background:none;text-align:left;cursor:pointer;color:inherit" data-act="makeOpen" data-idx="${k}"><div class="grow"><b>${esc(x.title)}</b><div class="tiny muted">≈ ${C.effort(x).total} min all in</div></div><span class="small muted">›</span></button>`).join('')}</div>`); },
+  pickBuilt: el => { const r = saveBuilt(ui.pickOpts[+el.dataset.idx]); ui.sheetServes = null; addToPlan(r.id, ui.pickDate, r); closeSheet(); render(); toast('Added to ' + fmtDay(ui.pickDate)); },
+  pickMore: () => { ui.pickOpts = null; renderPicker(); },
   newRecipe: () => { ui.editDraft = null; if (location.hash !== '#add') location.hash = 'add'; else render(true); },
   editRecipe: el => {
     const r = R[el.dataset.key]; if (!r) return; const copy = String(r.id).startsWith('b:');
@@ -878,7 +913,7 @@ async function fillAutoImages() {
     for (const d of C.weekDates(ui.weekOffset)) for (const e of (S.plan[d] || [])) want.push(e.rid);
     if (ui.route === 'recipes') want.push(...Object.keys(R));
     if (ui.route === 'discover' && ui.disc) want.unshift(...ui.disc.deck.slice(ui.disc.i, ui.disc.i + 4).map(r => r.id).filter(id => R[id]));
-    for (const id of [...new Set(want)].slice(0, 30)) { const r = R[id]; if (!r || C.photoOf(S, r) || S.autoImg[id] !== undefined) continue; S.autoImg[id] = await C.autoImageFor(S, r); if (S.autoImg[id]) changed = true; }
+    for (const id of [...new Set(want)].slice(0, 30)) { const r = R[id]; if (!r || r.src === 'built' || r.src === 'freestyle' || C.photoOf(S, r) || S.autoImg[id] !== undefined) continue; S.autoImg[id] = await C.autoImageFor(S, r); if (S.autoImg[id]) changed = true; }
   } catch (e) { /* offline or blocked */ }
   autoBusy = false; if (changed) { save(); if (!ui.tour && ['plan', 'recipes', 'discover'].includes(ui.route)) render(); }
 }
@@ -923,6 +958,7 @@ document.addEventListener('submit', ev => {
   if (f === 'addExtra') { const v = $('#extraName').value.trim(); if (!v) return; const id = itemByName(v); S.list.extras.push({ item: id, name: id ? ITEM[id].n : v }); save(); render(); toast(`${id ? ITEM[id].n : v} added`); const i = $('#extraName'); if (i) i.focus(); }
   if (f === 'addPantry') { const v = $('#pantryName').value.trim(); if (!v) return; const id = itemByName(v); C.addPantry(S, id, id ? ITEM[id].packs[0] : 1, id ? ITEM[id].n : v); save(); render(); toast('Added to pantry'); const i = $('#pantryName'); if (i) i.focus(); }
   if (f === 'fixPrice') { const r = ui.menuRow, v = parseFloat($('#fixPriceIn').value); if (!(v > 0)) return; S.prices.push({ item: r.item, shop: S.settings.defaultShop, price: v, qty: r.size || ITEM[r.item].packs[0], date: C.today(), src: 'manual' }); save(); closeSheet(false, () => render()); toast('Price saved. Mise will use it from now on.'); return; }
+  if (f === 'bkAdd') { const v = $('#bkName').value.trim(); const id = v && itemByName(v); if (!id) { toast("Mise doesn't know that one. Try a simpler name."); return; } A.bkAddId(id); return; }
   if (f === 'tgAdd') { const v = $('#tgName').value.trim(); const id = v && itemByName(v); if (!id) { toast("Mise doesn't know that one"); return; } const T = ui.together; if (!T.sel.includes(id)) T.sel.push(id); T.ideas = null; render(); return; }
   if (f === 'pLike') { const v = $('#pLikeName').value.trim(); if (!v) return; const id = itemByName(v), p = ui.person; p.name = $('#pName').value; p.likes = p.likes || {}; p.likes[id || 'x:' + v.toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').trim()] = -1; personSheet(p); return; }
   if (f === 'addLike') { const v = $('#likeName').value.trim(); if (!v) return; const id = itemByName(v), pr = $('#likePrep') ? $('#likePrep').value : ''; S.likes[(id || 'x:' + v.toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').trim()) + (pr ? ':' + pr : '')] = +$('#likeVal').value; save(); render(); toast('Saved'); }
@@ -966,7 +1002,7 @@ function ensureMeals() {
   const dates = C.weekDates(0);
   if (dates.some(d => (S.plan[d] || []).length)) return;
   ui.tourAddedPlan = true;
-  for (const p of C.suggestWeek(S, dates.slice(0, 4), M.plannerOptions(S, dates.slice(0, 4)))) { if (p.leftover) continue; keepSuggestion(p); (S.plan[p.date] = S.plan[p.date] || []).push({ rid: p.rid, serves: p.serves, wildcard: p.wildcard }); }
+  for (const p of G.planWeek(S, dates.slice(0, 4), G.suggestBasket(S, 2), { planForMe: true, night: d => nightCtx(d) }).picks) { if (p.leftover) continue; saveBuilt(p.recipe); (S.plan[p.date] = S.plan[p.date] || []).push({ rid: p.recipe.id, serves: p.serves }); }
   render();
 }
 async function openFirstMealSheet() {
@@ -981,21 +1017,23 @@ const TOUR = [
   { route: 'plan', sel: '[data-tour=tonight]', title: 'Tonight', text: 'Tonight\'s dinner, front and centre. "Start cooking" opens step-by-step cook mode with timers. "Change" lets you pick by mood: comfort food, something light, quick, or use what\'s in the fridge.' },
   { route: 'plan', sel: '[data-tour=weeknav]', title: 'Your week', text: 'Arrows move between weeks. Underneath: what the shopping should cost and where you\'re shopping.' },
   { route: 'plan', sel: '.day2', before: ensureMeals, title: 'Each night', text: 'Tap a dinner to open it, or the tick when it\'s cooked. Leftover nights and freezer meals cost nothing. (We added a few examples for the tour.)' },
-  { route: 'plan', sel: '[data-tour=suggest]', title: 'Plan my week', text: 'Mise asks what the week is like (busy? guests?) and fills it: your tastes, your shop, leftovers planned in, and meals that share ingredients so less gets binned.' },
+  { route: 'plan', sel: '[data-tour=suggest]', title: 'Plan my week', text: 'This is the main way to plan. Tell Mise what you\'re buying (say chicken thighs, mince and peppers) and it builds the week around it, adding only what\'s missing. Or tap "Plan it for me".' },
+  { route: 'week', sel: '[data-tour=basket]', title: 'What you\'re getting', text: 'Add the main things you\'re buying, with how many packs. What\'s already in your kitchen and freezer counts too.' },
+  { route: 'week', sel: '[data-tour=priority]', title: 'Save or vary', text: '"Save most" reuses your shop across the week with the fewest extras. "More variety" changes flavours and dishes every night. "Balanced" sits in between.' },
+  { route: 'week', sel: '[data-tour=buildWeek]', title: 'Build it', text: 'Mise fills each night to fit: your weeknight time limit, gym or easy nights, guests, kids, and leftovers from bigger cooks. Anything you buy that no meal uses still goes on the list.' },
   { route: 'plan', sel: '[data-tour=planMore]', title: 'More', text: 'Prep plan for the week, share it, change shop, set up quick or gym nights, or clear the week.' },
   { route: 'plan', sheet: true, before: openFirstMealSheet, sel: '[data-tour=servings]', title: 'Recipe details', text: 'Tapping a dinner opens this sheet. Use − and + to change servings; the ingredient amounts and your shopping list update to match. The price is an estimate for the whole meal.' },
-  { sheet: true, sel: '[data-tour=sheetActions]', title: 'Cooked, swap or remove', text: '"I cooked this" marks it done. "Swap" replaces it with another suggestion (and Mise learns you weren\'t keen). "Remove" clears the night.' },
+  { sheet: true, sel: '[data-tour=swapParts]', title: 'Swap any part', text: 'Meals are built from parts: a main, a flavour, a base, veg and a way of cooking. Swap any one and the meal rebuilds itself. Mise learns from what you swap.' },
+  { sheet: true, sel: '[data-tour=sheetActions]', title: 'Cooked, swap or remove', text: '"I cooked this" marks it done and asks how it was. Loved it twice? It becomes one of your regulars. "Swap" builds something different for that night.' },
   { sheet: true, sel: '[data-tour=ings]', title: 'Love it or hate it', text: 'Tap any ingredient to mark it "Love it", "Don\'t like it" or "Can\'t eat it". Mise then suggests those meals more, less or never, and leaves disliked items out of meals it builds. You can review them all in Settings.' },
-  { sheet: true, sel: '[data-tour=rating]', title: 'Rate it', text: 'Tap the stars any time. High ratings come round more often, low ones less, but Mise always mixes in new things so you don\'t get stuck in a rut.' },
+  { sheet: true, sel: '[data-tour=rating]', title: 'Rate it', text: 'Tap the stars any time. Your ratings and Discover swipes shape the flavours, mains and dishes Mise builds for you.' },
   { sheet: true, sel: 'label[for=recipePhoto]', title: 'Add a photo', text: 'Tap "Add your photo" to use a picture you took of your own dish. Recipes without a photo try to find one online automatically.' },
   { sheet: true, sel: '.sheet-x', title: 'Closing a sheet', text: 'Close any sheet by swiping it down, tapping the ✕, tapping the dark area above it, or pressing your phone\'s back button.' },
-  { route: 'recipes', sel: '[data-tour=recTabs]', title: 'Recipes', text: '"All" is every recipe Mise knows. "Mine" is recipes you built or saved. "Online" searches thousands of free recipes from TheMealDB by category or name.' },
-  { route: 'recipes', sel: '[data-tour=buildCta]', title: 'Create a meal', text: 'Shortcut to the Create tab, where you describe what you fancy and get recipe ideas.' },
-  { route: 'recipes', sel: '[data-tour=discoverCta]', title: 'Discover', text: 'An endless feed of dinners. Swipe right on ones you\'d eat, left on ones you wouldn\'t, tap for the recipe. Every swipe teaches Mise. Likes land in the Liked tab.' },
+  { route: 'recipes', sel: '[data-tour=recTabs]', title: 'Your meals', text: 'Regulars are built meals you loved. Yours are recipes you added. Easy is oven and freezer meals. Recent is what Mise built lately.' },
+  { route: 'recipes', sel: '[data-tour=buildCta]', title: 'Make a meal', text: 'Say what you fancy and Mise builds three options around your tastes and what you have.' },
+  { route: 'recipes', sel: '[data-tour=discoverCta]', title: 'Discover', text: 'Swipe through dishes from around the web: right if you\'d eat it, left if not. Mise doesn\'t plan these recipes; it learns the flavours and kinds of dinner you like. "My way" builds something similar from easy ingredients.' },
   { route: 'recipes', sel: '[data-tour=addRecipe]', title: 'Add your own', text: 'Type in a family favourite or paste a recipe from any website. Ingredients Mise doesn\'t know are kept as you wrote them and go on your list.' },
-  { route: 'recipes', sel: '#recSearch', title: 'Search', text: 'Search by dish or ingredient, for example "chicken" or "curry". On the Online tab, type and press Enter to search the internet library.' },
-  { route: 'recipes', sel: '.rcard', title: 'Recipe cards', text: 'Tap any card to open it. From there you can add it to a day, rate it, or save an online recipe to your own collection.' },
-  { route: 'recipes', sheet: true, before: async () => { await openRecipe('b:stirfry'); }, sel: '[data-tour=daypick]', title: 'Add it to a day', text: 'In a recipe you\'re browsing, tap a day here to add it to the week. Set servings first with − and +.' },
+  { route: 'recipes', sel: '#recSearch', title: 'Search', text: 'Search your meals by name or ingredient.' },
   { route: 'list', sel: '[data-tour=listWeek]', title: 'Shopping list', text: 'Your list is built automatically from the dinners in your plan. Switch between this week and next week here.' },
   { route: 'list', sel: '[data-tour=listTotal]', title: 'What it should cost', text: 'The estimated total against your budget. Each price is tagged: "est." is a rough guess, "yours" comes from your own receipts, "deal" from a deal you saved. Scan receipts and the estimates turn into real prices.' },
   { route: 'list', sel: '[data-tour=addExtra]', title: 'Add anything', text: 'Type anything else you need (milk, bin bags, snacks) and tap Add. Mise recognises common items and prices them too.' },
@@ -1011,15 +1049,8 @@ const TOUR = [
   { route: 'receipts', sel: '[data-tour=receiptAdd]', title: 'Scan a receipt', text: 'Pick the shop and date, then "Take a photo" of a paper receipt, "Choose screenshot" (a Lidl Plus digital receipt screenshot works best) or paste the text. The reading happens on your phone.' },
   { route: 'receipts', before: () => { ui.receiptDraft = null; render(); startDraft(SAMPLE_RECEIPT); }, sel: '[data-tour=receiptDraft]', title: 'Check the items', text: 'Mise guesses what each line is, even shop shorthand like "CHKN THIGH FLT". Fix any wrong ones with the dropdown and it remembers next time. Untick lines that aren\'t food, correct prices, then Save. (This is a sample, nothing is saved.)' },
   { route: 'receipts', sheet: true, before: () => { const d = ui.receiptDraft; ui.receiptDraft = null; render(); const lines = d ? d.lines.map(l => ({ text: l.text, item: l.item, price: l.price, qty: l.qty })) : []; const rec = { id: 'tour', shop: 'Lidl', date: C.today(), total: d && d.total || 18.92, lines }; showReview(rec); }, sel: '.roast', title: 'Your shop, reviewed', text: 'After each receipt you get an honest (and funny) review, tips to save money or waste less, and a button to build a smarter list for next week. Choose Gentle, Cheeky or Savage in Settings.' },
-  { route: 'builder', sel: '[data-tour=bMode]', title: 'Two ways to create', text: '"Recipe ideas" turns a description into proper recipes. "Throw it together" takes what you have and gives a loose method, like a stir-fry or traybake. No recipe needed.' },
-  { route: 'builder', sel: '[data-tour=bDesc]', title: 'Describe it', text: 'Say what you fancy in your own words: ingredients you want, what to avoid, how quick, how cheap.' },
-  { route: 'builder', sel: '[data-tour=bParts]', title: 'Or pick the parts', text: 'Open "Pick parts yourself" to choose the main ingredient, what it\'s served with, the flavour, veg, servings and heat.' },
-  { route: 'builder', sel: '[data-tour=bOpts]', title: 'Quick options', text: '"Use what I have" builds from your pantry. Healthier, Cheaper and Veggie steer every idea.' },
-  { route: 'builder', sel: '[data-tour=bGo]', title: 'Get ideas', text: '"Get ideas" gives four recipes built around what you typed, plus matching recipes you have and real recipes online. "Ask AI" understands anything else (free, via Puter).' },
-  { route: 'builder', before: () => { ui._tourB = ui.builder; ui._tourD = ui.bDesc; ui._tourI = ui.ideas; ui.bDesc = 'A rice dish with beef mince and onions'; A.bIdeas(); }, sel: '[data-tour=ideas]', title: 'Your ideas', text: 'Tap an idea to see the full recipe and cost. "Shuffle" gives you a fresh set.' },
-  { route: 'builder', before: () => { if (ui.ideas) A.pickIdea({ dataset: { val: 0 } }); }, sel: '[data-tour=bTweaks]', title: 'Tweak it', text: 'Not quite right? Tap Cheaper, Healthier, Spicier, Quicker, Veggie, More veg or Surprise me, as many times as you like.' },
-  { route: 'builder', sel: '[data-tour=bIngs]', title: 'Remove or swap anything', text: 'Tap any ingredient to remove it, swap it, or mark it "never". The recipe adjusts, or picks a new sauce if you remove something it depends on.' },
-  { route: 'builder', sel: '[data-tour=bSaveRow]', title: 'Keep it', text: '"Add to plan" saves it and lets you pick a night. "Save" keeps it in Recipes → Mine. Turn on AI in Settings for an extra "Ask AI" button.' },
+  { route: 'builder', sel: '[data-tour=bDesc]', title: 'Make a meal', text: 'Say what you fancy in your own words: "chicken and rice", "something creamy", "salmon, no mushrooms". The chips add quick, healthy, cheap, spicy or veggie, or "Use what I have".' },
+  { route: 'builder', before: () => { ui._tourMake = ui.make; ui.make = { text: 'chicken and rice', chips: [], res: null }; makeRun(false); }, sel: '.card.fs', title: 'Three options', text: 'Each one is built for you: your flavours, rough amounts, a loose method and the all-in time. Tap one to see it or pick a day, or "Tonight" to cook it now.', after: () => { ui.make = ui._tourMake || null; } },
   { route: 'deals', sel: '[data-tour=deal]', title: 'Deals', text: 'Save offers you spot with a price and end date. Your list uses the deal price and suggestions favour meals that use it.' },
   { route: 'insights', sel: '[data-tour=stats]', title: 'Stats', text: 'Meals cooked, money saved against takeaways, your streak, and leftovers eaten. Pick a weekly challenge below and suggestions help you hit it.' },
   { route: 'settings', sel: '[data-tour=sHouse]', title: 'Household', text: 'Add the people you cook for, with their own dislikes and diets. Kids get kid-friendly meals. Each dinner lets you pick who\'s eating.' },
@@ -1158,26 +1189,106 @@ function quizVote(v) { const q = ui.quiz; const x = q.deck[q.i]; if (q.stage ===
 
 
 
+
+/* ================= Meal engine glue ================= */
+const THEME_WANT = { taco: { want: { method: 'wraps' } }, meatfree: { vegOnly: true }, fish: { want: { main: ['salmon', 'white-fish', 'prawns'] } }, pasta: { want: { method: 'pasta' } }, curry: { want: { method: 'curry' } }, stirfry: { want: { method: 'stirfry' } }, roast: { want: { kit: 'roastgravy' } }, comfort: { mood: 'comfort' }, pizza: { easyOnly: 'easy-pizza' } };
+function nightCtx(d, W) {
+  W = W || (S.weekCheck || {})[M.weekKey(d)] || {};
+  const n = M.nightOf(S, d), wd = M.wdOf(d), pace = W.pace || 'normal', cap = S.settings.weeknightMax ?? 60;
+  if (['takeaway', 'off'].includes(n.mode)) return { skip: true };
+  const weeknight = wd < 5 && n.mode !== 'cook';
+  let maxTime = weeknight && cap ? cap - 15 : null;
+  if (n.mode === 'quick' || (pace === 'busy' && weeknight) || (M.learn(S).tired[wd] || 0) >= 2) maxTime = Math.min(maxTime || 99, 25);
+  const th = THEME_WANT[n.theme] || {};
+  return { serves: M.servesFor(S, d), maxTime, kids: M.kidsEating(S, d), protein: n.mode === 'protein', quick: n.mode === 'quick', easy: n.mode === 'easy' || !!th.easyOnly, easyOnly: th.easyOnly, allowSlow: !weeknight, leftovers: !weeknight || pace === 'busy', want: th.want, vegOnly: th.vegOnly, mood: th.mood };
+}
+const easyMeals = () => Object.values(R).filter(r => r.cat === 'Easy' && !C.ruledOut(S, r) && !C.rejectedDish(S, r));
+function easyPick(stock, only) {
+  const list = easyMeals(); if (only && R['b:' + only]) return R['b:' + only];
+  const sc = r => r.ings.filter(i => i.item && (stock.get(i.item) || 0) > 0).length * 1.5 + C.prefScore(S, r) * 0.3 + Math.random() * 2;
+  return list.sort((a, b) => sc(b) - sc(a))[0] || null;
+}
+const yourMeals = () => Object.values(R).filter(r => (r.regular || r.src === 'mine') && !C.ruledOut(S, r));
+function regularPick(ctx, stock, used, pr) {
+  const p = pr === 'variety' ? 0.08 : pr === 'save' ? 0.2 : 0.14; if (Math.random() > p) return null;
+  const cap = ctx.maxTime ? ctx.maxTime + 15 : 999;
+  const list = yourMeals().filter(r => C.effort(r).total <= cap && !(used.titles || {})[r.title] && (!ctx.kids || M.kidFriendly(S, r) || r.regular));
+  if (!list.length) return null;
+  const sc = r => r.ings.filter(i => i.item && (stock.get(i.item) || 0) > 0).length + Math.random() * 2;
+  return { recipe: list.sort((a, b) => sc(b) - sc(a))[0] };
+}
+function saveBuilt(r) { if (r && !S.recipes[r.id]) { S.recipes[r.id] = r; refreshRecipes(); } return r; }
+function pruneBuilt() {
+  const keep = new Set(Object.values(S.plan).flat().map(e => e.rid).concat((S.cookLog || []).slice(-60).map(x => x.rid)).concat(M.freezer(S).map(f => f.rid)));
+  for (const [id, r] of Object.entries(S.recipes)) if (r.src === 'built' && !r.regular && !keep.has(id)) delete S.recipes[id];
+}
+function openRecipeObj(r, ctx) { saveBuilt(r); openRecipe(r.id, ctx || null); }
+const POPULAR = ['chicken-thigh', 'chicken-breast', 'beef-mince', 'sausages', 'salmon', 'white-fish', 'prawns', 'pork-chop', 'eggs', 'chickpeas', 'halloumi', 'cooked-chicken', 'pepper', 'onion', 'broccoli', 'spinach', 'mushroom', 'carrot', 'courgette', 'frozen-veg', 'peas', 'cherry-tomato', 'rice', 'pasta', 'potato', 'wraps', 'noodles', 'couscous'];
+function viewWeek() {
+  const dates = C.weekDates(ui.weekOffset), wk = M.weekKey(dates[0]); S.baskets = S.baskets || {}; const bk = S.baskets[wk] = S.baskets[wk] || [];
+  S.weekCheck = S.weekCheck || {}; const W = S.weekCheck[wk] = S.weekCheck[wk] || { pace: 'normal', guests: {}, away: [] };
+  const have = [...new Set(S.pantry.filter(p => p.item && ITEM[p.item] && !ITEM[p.item].staple && (G.MAINS[p.item] || G.BASES[p.item] || G.VEG[p.item])).map(p => p.item))];
+  const pr = S.settings.priority || 'balanced', ppl = M.people(S).filter(p => p.id !== 'me');
+  const planned = dates.filter(d => (S.plan[d] || []).length).length;
+  return `<div class="card" data-tour="basket"><h2>What are you getting this week?</h2>
+    <p class="small muted" style="margin:0">Add the main things you're buying. Mise builds the week around them, and only adds what's missing.</p>
+    <div class="basket">${bk.length ? bk.map((b, i) => `<div class="bk"><b>${esc(ITEM[b.item].n)}</b><div class="stepper"><button data-act="bkPacks" data-idx="${i}" data-val="-1" aria-label="Less">−</button><span>${b.packs}</span><button data-act="bkPacks" data-idx="${i}" data-val="1" aria-label="More">+</button></div><span class="tiny muted">${esc(C.packLabel({ item: b.item, packs: b.packs, size: ITEM[b.item].packs[0] }))}</span></div>`).join('') : '<p class="small muted" style="margin:6px 0">Nothing yet. Tap below, or let Mise pick.</p>'}</div>
+    <form class="row" data-form="bkAdd"><input list="itemsList" id="bkName" placeholder="e.g. chicken thighs, peppers" autocomplete="off" aria-label="Add an item"><button class="btn" type="submit">Add</button></form>
+    <div class="chips wrap">${(() => { const ok = id => ITEM[id] && !bk.some(b => b.item === id) && C.likeOf(S, { item: id, name: ITEM[id].n }) > -1; const P = POPULAR.filter(ok); return P.filter(id => G.MAINS[id]).slice(0, 7).concat(P.filter(id => G.VEG[id]).slice(0, 5), P.filter(id => G.BASES[id]).slice(0, 5)); })().map(id => `<button class="chip" data-act="bkQuick" data-key="${id}">+ ${esc(ITEM[id].n)}</button>`).join('')}</div>
+    ${have.length ? `<p class="tiny muted" style="margin:0">Also using what's at home: ${esc(have.slice(0, 8).map(id => ITEM[id].n.toLowerCase()).join(', '))}${have.length > 8 ? '…' : ''}</p>` : ''}</div>
+  <div class="card" data-tour="weekpace"><h2>This week</h2>
+    <div class="seg">${[['busy', 'Busy'], ['normal', 'Normal'], ['relaxed', 'Relaxed']].map(([k, n]) => `<button data-act="wkPace" data-val="${k}" aria-pressed="${W.pace === k}">${n}</button>`).join('')}</div>
+    <div class="small muted" style="font-weight:700">Priority</div>
+    <div class="seg" data-tour="priority">${[['save', 'Save most'], ['balanced', 'Balanced'], ['variety', 'More variety']].map(([k, n]) => `<button data-act="wkPriority" data-val="${k}" aria-pressed="${pr === k}">${n}</button>`).join('')}</div>
+    <p class="tiny muted" style="margin:0">${pr === 'save' ? 'Reuses your shop across the week. Fewest extras, least waste.' : pr === 'variety' ? 'Different flavours and dishes every night. A few more extras.' : 'Mostly your shop, plenty of variety.'}</p>
+    <div class="small muted" style="font-weight:700">Guests? <span class="tiny">Tap a day to add people</span></div>
+    <div class="daypick">${dates.map(d => `<button data-act="wkGuest" data-date="${d}" aria-pressed="${!!W.guests[d]}">${DOW[M.wdOf(d)]}<span>${W.guests[d] ? '+' + W.guests[d] : '–'}</span></button>`).join('')}</div>
+    ${ppl.length ? `<div class="small muted" style="font-weight:700">Anyone away?</div><div class="chips wrap">${ppl.map(p => `<button class="chip" data-act="wkAway" data-key="${p.id}" aria-pressed="${W.away.includes(p.id)}">${esc(p.name)}</button>`).join('')}</div>` : ''}</div>
+  <div class="row" data-tour="buildWeek"><button class="btn primary grow" data-act="buildWeek"${bk.length ? '' : ' data-val="auto"'}>${bk.length ? 'Build my week' : 'Plan it for me'}</button>${bk.length ? '<button class="btn" data-act="buildWeek" data-val="auto">Plan it for me</button>' : ''}</div>
+  ${planned ? `<p class="tiny muted" style="text-align:center;margin:0">${planned} night${planned > 1 ? 's are' : ' is'} already planned and will be kept.</p>` : ''}`;
+}
+function buildWeekNow(auto) {
+  const dates = C.weekDates(ui.weekOffset), wk = M.weekKey(dates[0]), W = S.weekCheck[wk] || {}, pr = S.settings.priority || 'balanced';
+  let bk = (S.baskets[wk] || []).slice();
+  if (auto && !bk.length) { bk = G.suggestBasket(S, 3); S.baskets[wk] = bk.slice(); }
+  let todo = dates.filter(d => !(S.plan[d] || []).length && d >= C.today()); if (!todo.length) todo = dates.filter(d => !(S.plan[d] || []).length);
+  if (!todo.length) { toast('Every night is already planned.'); return; }
+  const ctxs = {}; for (const d of todo) ctxs[d] = nightCtx(d, W);
+  // freezer meals on the busiest nights first
+  let fz = 0;
+  for (const d of todo) { if (fz >= 2 || ctxs[d].skip || !(ctxs[d].maxTime && ctxs[d].maxTime <= 25)) continue; const f = M.freezer(S).sort((a, b) => a.date.localeCompare(b.date))[0]; if (!f) break; const sv = Math.min(f.portions, ctxs[d].serves); M.takeFreezer(S, f.id, sv); S.plan[d] = [{ rid: f.rid, serves: sv, fromFreezer: f.id }]; fz++; }
+  todo = todo.filter(d => !(S.plan[d] || []).length);
+  const res = G.planWeek(S, todo, bk, { priority: pr, planForMe: auto, night: d => ctxs[d] || { skip: true }, easyPick: (d, stock) => ctxs[d].easy ? easyPick(stock, ctxs[d].easyOnly) : null, regularPick: (d, stock, used) => regularPick(ctxs[d], stock, used, pr) });
+  let n = 0, lefts = 0;
+  for (const p of res.picks) { if ((S.plan[p.date] || []).length) continue; saveBuilt(p.recipe); S.plan[p.date] = [p.leftover ? { rid: p.recipe.id, serves: p.serves, leftover: p.leftover } : { rid: p.recipe.id, serves: p.serves }]; if (p.leftover) lefts++; else n++; }
+  // anything you're buying that no meal used still goes on the list
+  for (const id of res.unused) if (!S.list.extras.some(x => x.item === id)) S.list.extras.push({ item: id, name: ITEM[id].n, qty: ITEM[id].packs[0] * ((bk.find(b => b.item === id) || {}).packs || 1) });
+  save(); location.hash = 'plan';
+  setTimeout(() => toast(`Planned ${n} dinner${n !== 1 ? 's' : ''}${lefts ? ` + ${lefts} leftover night${lefts > 1 ? 's' : ''}` : ''}${fz ? ` + ${fz} from the freezer` : ''}${res.unused.length ? `. Not used: ${res.unused.map(id => ITEM[id].n.toLowerCase()).join(', ')} (still on your list)` : ''}.`), 150);
+}
+function builtExtras(r, ctx) {
+  const like = G.likeThis(S, r);
+  return `${like ? `<p class="small" style="margin:-4px 0 8px">Like the <b>${esc(like)}</b> you liked.</p>` : ''}
+  <div class="small muted" style="font-weight:700">Swap</div><div class="chips wrap" data-tour="swapParts">${[['main', 'Main'], ['kit', 'Flavour'], ['base', 'Base'], ['veg', 'Veg'], ['method', 'How it\'s cooked']].map(([k, n]) => `<button class="chip" data-act="swapPart" data-val="${k}">${n}</button>`).join('')}</div>
+  ${r.nice && r.nice.length ? `<p class="tiny muted" style="margin:6px 0 0">Nice to add if you have them: ${esc(r.nice.join(', '))}</p>` : ''}`;
+}
+
 /* ================= Tonight: mood, week check, more ================= */
 const MOODS = [['oven', 'Throw it in the oven'], ['comfort', 'Comfort food'], ['light', 'Something light'], ['quick', 'Quick, 20 minutes'], ['fridge', "Use what's in the fridge"], ['new', 'Something new'], ['surprise', 'Surprise me'], ['takeaway', 'Takeaway tonight']];
 function moodOptions(mood) {
-  const t = C.today(), base = M.plannerOptions(S, [t]), all = Object.values(R).filter(r => !['Dessert', 'Starter', 'Side', 'Breakfast'].includes(r.cat) && r.ings.length && !C.ruledOut(S, r) && !C.rejectedDish(S, r) && base.filter(r));
-  const tp = r => r.tags;
-  const sc = r => { let x = C.prefScore(S, r) * 0.4 + Math.log(base.adjust(r, t) + 0.01) + Math.log(C.familiarity(S, r) + 0.05) * (mood === 'new' ? 0.3 : 1);
-    if (mood === 'comfort') x += ['type:pie', 'type:stew', 'type:pasta', 'fl:cheesy', 'fl:creamy'].filter(y => tp(r).includes(y)).length * 1.5;
-    if (mood === 'light') x += ['type:salad', 'type:soup', 'type:stirfry'].filter(y => tp(r).includes(y)).length * 2 + (['fish', 'veg'].includes(C.proteinOf(r)) ? 1 : 0) - ['fl:creamy', 'type:fry', 'fl:cheesy', 'type:pie'].filter(y => tp(r).includes(y)).length * 2.5 - (tp(r).includes('type:pasta') ? 1 : 0);
-    if (mood === 'quick') { const ef = C.effort(r); x += ef.total <= 25 ? 3 : ef.total <= 35 ? 0.5 : -9; }
-    if (mood === 'oven') x += r.tags.includes('easy') ? 6 + r.ings.filter(i => i.item && C.pantryQty(S, i.item) > 0).length * 1.5 : C.effort(r).easy ? 0 : -9;
-    if (mood === 'new') x += (S.ratings[r.id] || {}).n ? -4 : 2;
-    if (mood === 'surprise') x = Math.random() * 3 - (C.ruledOut(S, r) ? 9 : 0);
-    const ip = r.ings.filter(i => i.item && C.pantryQty(S, i.item) > 0).length; x += ip * 0.3;
-    return x + Math.random() * 1.2; };
-  return all.map(r => [sc(r), r]).sort((a, b) => b[0] - a[0]).slice(0, 4).map(x => x[1]);
+  const t = C.today(), ctx = nightCtx(t), stock = G.pantryStock(S);
+  if (mood === 'oven') { const sc = r => r.ings.filter(i => i.item && (stock.get(i.item) || 0) > 0).length * 1.5 + C.prefScore(S, r) * 0.3 + Math.random(); return easyMeals().sort((a, b) => sc(b) - sc(a)).slice(0, 4); }
+  const base = { serves: M.servesFor(S, t), stock, kids: ctx.kids, maxTime: ctx.maxTime };
+  const o = mood === 'quick' ? { quick: true, maxTime: 20 } : mood === 'comfort' ? { mood: 'comfort' } : mood === 'light' ? { mood: 'light', healthy: true } : mood === 'new' ? { noise: 3.5, priority: 'variety' } : mood === 'surprise' ? { noise: 6 } : mood === 'fridge' ? { onlyStockMains: [...stock.keys()].some(id => G.MAINS[id]), priority: 'save' } : {};
+  const built = G.options(S, { ...base, ...o }, 3);
+  const regs = mood === 'new' || mood === 'surprise' ? [] : yourMeals().filter(r => C.effort(r).total <= (ctx.maxTime ? ctx.maxTime + 15 : 999)).sort(() => Math.random() - 0.5).slice(0, 1);
+  return built.concat(regs);
 }
 function moodSheet() {
   openSheet(`<h2>What do you fancy tonight?</h2><div class="moodgrid">${MOODS.map(([k, n]) => `<button class="btn" data-act="moodGo" data-val="${k}">${n}</button>`).join('')}${M.freezer(S).length ? '<button class="btn" data-act="freezerPick">From the freezer</button>' : ''}</div>`);
 }
 function setTonight(rid, recipe) {
+  ui.weekOffset = 0;
   const t = C.today(); S.plan[t] = (S.plan[t] || []).filter(e => e.cooked);
   if (recipe && !S.recipes[rid] && !String(rid).startsWith('b:') && !(recipe.lib)) S.recipes[rid] = recipe;
   S.plan[t].push({ rid, serves: M.servesFor(S, t) }); refreshRecipes(); save();
@@ -1302,8 +1413,8 @@ function viewDiscover() {
   const img = C.photoOf(S, r), why = C.whyRecipe(S, r).filter(w => w[0] > 0).slice(0, 2);
   return `<div class="quiz"><div class="row between small muted"><span>${D.n} swiped · ${D.likes} liked</span><a class="btn ghost sm" href="#recipes" data-act="recTab" data-val="liked">Liked</a></div>
     <div class="qstack"><div class="qcard disc" id="qcard" data-tour="discCard"><div class="qimg dish">${img ? `<img src="${esc(img)}" alt="" onerror="this.remove()">` : ''}<span>${esc(r.title[0])}</span></div><h2>${esc(r.title)}</h2><p class="small muted" style="margin:0">${esc([r.area, r.time + ' min', r.ings.length + ' ingredients'].filter(Boolean).join(' · '))}</p>${why.length ? `<div class="why" style="justify-content:center;margin:6px 0 0">${why.map(w => `<span>+ ${esc(w[1])}</span>`).join('')}</div>` : ''}<div class="qhint left">NOPE</div><div class="qhint right">YUM</div></div></div>
-    <p class="tiny muted" style="text-align:center;margin:0">Right = I'd eat that · left = no · tap for the recipe</p>
-    <div class="qbtns" data-tour="discBtns"><button class="qb no" data-act="discVote" data-val="-1" aria-label="No">${ICON.x}</button><button class="qb meh" data-act="discOpen" aria-label="See recipe">Recipe</button><button class="qb yes" data-act="discVote" data-val="1" aria-label="Yes"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg></button></div>
+    <p class="tiny muted" style="text-align:center;margin:0">Right = I'd eat that · left = no · tap to see it · "My way" builds something like it from easy ingredients</p>
+    <div class="qbtns" data-tour="discBtns"><button class="qb no" data-act="discVote" data-val="-1" aria-label="No">${ICON.x}</button><button class="qb meh" data-act="discMake" aria-label="Make it my way">My way</button><button class="qb yes" data-act="discVote" data-val="1" aria-label="Yes"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg></button></div>
     ${D.i ? '<button class="btn ghost sm" data-act="discUndo" style="align-self:center">Undo last</button>' : ''}</div>`;
 }
 function discVote(v) {
@@ -1328,7 +1439,7 @@ function viewAdd() {
 function fillDraftFrom(r) { const e = ui.editDraft; e.title = r.title; e.serves = r.serves; e.time = r.time; e.ing = r.ings.map(i => i.raw || `${i.q} ${i.u} ${i.name}`).join('\n'); e.steps = r.steps.join('\n'); if (r.img) e.img = r.img; e.url = r.url; }
 function readAddForm() { const e = ui.editDraft; e.title = $('#arTitle').value.trim(); e.serves = +$('#arServes').value || 2; e.time = +$('#arTime').value || 30; e.ing = $('#arIng').value; e.steps = $('#arSteps').value; e.batch = $('#arBatch').checked; return e; }
 
-const VIEWS = { discover: viewDiscover, tastes: viewTastes, add: viewAdd, quiz: viewQuiz, plan: viewPlan, recipes: viewRecipes, list: viewList, pantry: viewPantry, make: viewMake, more: viewMore, receipts: viewReceipts, builder: viewBuilder, deals: viewDeals, insights: viewInsights, settings: viewSettings, install: viewInstall };
+const VIEWS = { make: () => { ui.make = { text: '', chips: ['have'], res: null }; makeRun(false); history.replaceState(null, '', '#builder'); ui.route = 'builder'; return viewBuilder(); }, week: viewWeek, discover: viewDiscover, tastes: viewTastes, add: viewAdd, quiz: viewQuiz, plan: viewPlan, recipes: viewRecipes, list: viewList, pantry: viewPantry, more: viewMore, receipts: viewReceipts, builder: viewBuilder, deals: viewDeals, insights: viewInsights, settings: viewSettings, install: viewInstall };
 async function syncLib(manual) {
   if (ui.libBusy) return; ui.libBusy = 0.01; if (ui.route === 'settings') render();
   try { const before = C.libraryInfo().count; const n = await C.syncLibrary(S, f => { ui.libBusy = Math.max(0.01, f); if (ui.route === 'settings') { const y = scrollY; render(); scrollTo(0, y); } }); ui.libBusy = 0; refreshRecipes(); if (manual || !before) toast(`${n} recipes ready, even offline`); }
@@ -1340,6 +1451,7 @@ async function boot() {
   refreshRecipes(); applyTheme();
   const dl = document.createElement('datalist'); dl.id = 'itemsList'; dl.innerHTML = CATALOG.map(i => `<option value="${esc(i.n)}">`).join(''); document.body.appendChild(dl);
   window.addEventListener('hashchange', route);
+  pruneBuilt(); refreshRecipes();
   route(); updateBadge();
 
   if (!S.settings.onboarded) onboarding();
