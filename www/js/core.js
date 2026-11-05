@@ -203,8 +203,9 @@ export function isBatch(state, r) { if (!r) return false; const p = (state.batch
 /* Put leftovers of a batch meal on the next free nights (up to 4 days on). Returns the dates used and portions over. */
 export function placeLeftovers(state, date, rid, cookServes, household) {
   household = household || 2; let spare = cookServes - household; const used = [];
-  for (let k = 1; k <= 4 && spare >= household; k++) {
-    const d = addDays(date, k), wd = (new Date(d + 'T12:00').getDay() + 6) % 7;
+  for (const d of leftoverNights(date, 4)) {
+    if (spare < household) break;
+    const wd = (new Date(d + 'T12:00').getDay() + 6) % 7;
     if ((state.plan[d] || []).length || !state.settings.nights[wd]) continue;
     state.plan[d] = [{ rid, serves: household, leftover: date }]; used.push(d); spare -= household;
   }
@@ -572,15 +573,41 @@ export const TASTE_DECK = ['onion', 'garlic', 'mushroom', 'pepper', 'spinach', '
 export function likeScore(state, r) { let s = 0; for (const i of r.ings) { const v = likeOf(state, i); if (v <= -9) return -50; if (v < 0) s -= (i.prep && prepAlt(i) && (state.likes || {})[prepKey(i)] < 0) ? 1 : 2.5; else if (v > 0) s += 1; } return s; }
 export const hasNever = (state, r) => r.ings.some(i => likeOf(state, i) <= -9);
 export const dislikedIn = (state, r) => r.ings.filter(i => likeOf(state, i) < 0);
-// Suggest a week of dinners: favourites / similar / brand new, with cooldown and variety rules
+// How everyday a recipe is: your own and built-in ones are; library dishes need a reason (cuisine you love, a right-swipe)
+const EVERYDAY = new Set(['Irish', 'British', 'American', 'Italian', 'Mexican', 'Indian', 'Chinese', 'Thai']);
+const DISCOUNTERS = new Set(['Lidl', 'Aldi']);
+function shopPenalty(state, r) { let p = 1; for (const i of r.ings) if (notAt(state, i) && !subOf(state, i) && withoutIt(r, i)[0] !== 'yes') p *= 0.4; return p; }
+export function familiarity(state, r) {
+  if (!r.lib) return shopPenalty(state, r);
+  if ((state.dishVotes || {})[r.id] > 0 || (state.ratings[r.id] || {}).r >= 4) return 1;
+  let f = 0.45; if (EVERYDAY.has(r.area)) f += 0.25;
+  const cu = ((state.taste || {}).cuisines || {})[r.area]; if (cu > 0) f += 0.35; if (cu < 0) f -= 0.3;
+  const unk = r.ings.filter(i => !i.item && !i.skip && i.u !== 'taste').length;
+  f -= unk * (DISCOUNTERS.has(state.settings.defaultShop) ? 0.15 : 0.1);
+  if (r.ings.length > 13) f -= 0.1;
+  return Math.max(0.03, Math.min(1, f)) * shopPenalty(state, r);
+}
+// Things you've bought at your usual shop before (from receipts)
+function boughtAtShop(state) { const shop = state.settings.defaultShop, out = new Set(); for (const p of state.prices || []) if (!shop || p.shop === shop) out.add(p.item); return out; }
+const perishable = id => ITEM[id] && !ITEM[id].staple && ITEM[id].life <= 21;
+// How many servings to cook for a batch meal: your own "big batch" recipes cook the lot, others cook two nights' worth
+export function batchServes(state, r) {
+  const hh = state.settings.household || 2;
+  if (!isBatch(state, r)) return hh;
+  const full = r.batch === true || (state.batchPref || {})[r.id] === true;
+  return full ? Math.max(r.serves, hh) : Math.max(hh, Math.min(r.serves, hh * 2));
+}
+// Nights for leftovers: the next night first, then spaced out so you're not eating it three nights running
+export function leftoverNights(date, n) { const out = []; const gaps = [1, 3, 4, 5]; for (let k = 0; k < n && k < gaps.length; k++) out.push(addDays(date, gaps[k])); return out; }
+// Suggest a week of dinners: your tastes, your shop, leftovers planned in, and recipes that share ingredients so less goes in the bin
 export function suggestWeek(state, dates, opts = {}) {
-  const recipes = allRecipes(state), today0 = today();
-  const deals = activeDeals(state).map(d => d.item);
+  const recipes = allRecipes(state), today0 = today(), hh = state.settings.household || 2, shop = state.settings.defaultShop;
+  const deals = activeDeals(state).filter(d => !d.shop || !shop || d.shop === shop).map(d => d.item);
   const expiring = new Set(state.pantry.filter(p => p.item && p.exp && daysBetween(today0, p.exp) <= 3).map(p => p.item));
-  const used = new Set();
-  for (const d of dates) for (const e of (state.plan[d] || [])) used.add(e.rid);
+  const bought = boughtAtShop(state);
+  const used = new Set(); const busy = new Set();
+  for (const d of Object.keys(state.plan)) for (const e of (state.plan[d] || [])) { if (dates.includes(d)) used.add(e.rid); }
   let pool = Object.values(recipes).filter(r => !MAIN_EXCLUDE.has(r.cat) && r.ings.length && !ruledOut(state, r));
-  // Not enough to choose from? Invent dinners around what you like (via the meal builder)
   if (pool.length < 30) {
     const ip = state.ingPref || {}, lk = state.likes || {};
     const loved = Object.keys(B_PROTEIN).filter(k => { const id = matchIngredient(B_PROTEIN[k].item); return (lk[id] || 0) > 0 || (ip[id] || 0) > 0.3; });
@@ -596,7 +623,6 @@ export function suggestWeek(state, dates, opts = {}) {
   }
   if (pool.length < dates.length + 2) pool = Object.values(recipes).filter(r => !MAIN_EXCLUDE.has(r.cat) && r.ings.length && !hasNever(state, r)).sort((a, b) => prefScore(state, b) - prefScore(state, a)).slice(0, Math.max(dates.length + 4, pool.length));
   const cooldown = r => { const l = state.ratings[r.id] && state.ratings[r.id].last; return l && daysBetween(l, dates[0]) < 10; };
-  const boost = r => r.ings.reduce((a, i) => a + (deals.includes(i.item) ? 1.5 : 0) + (expiring.has(i.item) ? 2 : 0), 0);
   const fav = [], similar = [], fresh = [];
   for (const r of pool) {
     if (used.has(r.id) || cooldown(r)) continue;
@@ -606,31 +632,149 @@ export function suggestWeek(state, dates, opts = {}) {
     else if (!(rt && (rt.n || rt.r))) fresh.push(r);
     else similar.push(r);
   }
-  const a = (state.settings.adventure ?? 30) / 100;
+  const a = (state.settings.adventure ?? 30) / 100, famExp = 0.6 + 2.4 * (1 - a);
   const pNew = 0.1 + a * 0.4, pFav = (1 - pNew) * 0.6, pSim = 1 - pNew - pFav;
+  const maxT = (state.taste || {}).maxTime;
+  // Ingredient tracking: what's left over in opened packs (and your pantry) as the week fills up
+  const opened = {};
+  for (const p of state.pantry) if (p.item && perishable(p.item) && (!p.exp || p.exp >= dates[0])) opened[p.item] = (opened[p.item] || 0) + (p.qty || 0);
+  const needs = (r, serves) => { const out = {}; const f = serves / r.serves; for (const i of r.ings) { if (!perishable(i.item) || i.u === 'taste' || i.skip) continue; const b = toBase(i.q * f, i.u, ITEM[i.item]); if (b) out[i.item] = (out[i.item] || 0) + b; } return out; };
+  const unit = id => { const bp = bestPrice(state, id); return bp ? bp.unit : 0; };
+  const waste = (r, serves) => {
+    let reuse = 0, total = 0, binned = 0;
+    for (const [id, q] of Object.entries(needs(r, serves))) {
+      const u = unit(id), have = opened[id] || 0; total += q * u;
+      const fromHave = Math.min(have, q); reuse += fromHave * u;
+      const rest = q - fromHave; if (rest > 1e-6) { const pk = choosePacks(rest, ITEM[id].packs); binned += (pk.packs * pk.size - rest) * u; }
+      else binned -= 0; // fully covered by what's open
+    }
+    // Left-over bits already open that this recipe doesn't touch still count against the week, so prefer recipes that soak them up
+    return { reuse: total ? reuse / total : 0, reuseEur: reuse, binned };
+  };
+  const commit = (r, serves) => { for (const [id, q] of Object.entries(needs(r, serves))) { const have = opened[id] || 0; const rest = q - Math.min(have, q); opened[id] = Math.max(0, have - q); if (rest > 1e-6) { const pk = choosePacks(rest, ITEM[id].packs); opened[id] += pk.packs * pk.size - rest; } } };
   const out = []; let prevP = null; const areaCount = {}; let wildcardGiven = false; const stylesUsed = new Set(), combos = new Set();
-  const pick = (list) => {
+  const pick = (list, d) => {
+    const wd = (new Date(d + 'T12:00').getDay() + 6) % 7, weekend = wd >= 5;
     const cands = list.filter(r => !used.has(r.id) && proteinOf(r) !== prevP && (areaCount[r.area] || 0) < 2 && !(r.spec && stylesUsed.has(r.spec.style)) && !combos.has(proteinOf(r) + '|' + r.area));
     const L = cands.length ? cands : list.filter(r => !used.has(r.id));
     if (!L.length) return null;
-    const w = L.map(r => Math.max(0.2, (1 + prefScore(state, r) * 0.3 + boost(r) + (opts.quick && r.time <= 30 ? 1 : 0)) * (r.auto ? 0.6 : 1)));
-    let x = Math.random() * w.reduce((s, v) => s + v, 0);
-    for (let i = 0; i < L.length; i++) { x -= w[i]; if (x <= 0) return L[i]; }
+    const w = L.map(r => {
+      const sv = batchServes(state, r), ws = waste(r, sv);
+      let x = Math.max(0.2, 1 + prefScore(state, r) * 0.3);
+      x *= Math.pow(familiarity(state, r), famExp);
+      x *= 1 + r.ings.reduce((acc, i) => acc + (deals.includes(i.item) ? 0.4 : 0) + (expiring.has(i.item) ? 0.8 : 0) + (bought.has(i.item) ? 0.05 : 0), 0);
+      x *= Math.exp(3 * ws.reuse + 0.25 * ws.reuseEur - 0.45 * ws.binned);
+      if (!weekend && maxT && r.time > maxT && !isBatch(state, r)) x *= 0.35;
+      if (!weekend && r.time > 75 && !isBatch(state, r)) x *= 0.6;
+      if (isBatch(state, r)) x *= weekend || wd === 0 ? 1.4 : 0.9;
+      if (opts.quick && r.time <= 30) x *= 1.5;
+      if (r.auto) x *= 0.6;
+      return x;
+    });
+    let t = Math.random() * w.reduce((s2, v) => s2 + v, 0);
+    for (let i = 0; i < L.length; i++) { t -= w[i]; if (t <= 0) return L[i]; }
     return L[L.length - 1];
   };
+  let sharedEur = 0;
   for (const d of dates) {
+    if (busy.has(d)) continue;
     const roll = Math.random();
     let order = roll < pNew ? [fresh, similar, fav] : roll < pNew + pSim ? [similar, fav, fresh] : [fav, similar, fresh];
     if (!wildcardGiven && fresh.length && d === dates[Math.floor(dates.length / 2)]) order = [fresh, similar, fav];
     let r = null, bucket = null;
-    for (const b of order) { r = pick(b); if (r) { bucket = b; break; } }
+    for (const bk of order) { r = pick(bk, d); if (r) { bucket = bk; break; } }
     if (!r) break;
+    const sv = batchServes(state, r); sharedEur += waste(r, sv).reuseEur; commit(r, sv);
     used.add(r.id); prevP = proteinOf(r); areaCount[r.area] = (areaCount[r.area] || 0) + 1; if (r.spec) stylesUsed.add(r.spec.style); combos.add(proteinOf(r) + '|' + r.area);
     const wild = bucket === fresh && !wildcardGiven; if (wild) wildcardGiven = true;
-    out.push({ date: d, rid: r.id, wildcard: wild, recipe: r.auto ? r : null });
+    out.push({ date: d, rid: r.id, serves: sv, wildcard: wild, recipe: r.auto ? r : null });
+    // Plan the leftovers into the following free nights
+    const nights = Math.floor((sv - hh) / hh);
+    for (const ld of leftoverNights(d, nights)) if (dates.includes(ld) && !busy.has(ld) && !out.some(o => o.date === ld)) { busy.add(ld); out.push({ date: ld, rid: r.id, serves: hh, leftover: d, recipe: r.auto ? r : null }); }
   }
+  out.sort((x, y) => x.date.localeCompare(y.date));
+  // What's left in opened packs at the end of the week (fresh stuff that might get binned)
+  const bits = Object.entries(opened).filter(([id, q]) => q > 0 && perishable(id) && q * unit(id) >= 0.3).map(([id, q]) => ({ item: id, qty: q, eur: q * unit(id) })).sort((x, y) => y.eur - x.eur);
+  out.stats = { sharedEur, bits };
   return out;
 }
+// Fresh bits that will be left over from this week's shop (half a bag of spinach, 250 g of mince...)
+export function weekLeftovers(state, dates) {
+  const L = buildList(state, dates); const out = [];
+  for (const r of L.rows) if (r.item && perishable(r.item) && r.leftover > 0 && r.leftover * (r.unitPrice || 0) >= 0.3) out.push({ item: r.item, qty: r.leftover, eur: r.leftover * r.unitPrice });
+  return out.sort((a, b) => b.eur - a.eur);
+}
+// Recipes that would use up those bits
+export function useUpIdeas(state, bits, exclude = new Set(), n = 5) {
+  const ids = new Set(bits.map(b => b.item));
+  return Object.values(allRecipes(state)).filter(r => !MAIN_EXCLUDE.has(r.cat) && !exclude.has(r.id) && !ruledOut(state, r))
+    .map(r => { const hit = [...new Set(r.ings.map(i => i.item).filter(id => ids.has(id)))]; return [hit.length * 2 + prefScore(state, r) * 0.2 + familiarity(state, r), r, hit]; })
+    .filter(x => x[2].length).sort((a, b) => b[0] - a[0]).slice(0, n).map(x => ({ r: x[1], uses: x[2] }));
+}
+
+
+/* ================= Can't get it? Substitutes & "does it work without it" ================= */
+const SUB_RAW = {
+  'creme-fraiche': 'yogurt cream cream-cheese', 'double-cream': 'cream creme-fraiche', cream: 'double-cream creme-fraiche milk', 'cream-cheese': 'creme-fraiche yogurt',
+  mozzarella: 'cheddar cheese-slices', feta: 'halloumi cheddar', halloumi: 'feta cheddar', parmesan: 'cheddar', brie: 'cheddar cream-cheese', yogurt: 'creme-fraiche', 'cottage-cheese': 'cream-cheese yogurt',
+  'beef-brisket': 'diced-beef steak', 'diced-beef': 'beef-brisket steak', steak: 'diced-beef', 'pork-belly': 'pork-chop gammon', 'pork-chop': 'gammon chicken-thigh', lamb: 'diced-beef', 'lamb-mince': 'beef-mince pork-mince',
+  'pork-mince': 'beef-mince turkey-mince sausages', 'turkey-mince': 'beef-mince pork-mince', 'beef-mince': 'pork-mince turkey-mince', 'chicken-thigh': 'chicken-breast chicken-drum', 'chicken-breast': 'chicken-thigh', 'chicken-drum': 'chicken-thigh chicken-wings', 'whole-chicken': 'chicken-drum chicken-thigh',
+  'white-fish': 'frozen-fish salmon', salmon: 'white-fish mackerel salmon-tin', mackerel: 'salmon tuna', prawns: 'white-fish chicken-breast', 'smoked-salmon': 'salmon salmon-tin', tuna: 'salmon-tin',
+  chorizo: 'bacon sausages', bacon: 'ham chorizo', ham: 'bacon deli-meat', gammon: 'ham pork-chop', pudding: 'sausages',
+  'coconut-milk': 'cream yogurt', 'curry-paste': 'curry-powder', pesto: 'basil olive-oil', passata: 'chopped-tomatoes', 'chopped-tomatoes': 'passata tomato', 'tomato-puree': 'ketchup passata',
+  spaghetti: 'pasta', 'fresh-pasta': 'pasta', basmati: 'rice', noodles: 'spaghetti rice', couscous: 'rice grains', grains: 'rice couscous', gnocchi: 'potato pasta', lasagne: 'pasta',
+  naan: 'pitta wraps', pitta: 'wraps naan', wraps: 'pitta naan', buns: 'bread baguette', baguette: 'bread', 'pizza-dough': 'wraps', breadcrumbs: 'crackers oats',
+  courgette: 'aubergine pepper', aubergine: 'courgette mushroom', kale: 'spinach cabbage', spinach: 'kale frozen-veg', leek: 'onion', 'red-onion': 'onion', 'spring-onion': 'onion red-onion', celery: 'onion carrot',
+  butternut: 'sweet-potato carrot', 'sweet-potato': 'butternut potato', parsnip: 'carrot', 'green-beans': 'peas broccoli', 'sugar-snap': 'peas green-beans', asparagus: 'green-beans broccoli', beetroot: 'carrot',
+  'cherry-tomato': 'tomato', tomato: 'cherry-tomato chopped-tomatoes', avocado: 'cucumber', 'corn-cob': 'sweetcorn', sweetcorn: 'peas', cauliflower: 'broccoli', broccoli: 'cauliflower green-beans', mushroom: 'courgette',
+  lime: 'lemon vinegar', lemon: 'lime vinegar', coriander: 'parsley basil', basil: 'parsley oregano', parsley: 'coriander', thyme: 'oregano rosemary', rosemary: 'thyme oregano', mint: 'parsley',
+  chilli: 'chilli-powder hot-sauce', 'oyster-sauce': 'soy-sauce', worcestershire: 'soy-sauce', 'bbq-sauce': 'ketchup', 'sweet-chilli': 'hot-sauce honey', 'hot-sauce': 'chilli-powder', honey: 'syrup sugar', syrup: 'honey',
+  garlic: '', ginger: '', onion: 'red-onion leek spring-onion', potato: 'sweet-potato', carrot: 'parsnip butternut', pepper: 'courgette', cucumber: '',
+  'kidney-beans': 'baked-beans chickpeas', chickpeas: 'kidney-beans lentils', lentils: 'chickpeas kidney-beans', tofu: 'halloumi chickpeas', 'salad-veg': 'salad', salad: 'salad-veg', 'oat-milk': 'milk', 'puff-pastry': 'pizza-dough'
+};
+const SUBS = Object.fromEntries(Object.entries(SUB_RAW).map(([k, v]) => [k, v.split(' ').filter(x => x && ITEM[x])]));
+// For things Mise doesn't know, a few name-based tips
+const NAME_TIPS = [
+  [/seasoning|spice mix|\brub\b|jerk|cajun|fajita/, 'Mix 1 tsp paprika, ½ tsp garlic, a pinch of chilli and a pinch of sugar.', ['paprika', 'chilli-powder']],
+  [/fish sauce|anchov/, 'Use soy sauce with a squeeze of lemon.', ['soy-sauce', 'lemon']],
+  [/\bwine\b/, 'Use stock with a splash of vinegar, or just leave it out.', ['stock', 'vinegar']],
+  [/sherry|brandy|\brum\b|marsala|mirin|sake/, 'Leave it out, or add a splash of apple juice and a pinch of sugar.', ['juice', 'sugar']],
+  [/miso|gochujang|doenjang/, 'Use soy sauce with a little honey (and chilli for gochujang).', ['soy-sauce', 'honey']],
+  [/harissa|sriracha|sambal|chipotle/, 'Use chilli powder or hot sauce with a little paprika.', ['hot-sauce', 'chilli-powder', 'paprika']],
+  [/tahini/, 'Use peanut butter loosened with lemon juice.', ['peanut-butter', 'lemon']],
+  [/shallot/, 'Use an onion.', ['onion']], [/\bchard|pak choi|bok choy|spring greens/, 'Use spinach or cabbage.', ['spinach', 'cabbage']],
+  [/buttermilk/, 'Mix milk with a little lemon juice and leave for 5 minutes.', ['milk', 'lemon']], [/ricotta|mascarpone/, 'Use cream cheese.', ['cream-cheese']],
+  [/paneer/, 'Use halloumi.', ['halloumi']], [/pancetta|lardons|prosciutto/, 'Use bacon.', ['bacon']], [/cornflour|cornstarch|corn starch/, 'Use plain flour (twice as much).', ['flour']],
+  [/stock|broth|bouillon/, 'Use a stock cube.', ['stock']], [/vinegar/, 'Use any vinegar or lemon juice.', ['vinegar', 'lemon']], [/cheese/, 'Use cheddar.', ['cheddar']], [/\bnoodle/, 'Use spaghetti.', ['spaghetti']]
+];
+const SKIPPABLE_AISLES = new Set(['spices']);
+// Will the recipe still work without it?
+export function withoutIt(r, i) {
+  const it = ITEM[i.item], main = proteinOf(r);
+  if (i.u === 'taste' || (it && (OPTIONAL.has(it.id) || SKIPPABLE_AISLES.has(it.a) || ['nuts', 'olives', 'dried-fruit', 'mint', 'basil', 'parsley', 'coriander', 'thyme', 'rosemary'].includes(it.id)))) return ['yes', 'Yes, just leave it out. It only adds a bit of flavour.'];
+  if (it && it.tags.some(t => t === 'p:' + main) && main !== 'veg') return ['no', "No, it's the main ingredient. Use a swap instead."];
+  if (it && ['rice', 'basmati', 'pasta', 'spaghetti', 'noodles', 'couscous', 'potato', 'bread', 'wraps', 'buns', 'naan', 'pitta', 'chips', 'gnocchi', 'grains'].includes(it.id)) return ['side', 'Yes, if you serve it with something else, like rice, potatoes or bread.'];
+  if (it && (it.cat === 'sauce' || ['stock', 'tomato-puree', 'worcestershire', 'soy-sauce', 'honey', 'vinegar', 'mustard', 'sugar'].includes(it.id))) return ['mostly', 'Mostly. It will taste a bit different, but it works.'];
+  if (it && it.cat === 'veg') return ['yes', 'Yes. Leave it out or add a bit more of the other veg.'];
+  if (it && ['cheddar', 'mozzarella', 'parmesan', 'feta', 'cream', 'double-cream', 'creme-fraiche', 'yogurt'].includes(it.id)) return ['mostly', 'Mostly. It will be less rich, but it works.'];
+  if (!it) return ['maybe', 'Probably. If it\'s a small amount or a garnish, leave it out.'];
+  return ['maybe', 'Probably, but a swap is safer.'];
+}
+export function substitutesFor(state, i) {
+  const out = [], seen = new Set(); let tip = null;
+  const add = id => { if (!ITEM[id] || seen.has(id) || id === i.item || dietBlocks(state).has(id) || (state.likes || {})[id] < 0 || notAt(state, { item: id, name: ITEM[id].n })) return; seen.add(id); out.push(id); };
+  for (const id of SUBS[i.item] || []) add(id);
+  const nm = norm(i.name);
+  for (const [re, t, ids] of NAME_TIPS) if (re.test(nm)) { tip = tip || t; ids.forEach(add); }
+  if (!out.length && ITEM[i.item] && !(i.item in SUB_RAW) && ['veg', 'fruit', 'meat', 'fish', 'dairy'].includes(ITEM[i.item].cat)) { const it = ITEM[i.item], p = it.tags.find(t => t.startsWith('p:')); for (const c of CATALOG) if (c.cat === it.cat && c.a === it.a && !c.staple && !c.id.startsWith('other-') && (!p || c.tags.includes(p) || c.cat !== 'meat') && out.length < 4) add(c.id); }
+  return { items: out.slice(0, 5), tip };
+}
+// Things you've told Mise your shop doesn't sell, and the swaps you picked
+export const subKey = i => i.item || 'x:' + norm(i.name);
+export function notAt(state, i, shop) { shop = shop || state.settings.defaultShop; return !!(((state.notAt || {})[shop] || {})[subKey(i)]); }
+export function subOf(state, i) { const s = (state.subs || {})[subKey(i)]; if (!s) return null; if (s === 'skip') return { skip: true }; return ITEM[s] ? { item: s, name: ITEM[s].n.toLowerCase() } : null; }
+// The recipe's ingredients with your swaps applied (for lists and costing)
+export function withSubs(state, ings) { if (!state.subs) return ings; return ings.flatMap(i => { const s = subOf(state, i); if (!s) return [i]; if (s.skip) return []; const it = ITEM[s.item], from = ITEM[i.item]; let q = i.q, u = i.u; if (from && it && from.u !== it.u) { const b = toBase(i.q, i.u, from); if (b != null) { q = b; u = it.u === 'pc' ? '' : it.u; } } return [{ ...i, item: s.item, name: s.name, q, u, subFrom: i.name }]; }); }
 
 /* ================= Prices ================= */
 export function activeDeals(state) { const t = today(); return state.deals.filter(d => !d.until || d.until >= t); }
@@ -695,7 +839,7 @@ export function buildList(state, dates) {
     if (e.cooked || e.leftover) continue;
     const r = recipes[e.rid]; if (!r) continue;
     const f = (e.serves || r.serves) / r.serves;
-    for (const i of r.ings) {
+    for (const i of withSubs(state, r.ings)) {
       const it = ITEM[i.item];
       if (it && it.staple) { staples[it.id] = it; continue; }
       if (i.u === 'taste' || i.skip) continue;
@@ -742,7 +886,7 @@ export function packLabel(row) {
 }
 export function recipeCost(state, r, serves) {
   const f = (serves || r.serves) / r.serves; let total = 0, known = 0, unknown = 0;
-  for (const i of r.ings) { const it = ITEM[i.item]; if (!it) { unknown++; continue; } const b = toBase(i.q * f, i.u, it); if (!b) continue; total += b * bestPrice(state, it.id).unit; known++; }
+  for (const i of withSubs(state, r.ings)) { const it = ITEM[i.item]; if (!it) { unknown++; continue; } const b = toBase(i.q * f, i.u, it); if (!b) continue; total += b * bestPrice(state, it.id).unit; known++; }
   return { total, perServe: total / (serves || r.serves), unknown };
 }
 
