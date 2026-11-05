@@ -239,7 +239,7 @@ function viewList() {
   const shops = [...new Set(L.rows.map(r => r.shop))];
   let h = `<div class="seg" role="group" data-tour="listWeek">${[[0, 'This week'], [1, 'Next week']].map(([k, n]) => `<button data-act="listWeek" data-val="${k}" aria-pressed="${ui.listWeek === k}">${n}</button>`).join('')}</div>`;
   if (L.rows.length) h += `<div class="listsum" data-tour="listTotal"><div><b class="num">${C.eur(L.total)}</b><span class="small muted">${budget ? (L.total > budget ? ` · <span style="color:var(--hot)">${C.eur(L.total - budget)} over budget</span>` : ` · ${C.eur(budget - L.total)} under budget`) : ''}</span></div><span class="small muted">${done} of ${L.rows.length} got</span></div>${L.estimated ? `<div class="tiny muted" style="margin-top:-4px">${L.estimated} of ${L.rows.length} prices are guesses (~). Tap ⋯ on an item to fix one. Scanning receipts fixes them for good.</div>` : ''}${budget ? `<div class="bar${L.total > budget ? ' over' : ''}"><i style="width:${Math.min(100, L.total / budget * 100)}%"></i></div>` : ''}`;
-  h += `<form class="row" data-form="addExtra" data-tour="addExtra"><input list="itemsList" id="extraName" placeholder="Add anything: milk, bin bags…" autocomplete="off" aria-label="Item to add"><button class="btn primary" type="submit">Add</button></form>`;
+  h += `<form class="row" data-form="addExtra" data-tour="addExtra"><input id="extraName" placeholder="Add anything: milk, bin bags…" autocomplete="off" aria-label="Item to add"><button class="btn primary" type="submit">Add</button></form>${dymBox('extra')}`;
   const usual = M.usualBuys(S).filter(u => !L.rows.some(r => r.item === u.item) && !S.list.extras.some(x => x.item === u.item)).slice(0, 6);
   if (usual.length && ui.listWeek === 0) h += `<div class="usual" data-tour="usual"><span class="small muted">You usually need</span><div class="chips">${usual.map(u => `<button class="chip" data-act="addUsual" data-key="${u.item}">+ ${esc(ITEM[u.item].n)}</button>`).join('')}</div></div>`;
   if (shops.length > 1) h += `<div class="chips">${[null, ...shops].map(x => `<button class="chip" data-act="shopFilter" data-val="${esc(x || '')}" aria-pressed="${(ui.shopFilter || null) === x}">${x || 'All shops'}</button>`).join('')}</div>`;
@@ -288,7 +288,7 @@ function viewPantry() {
   const longLife = items.filter(p => !soon.includes(p) && (!p.exp || C.daysBetween(t, p.exp) > 60));
   const rest = items.filter(p => !soon.includes(p) && !longLife.includes(p));
   h += `<div class="quick3 two"><a href="#builder" data-act="togetherGo" data-tour="make">${ICON.pot}<b>What can I make?</b><span>${soon.length ? `${soon.length} thing${soon.length > 1 ? 's' : ''} to use soon` : 'From what you have'}</span></a><button data-act="snapFridge" data-tour="snap">${ICON.receipt}<b>Snap your fridge</b><span>AI adds what it sees</span></button></div>
-  <form class="row" data-form="addPantry" data-tour="addPantry"><input list="itemsList" id="pantryName" placeholder="Add something you have" autocomplete="off" aria-label="Pantry item"><button class="btn primary" type="submit">Add</button></form><input type="file" id="fridgePhoto" accept="image/*" capture="environment" hidden data-change="fridgePhoto">`;
+  <form class="row" data-form="addPantry" data-tour="addPantry"><input id="pantryName" placeholder="Add something you have" autocomplete="off" aria-label="Pantry item"><button class="btn primary" type="submit">Add</button></form>${dymBox('pantry')}<input type="file" id="fridgePhoto" accept="image/*" capture="environment" hidden data-change="fridgePhoto">`;
   if (!items.length) return h + `<div class="empty"><h3>Nothing tracked yet</h3><p>Scan a receipt, finish a shopping trip, or add things here.</p><a class="btn" href="#receipts">Scan a receipt</a></div>`;
   const sec = (title, arr) => arr.length ? `<section class="card flat"><div class="shop-h"><b>${title}</b><span class="small muted">${arr.length}</span></div>${arr.map(p => { const d = p.exp ? C.daysBetween(t, p.exp) : null; const cls = d == null ? 'none' : d < 0 ? 'hot' : d <= 3 ? 'warn' : ''; return `<div class="pi" data-act="pantryItem" data-key="${p.key}" style="cursor:pointer"><span class="dot ${cls}"></span><div class="grow"><div style="font-weight:700">${esc(p.name)}</div><div class="tiny muted">${p.item ? C.fmtQty(p.qty, p.unit) : ''}${d != null ? ` · ${d < 0 ? 'past its date' : d === 0 ? 'use today' : d === 1 ? '1 day left' : d > 60 ? 'keeps for ages' : d + ' days left'}` : ''}</div></div><span class="small muted">›</span></div>`; }).join('')}</section>` : '';
   return h + sec('Use soon', soon) + sec('Fridge & cupboard', rest) + sec('Long-life', longLife);
@@ -393,7 +393,7 @@ function viewTogether() {
   const chipsHave = [...new Set(S.pantry.map(p => p.item).filter(id => id && ITEM[id] && !ITEM[id].staple))].filter(id => !T.sel.includes(id)).slice(0, 14);
   let h = `<div class="card" data-tour="together"><p class="small muted" style="margin:0">No recipe needed. Pick what you've got and Mise gives you a rough way to cook it.</p>
     <div class="chips wrap">${T.sel.map(id => `<button class="chip" aria-pressed="true" data-act="tgToggle" data-key="${id}">${esc(ITEM[id].n)} ✕</button>`).join('') || '<span class="small muted">Nothing picked yet</span>'}</div>
-    <form class="row" data-form="tgAdd"><input list="itemsList" id="tgName" placeholder="Add an ingredient" autocomplete="off" aria-label="Ingredient"><button class="btn" type="submit">Add</button></form>
+    <form class="row" data-form="tgAdd"><input id="tgName" placeholder="Add an ingredient" autocomplete="off" aria-label="Ingredient"><button class="btn" type="submit">Add</button></form>
     ${chipsHave.length ? `<div class="tiny muted">From your kitchen:</div><div class="chips wrap">${chipsHave.map(id => `<button class="chip" data-act="tgToggle" data-key="${id}">+ ${esc(ITEM[id].n)}</button>`).join('')}</div>` : ''}
     <button class="btn primary block" data-act="tgGo"${T.sel.length ? '' : ' disabled'}>Show me what to make</button></div>`;
   if (T.ideas) h += T.ideas.length ? T.ideas.map((x, k) => `<div class="card fs"><div class="row between"><div><div class="eyebrow">${esc(x.name)} · ${esc(x.kit)} · ~${x.time} min</div><h3 style="margin:2px 0 0">${esc(x.title)}</h3></div></div>
@@ -454,7 +454,7 @@ function viewDeals() {
   const dealItems = new Set(active.map(d => d.item).filter(Boolean));
   const meals = Object.values(R).filter(r => r.ings.some(i => dealItems.has(i.item))).slice(0, 6);
   let h = `<form class="card" data-form="addDeal" data-tour="deal"><h2>Save a deal</h2>
-    <label class="f">Item<input list="itemsList" id="dealItem" required placeholder="e.g. Chicken thighs" autocomplete="off"></label>
+    <label class="f">Item<input id="dealItem" required placeholder="e.g. Chicken thighs" autocomplete="off"></label>
     <div class="row"><label class="f grow">Shop<select id="dealShop">${shopsOpts(S.settings.defaultShop)}</select></label><label class="f grow">Price (€)<input type="number" inputmode="decimal" step="0.01" id="dealPrice" required></label></div>
     <label class="f">Valid until<input type="date" id="dealUntil" value="${C.addDays(t, 6)}"></label>
     <button class="btn primary" type="submit">Save deal</button></form>`;
@@ -528,7 +528,7 @@ function personSheet(p) {
     <label class="row" style="gap:10px"><input type="checkbox" id="pKid" ${p.kid ? 'checked' : ''} style="width:22px;height:22px"><span class="small">Child (prefers kid-friendly meals)</span></label>
     <div class="small muted" style="font-weight:700">Dietary needs</div><div class="chips wrap">${C.DIETS.map(([k, n]) => `<button class="chip" data-act="pDiet" data-val="${k}" aria-pressed="${diet.includes(k)}">${n}</button>`).join('')}</div>
     <div class="small muted" style="font-weight:700">Won't eat</div><div class="chips wrap">${Object.entries(p.likes || {}).filter(([, v]) => v < 0).map(([k]) => `<button class="chip" aria-pressed="true" data-act="pUnlike" data-key="${esc(k)}">${esc(likeLabel(k))} ✕</button>`).join('') || '<span class="tiny muted">Nothing yet</span>'}</div>
-    <form class="row" data-form="pLike"><input list="itemsList" id="pLikeName" placeholder="e.g. Mushrooms" autocomplete="off"><button class="btn" type="submit">Add</button></form>
+    <form class="row" data-form="pLike"><input id="pLikeName" placeholder="e.g. Mushrooms" autocomplete="off"><button class="btn" type="submit">Add</button></form>
     <div class="small muted" style="font-weight:700">Spice</div><div class="seg">${[[0, 'None'], [1, 'Mild'], [2, 'Medium'], [3, 'Hot']].map(([v, n]) => `<button data-act="pSpice" data-val="${v}" aria-pressed="${p.spice === v}">${n}</button>`).join('')}</div>
     <div class="row" style="margin-top:12px">${p.id && (S.people || []).some(x => x.id === p.id) ? '<button class="btn" data-act="personDelete" style="color:var(--hot)">Remove</button>' : ''}<button class="btn primary grow" data-act="personSave">Save</button></div>`);
 }
@@ -846,6 +846,8 @@ const A = {
     openSheet(`<h2>Your way</h2><p class="small muted">Built from what you like about ${esc(r.title)}, using things you can get easily.</p><div class="card flat">${res.map((x, k) => `<button class="pi" style="width:100%;border:0;background:none;text-align:left;cursor:pointer;color:inherit" data-act="makeOpen" data-idx="${k}"><div class="grow"><b>${esc(x.title)}</b><div class="tiny muted">≈ ${C.effort(x).total} min all in</div></div><span class="small muted">›</span></button>`).join('')}</div>`); },
   pickBuilt: el => { const r = saveBuilt(ui.pickOpts[+el.dataset.idx]); ui.sheetServes = null; addToPlan(r.id, ui.pickDate, r); closeSheet(); render(); toast('Added to ' + fmtDay(ui.pickDate)); },
   pickMore: () => { ui.pickOpts = null; renderPicker(); },
+  dymPick: el => { const d = ui.dym[el.dataset.key], i = +el.dataset.idx, u = d.list[i]; d.onAdd(el.dataset.val || null, u.text); d.list.splice(i, 1); if (!d.list.length) ui.dym[el.dataset.key] = null; save(); const y = scrollY; render(); scrollTo(0, y); toast(`Added ${el.dataset.val ? ITEM[el.dataset.val].n : u.text}`); },
+  dymClose: el => { ui.dym[el.dataset.key] = null; render(); },
   newRecipe: () => { ui.editDraft = null; if (location.hash !== '#add') location.hash = 'add'; else render(true); },
   editRecipe: el => {
     const r = R[el.dataset.key]; if (!r) return; const copy = String(r.id).startsWith('b:');
@@ -955,16 +957,56 @@ document.addEventListener('change', ev => {
 });
 document.addEventListener('submit', ev => {
   const f = ev.target.dataset.form; if (!f) return; ev.preventDefault();
-  if (f === 'addExtra') { const v = $('#extraName').value.trim(); if (!v) return; const id = itemByName(v); S.list.extras.push({ item: id, name: id ? ITEM[id].n : v }); save(); render(); toast(`${id ? ITEM[id].n : v} added`); const i = $('#extraName'); if (i) i.focus(); }
-  if (f === 'addPantry') { const v = $('#pantryName').value.trim(); if (!v) return; const id = itemByName(v); C.addPantry(S, id, id ? ITEM[id].packs[0] : 1, id ? ITEM[id].n : v); save(); render(); toast('Added to pantry'); const i = $('#pantryName'); if (i) i.focus(); }
+  if (f === 'addExtra') { addTyped('extra', '#extraName', (id, txt) => S.list.extras.push({ item: id, name: id ? ITEM[id].n : txt }), true); return; }
+  if (f === 'addPantry') { addTyped('pantry', '#pantryName', (id, txt) => C.addPantry(S, id, id ? ITEM[id].packs[0] : 1, id ? ITEM[id].n : txt), true); return; }
   if (f === 'fixPrice') { const r = ui.menuRow, v = parseFloat($('#fixPriceIn').value); if (!(v > 0)) return; S.prices.push({ item: r.item, shop: S.settings.defaultShop, price: v, qty: r.size || ITEM[r.item].packs[0], date: C.today(), src: 'manual' }); save(); closeSheet(false, () => render()); toast('Price saved. Mise will use it from now on.'); return; }
-  if (f === 'bkAdd') { const v = $('#bkName').value.trim(); const id = v && itemByName(v); if (!id) { toast("Mise doesn't know that one. Try a simpler name."); return; } A.bkAddId(id); return; }
+  if (f === 'bkAdd') { addTyped('bk', '#bkName', id => { if (!id) return; const wk = M.weekKey(C.weekDates(ui.weekOffset)[0]); const bk = S.baskets[wk]; const ex = bk.find(b => b.item === id); if (ex) ex.packs++; else bk.push({ item: id, packs: 1 }); }, false); return; }
   if (f === 'tgAdd') { const v = $('#tgName').value.trim(); const id = v && itemByName(v); if (!id) { toast("Mise doesn't know that one"); return; } const T = ui.together; if (!T.sel.includes(id)) T.sel.push(id); T.ideas = null; render(); return; }
   if (f === 'pLike') { const v = $('#pLikeName').value.trim(); if (!v) return; const id = itemByName(v), p = ui.person; p.name = $('#pName').value; p.likes = p.likes || {}; p.likes[id || 'x:' + v.toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').trim()] = -1; personSheet(p); return; }
   if (f === 'addLike') { const v = $('#likeName').value.trim(); if (!v) return; const id = itemByName(v), pr = $('#likePrep') ? $('#likePrep').value : ''; S.likes[(id || 'x:' + v.toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').trim()) + (pr ? ':' + pr : '')] = +$('#likeVal').value; save(); render(); toast('Saved'); }
   if (f === 'addDeal') { const name = $('#dealItem').value.trim(); const id = itemByName(name); S.deals.push({ id: 'd' + Date.now().toString(36), item: id, name: id ? ITEM[id].n : name, shop: $('#dealShop').value, price: parseFloat($('#dealPrice').value) || 0, until: $('#dealUntil').value }); save(); render(); toast('Deal saved'); }
 });
-function itemByName(v) { const exact = CATALOG.find(i => i.n.toLowerCase() === v.toLowerCase()); return exact ? exact.id : C.matchIngredient(v); }
+/* ---- Typed ingredient matching: exact, aliases, then typo-tolerant ---- */
+const nrm = t => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+const sing1 = w => w.replace(/ies$/, 'y').replace(/oes$/, 'o').replace(/(?<![su])s$/, '');
+function lev(a, b) { if (a === b) return 0; if (!a.length) return b.length; if (!b.length) return a.length; let prev = Array.from({ length: b.length + 1 }, (_, i) => i); for (let i = 1; i <= a.length; i++) { const cur = [i]; for (let j = 1; j <= b.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); prev = cur; } return prev[b.length]; }
+const sim = (a, b) => 1 - lev(a, b) / Math.max(a.length, b.length);
+let NAMES = null;
+function nameIndex() { if (NAMES) return NAMES; NAMES = []; for (const i of CATALOG) { if (i.id.startsWith('other-')) continue; const names = [i.n, ...(i.al || i.aliases || [])]; for (const n of names) { const k = nrm(n); if (k) NAMES.push([k, i.id, k.split(' ').map(sing1).join(' ')]); } } return NAMES; }
+function findItems(text) {
+  const v = nrm(text), vs = v.split(' ').map(sing1).join(' '); if (!v) return { id: null, conf: 0, alts: [] };
+  const sc = {};
+  const put = (id, x) => { if (!sc[id] || sc[id] < x) sc[id] = x; };
+  for (const [k, id, ks] of nameIndex()) {
+    if (k === v || ks === vs) put(id, 1);
+    else if (ks.startsWith(vs + ' ') || ks.endsWith(' ' + vs)) put(id, 0.82);
+    else if (ks.startsWith(vs) && vs.length >= 3) put(id, 0.72);
+    else if (vs.length >= 3 && (' ' + ks + ' ').includes(' ' + vs + ' ')) put(id, 0.7);
+    else if (vs.length >= 4) { const a = sim(vs, ks); if (a >= 0.7) put(id, a * 0.92); else { const best = Math.max(...ks.split(' ').map(w => vs.split(' ').map(x => x.length >= 4 && w.length >= 4 ? sim(x, w) : 0)).flat()); if (best >= 0.8) put(id, best * 0.7); } }
+  }
+  const m = C.matchIngredient(text); if (m) put(m, Math.max(sc[m] || 0, 0.86));
+  const ranked = Object.entries(sc).sort((a, b) => b[1] - a[1]);
+  if (!ranked.length) return { id: null, conf: 0, alts: [] };
+  const [id, conf] = ranked[0], gap = ranked[1] ? conf - ranked[1][1] : 1;
+  const sure = conf >= 0.95 || (conf >= 0.8 && gap >= 0.05) || (conf >= 0.72 && gap >= 0.12) || (conf >= 0.65 && ranked.length === 1);
+  return { id, conf: sure ? Math.max(conf, 0.8) : Math.min(conf, 0.6), alts: ranked.filter(x => x[1] >= ranked[0][1] - 0.25).slice(0, 4).map(x => x[0]) };
+}
+function itemByName(v) { const f = findItems(v); return f.conf >= 0.8 ? f.id : (f.alts[0] && f.conf >= 0.6 ? f.alts[0] : null); }
+// Add one or many typed items ("chicken thighs, peppers and rice"). Unsure ones get a "Did you mean" row under the box.
+const splitItems = t => String(t || '').split(/\s*(?:,|;|\n|\band\b|\+)\s*/i).map(x => x.trim()).filter(Boolean);
+function addTyped(formKey, inputSel, onAdd, allowLoose) {
+  const el = $(inputSel); if (!el) return; const parts = splitItems(el.value); if (!parts.length) return;
+  const unsure = [], added = [];
+  for (const p of parts) { const f = findItems(p); if (f.conf >= 0.8) { onAdd(f.id, p); added.push(ITEM[f.id].n); } else unsure.push({ text: p, alts: f.alts }); }
+  ui.dym = ui.dym || {}; ui.dym[formKey] = unsure.length ? { list: unsure, allowLoose, onAdd } : null;
+  save(); const y = scrollY; render(); scrollTo(0, y);
+  if (added.length) toast(`Added ${added.join(', ')}`);
+  const again = $(inputSel); if (again && !unsure.length) { again.value = ''; again.focus(); }
+}
+function dymBox(formKey) {
+  const d = (ui.dym || {})[formKey]; if (!d) return '';
+  return `<div class="dym">${d.list.map((u, i) => `<div class="small"><b>"${esc(u.text)}"</b>${u.alts.length ? ' – did you mean:' : ' – Mise doesn\'t know that one.'}</div><div class="chips wrap">${u.alts.map(id => `<button class="chip" data-act="dymPick" data-key="${formKey}" data-idx="${i}" data-val="${id}">${esc(ITEM[id].n)}</button>`).join('')}${d.allowLoose ? `<button class="chip" data-act="dymPick" data-key="${formKey}" data-idx="${i}" data-val="">Add "${esc(u.text)}" as typed</button>` : ''}</div>`).join('')}<button class="linkbtn tiny" data-act="dymClose" data-key="${formKey}">Dismiss</button></div>`;
+}
 
 /* ================= Onboarding, theme, boot ================= */
 function onboarding() {
@@ -1233,7 +1275,7 @@ function viewWeek() {
   return `<div class="card" data-tour="basket"><h2>What are you getting this week?</h2>
     <p class="small muted" style="margin:0">Add the main things you're buying. Mise builds the week around them, and only adds what's missing.</p>
     <div class="basket">${bk.length ? bk.map((b, i) => `<div class="bk"><b>${esc(ITEM[b.item].n)}</b><div class="stepper"><button data-act="bkPacks" data-idx="${i}" data-val="-1" aria-label="Less">−</button><span>${b.packs}</span><button data-act="bkPacks" data-idx="${i}" data-val="1" aria-label="More">+</button></div><span class="tiny muted">${esc(C.packLabel({ item: b.item, packs: b.packs, size: ITEM[b.item].packs[0] }))}</span></div>`).join('') : '<p class="small muted" style="margin:6px 0">Nothing yet. Tap below, or let Mise pick.</p>'}</div>
-    <form class="row" data-form="bkAdd"><input list="itemsList" id="bkName" placeholder="e.g. chicken thighs, peppers" autocomplete="off" aria-label="Add an item"><button class="btn" type="submit">Add</button></form>
+    <form class="row" data-form="bkAdd"><input id="bkName" placeholder="e.g. chicken thighs, peppers, rice" autocomplete="off" autocorrect="on" enterkeyhint="done" aria-label="Add an item"><button class="btn" type="submit">Add</button></form>${dymBox('bk')}
     <div class="chips wrap">${(() => { const ok = id => ITEM[id] && !bk.some(b => b.item === id) && C.likeOf(S, { item: id, name: ITEM[id].n }) > -1; const P = POPULAR.filter(ok); return P.filter(id => G.MAINS[id]).slice(0, 7).concat(P.filter(id => G.VEG[id]).slice(0, 5), P.filter(id => G.BASES[id]).slice(0, 5)); })().map(id => `<button class="chip" data-act="bkQuick" data-key="${id}">+ ${esc(ITEM[id].n)}</button>`).join('')}</div>
     ${have.length ? `<p class="tiny muted" style="margin:0">Also using what's at home: ${esc(have.slice(0, 8).map(id => ITEM[id].n.toLowerCase()).join(', '))}${have.length > 8 ? '…' : ''}</p>` : ''}</div>
   <div class="card" data-tour="weekpace"><h2>This week</h2>
@@ -1392,7 +1434,7 @@ function viewTastes() {
   <div class="card" data-tour="sTastesList"><h2>Ingredients</h2>
     ${Object.keys(S.likes).length ? `<div class="card flat">${Object.entries(S.likes).sort((a, b) => a[1] - b[1]).map(([k, v]) => `<div class="pi"><div class="grow"><b>${esc(likeLabel(k))}</b></div>${v <= -9 ? '<span class="tag deal">can\'t eat</span>' : v < 0 ? '<span class="tag warn">don\'t like</span>' : '<span class="tag yours">love</span>'}<button class="icon-btn" data-act="removeLike" data-key="${esc(k)}" aria-label="Remove">${ICON.x}</button></div>`).join('')}</div>` : '<p class="small muted" style="margin:0">Nothing yet.</p>'}
     ${(S.settings.diet || []).length ? `<p class="small" style="margin:0">Diet: <b>${esc(S.settings.diet.map(d => (C.DIETS.find(x => x[0] === d) || [, d])[1]).join(', '))}</b> <a href="#quiz" data-act="quizRestart">change</a></p>` : ''}
-    <form class="row wrap" data-form="addLike"><input list="itemsList" id="likeName" placeholder="e.g. Potatoes" autocomplete="off" style="flex:1 1 140px" aria-label="Ingredient"><select id="likePrep" style="flex:0 1 120px" aria-label="Cooked how"><option value="">Any way</option>${Object.entries(C.PREP_NAMES).map(([k, n]) => `<option value="${k}">Only ${n}</option>`).join('')}</select><select id="likeVal" style="flex:0 1 120px" aria-label="Preference"><option value="-1">Don't like</option><option value="-9">Can't eat</option><option value="1">Love it</option></select><button class="btn primary" type="submit">Add</button></form>
+    <form class="row wrap" data-form="addLike"><input id="likeName" placeholder="e.g. Potatoes" autocomplete="off" style="flex:1 1 140px" aria-label="Ingredient"><select id="likePrep" style="flex:0 1 120px" aria-label="Cooked how"><option value="">Any way</option>${Object.entries(C.PREP_NAMES).map(([k, n]) => `<option value="${k}">Only ${n}</option>`).join('')}</select><select id="likeVal" style="flex:0 1 120px" aria-label="Preference"><option value="-1">Don't like</option><option value="-9">Can't eat</option><option value="1">Love it</option></select><button class="btn primary" type="submit">Add</button></form>
     <p class="tiny muted" style="margin:0">Tip: "Potatoes · Only mashed · Don't like" keeps potatoes in, and recipes swap the mash for something else.</p></div>
   <div class="card" data-tour="sLearned"><h2>What Mise has learned</h2>
     ${tp.loves.length || tp.avoids.length || tp.cuisines.length || tp.types.length ? `${tp.loves.length ? `<div class="small"><b>Ingredients you like</b><div class="row wrap" style="gap:6px;margin-top:4px">${chips(tp.loves, 'yours')}</div></div>` : ''}${tp.avoids.length ? `<div class="small"><b>You avoid</b><div class="row wrap" style="gap:6px;margin-top:4px">${chips(tp.avoids, 'warn')}</div></div>` : ''}${tp.types.length ? `<div class="small"><b>Dinners you go for</b><div class="row wrap" style="gap:6px;margin-top:4px">${chips(tp.types, '')}</div></div>` : ''}${tp.flavours.length ? `<div class="small"><b>Flavours</b><div class="row wrap" style="gap:6px;margin-top:4px">${chips(tp.flavours, '')}</div></div>` : ''}${tp.cuisines.length ? `<div class="small"><b>Cuisines</b><div class="row wrap" style="gap:6px;margin-top:4px">${chips(tp.cuisines, '')}</div></div>` : ''}${tp.proteins.length ? `<div class="small"><b>Mains</b><div class="row wrap" style="gap:6px;margin-top:4px">${chips(tp.proteins.filter(x => x[1] > 0).map(x => x[0]), 'yours')} ${chips(tp.proteins.filter(x => x[1] < 0).map(x => x[0]), 'warn')}</div></div>` : ''}` : '<p class="small muted" style="margin:0">Nothing yet. Swipe some dishes, rate meals and scan receipts.</p>'}
@@ -1449,7 +1491,7 @@ async function syncLib(manual) {
 async function boot() {
   S = await C.loadState();
   refreshRecipes(); applyTheme();
-  const dl = document.createElement('datalist'); dl.id = 'itemsList'; dl.innerHTML = CATALOG.map(i => `<option value="${esc(i.n)}">`).join(''); document.body.appendChild(dl);
+
   window.addEventListener('hashchange', route);
   pruneBuilt(); refreshRecipes();
   route(); updateBadge();
