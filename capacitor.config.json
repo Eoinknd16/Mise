@@ -2,5 +2,6 @@
   "appId": "com.eoinknd16.mise",
   "appName": "Mise",
   "webDir": "www",
-  "android": { "backgroundColor": "#f2f5f1" }
+  "android": { "backgroundColor": "#f2f5f1" },
+  "plugins": { "CapacitorHttp": { "enabled": true } }
 }
