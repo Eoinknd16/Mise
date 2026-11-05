@@ -59,6 +59,7 @@ whole-chicken|Whole chicken|meat|g|1500|5.49|3|meat|roast chicken|p:chicken|chic
 beef-mince|Beef mince|meat|g|500,1000|3.99|3|meat|minced beef;ground beef;mince;lean mince;steak mince|p:beef
 steak|Steak|meat|g|225|4.99|3|meat|sirloin;ribeye;rib eye;striploin|p:beef|steak:225
 diced-beef|Diced beef|meat|g|400|4.99|3|meat|stewing beef;beef chuck;braising steak;beef stew meat|p:beef
+beef-brisket|Beef brisket|meat|g|1000|8.99|4|meat|brisket;beef joint;roasting joint;silverside;topside;beef roast;chuck roast;pulled beef|p:beef
 pork-chop|Pork chops|meat|g|500|3.99|3|meat|pork chop;pork loin|p:pork|chop:200
 pork-mince|Pork mince|meat|g|500|2.99|3|meat|minced pork;ground pork|p:pork
 sausages|Sausages|meat|pc|8|1.99|5|meat|sausage;pork sausages|p:pork
@@ -156,7 +157,7 @@ bin-bags|Bin bags|household|pc|1|1.49|999|household|bin liners|
 laundry|Laundry detergent|household|pc|1|4.99|999|household|washing powder;washing liquid;detergent;capsules|
 
 bbq-sauce|BBQ sauce|pantry|g|500|1.49|180|sauce|barbecue sauce;bbq;smokey bbq;sticky bbq|s
-hot-sauce|Hot sauce|pantry|ml|150|1.29|365|sauce|sriracha;tabasco;peri peri;piri piri;buffalo sauce;franks|s
+hot-sauce|Hot sauce|pantry|ml|150|1.29|365|sauce|sriracha;tabasco;peri peri;piri piri;buffalo sauce;franks;gochujang;peri peri sauce|s
 sweet-chilli|Sweet chilli sauce|pantry|ml|300|1.29|365|sauce|sweet chili sauce;sweet chilli|s
 brown-sauce|Brown sauce|pantry|g|450|1.49|180|sauce|hp sauce;chef brown sauce;yr sauce|s
 salad-cream|Salad cream|pantry|g|425|1.49|180|sauce|salad dressing;caesar dressing;dressing;vinaigrette|s
@@ -347,7 +348,55 @@ export const BUILTIN = [
     ['Boil the potatoes 15–20 minutes, mash with butter, milk and mustard.', 'Season the chops and fry 4–5 minutes each side until cooked through. Rest 3 minutes.', 'Steam or boil the broccoli 4 minutes. Serve together.']),
   R('omelette', 'Cheese & ham omelette', 'Breakfast', 'Irish', 1, 10, [
     '3 |eggs', '30 g|cheddar', '2 slice|ham', '1 knob|butter'],
-    ['Beat the eggs with salt and pepper.', 'Melt the butter in a pan, add the eggs and stir gently until almost set.', 'Add grated cheese and ham, fold over and serve.'])
+    ['Beat the eggs with salt and pepper.', 'Melt the butter in a pan, add the eggs and stir gently until almost set.', 'Add grated cheese and ham, fold over and serve.']),
+  R('pulled-beef', 'BBQ pulled beef buns', 'Beef', 'American', 6, 270, [
+    '1.2 kg|beef brisket', '1 |onion', '2 tsp|smoked paprika', '1 tbsp|brown sugar', '300 ml|bbq sauce', '1 cube|beef stock', '2 tbsp|cider vinegar', '6 |burger buns', '300 g|coleslaw'],
+    ['Rub the beef with paprika, sugar, salt and pepper. Brown it all over in a hot pan.', 'Put the sliced onion in a slow cooker or casserole, sit the beef on top and add the stock (made with 250 ml water) and vinegar.', 'Cook 8 hours on low in a slow cooker, or covered in the oven at 150°C for 4 hours, until it falls apart.', 'Shred with two forks, discard fat, and stir through the BBQ sauce with a few spoons of the cooking juices.', 'Pile into toasted buns with coleslaw.']),
+  R('pulled-pork', 'Pulled pork wraps', 'Pork', 'American', 6, 270, [
+    '1.2 kg|pork shoulder', '2 tsp|smoked paprika', '1 tbsp|brown sugar', '1 tsp|ground cumin', '250 ml|bbq sauce', '150 ml|apple juice', '8 |wraps', '300 g|coleslaw'],
+    ['Rub the pork with the spices, sugar and salt.', 'Slow-cook with the apple juice 8 hours on low, or covered at 150°C for 4–5 hours.', 'Shred, mix with the BBQ sauce and some juices.', 'Serve in warm wraps with coleslaw.']),
+  R('lasagne', 'Beef lasagne', 'Beef', 'Italian', 6, 90, [
+    '500 g|beef mince', '1 |onion', '2 clove|garlic', '1 |carrot', '400 g|chopped tomatoes', '2 tbsp|tomato puree', '1 tsp|dried oregano', '250 g|lasagne sheets', '50 g|butter', '50 g|plain flour', '600 ml|milk', '100 g|cheddar'],
+    ['Make a bolognese: brown the mince, add chopped onion, carrot and garlic, then tomatoes, purée and oregano. Simmer 20 minutes.', 'For the white sauce, melt the butter, stir in the flour for 1 minute, then whisk in the milk gradually until thick. Season.', 'Layer meat sauce, lasagne sheets and white sauce in a dish, three times, finishing with white sauce.', 'Top with grated cheese and bake at 190°C for 40 minutes. Rest 10 minutes.']),
+  R('cottage-pie', 'Cottage pie', 'Beef', 'Irish', 4, 75, [
+    '500 g|beef mince', '1 |onion', '2 |carrots', '1 tbsp|worcestershire sauce', '2 tbsp|tomato puree', '1 cube|beef stock', '1 kg|potatoes', '50 g|butter', '50 ml|milk', '60 g|cheddar'],
+    ['Brown the mince with chopped onion and carrots for 10 minutes.', 'Add purée, Worcestershire sauce, stock cube and 250 ml water. Simmer 20 minutes.', 'Boil and mash the potatoes with butter and milk.', 'Top the mince with mash and cheese, bake at 200°C for 25 minutes.']),
+  R('bacon-cabbage', 'Bacon & cabbage', 'Pork', 'Irish', 4, 120, [
+    '1 kg|gammon', '1 |cabbage', '1 kg|potatoes', '50 g|butter', '1 tbsp|wholegrain mustard', '250 ml|cream'],
+    ['Soak the bacon joint in cold water 1 hour if salty. Cover with fresh water and simmer 20 minutes per 450 g plus 20 minutes.', 'Boil the potatoes in their skins.', 'Shred the cabbage and cook it in some of the bacon water for 6–8 minutes. Toss with butter.', 'Warm the cream with the mustard for a sauce. Slice the bacon and serve.']),
+  R('coddle', 'Dublin coddle', 'Pork', 'Irish', 4, 90, [
+    '8 |sausages', '200 g|bacon', '2 |onions', '1 kg|potatoes', '1 cube|chicken stock', '10 g|parsley'],
+    ['Cut sausages and rashers into chunks and brown them lightly.', 'Layer with sliced onions and thick potato slices in a pot.', 'Add the stock cube and enough water to just cover. Cover and simmer gently for 1 hour.', 'Scatter with parsley and serve with brown bread.']),
+  R('tikka-masala', 'Chicken tikka masala', 'Chicken', 'Indian', 4, 45, [
+    '600 g|chicken breast', '150 g|natural yogurt', '3 tbsp|tikka paste', '1 |onion', '2 clove|garlic', '20 g|ginger', '400 g|chopped tomatoes', '150 ml|cream', '300 g|basmati rice', '2 |naan'],
+    ['Mix the chicken pieces with yogurt and 1 tbsp tikka paste. Leave 15 minutes or longer.', 'Fry the chicken in batches until charred. Set aside.', 'Fry chopped onion 8 minutes, add garlic, ginger and remaining paste, then tomatoes. Simmer 10 minutes.', 'Blend if you like it smooth, add cream and the chicken, simmer 8 minutes.', 'Serve with rice and warm naan.']),
+  R('thai-green', 'Thai green chicken curry', 'Chicken', 'Thai', 4, 30, [
+    '500 g|chicken thighs', '3 tbsp|green curry paste', '400 ml|coconut milk', '150 g|green beans', '1 |red pepper', '1 |lime', '15 g|coriander', '300 g|basmati rice'],
+    ['Fry the curry paste 1 minute, add sliced chicken and cook 5 minutes.', 'Add coconut milk, beans and sliced pepper, simmer 12 minutes.', 'Finish with lime juice and coriander. Serve with rice.']),
+  R('meatballs', 'Spaghetti & meatballs', 'Beef', 'Italian', 4, 40, [
+    '500 g|beef mince', '40 g|breadcrumbs', '1 |egg', '30 g|parmesan', '1 |onion', '2 clove|garlic', '500 g|passata', '1 tsp|dried oregano', '400 g|spaghetti'],
+    ['Mix the mince, breadcrumbs, egg, half the parmesan and seasoning. Roll into 20 balls.', 'Brown the meatballs in a pan, set aside.', 'Soften the onion and garlic, add passata and oregano, return the meatballs and simmer 15 minutes.', 'Serve on spaghetti with the rest of the parmesan.']),
+  R('burgers', 'Homemade beef burgers & chips', 'Beef', 'American', 4, 35, [
+    '500 g|beef mince', '1 |red onion', '4 |burger buns', '4 slice|cheese slices', '1 |tomato', '60 g|salad leaves', '600 g|oven chips', '2 tbsp|ketchup'],
+    ['Put the chips in the oven at 220°C for 25 minutes.', 'Shape the mince into 4 patties, season well.', 'Fry or grill 4–5 minutes each side, adding cheese for the last minute.', 'Toast buns, fill with burger, lettuce, tomato and onion.']),
+  R('burrito', 'Beef burrito bowls', 'Beef', 'Mexican', 4, 30, [
+    '500 g|beef mince', '2 tsp|smoked paprika', '1 tsp|ground cumin', '400 g|kidney beans', '200 g|sweetcorn', '300 g|rice', '1 |avocado', '1 |lime', '100 g|creme fraiche', '80 g|cheddar'],
+    ['Cook the rice.', 'Brown the mince with the spices, add drained beans and a splash of water, simmer 5 minutes.', 'Serve rice topped with mince, sweetcorn, sliced avocado, lime, crème fraîche and cheese.']),
+  R('fish-chips', 'Oven fish & chips', 'Seafood', 'Irish', 4, 40, [
+    '600 g|white fish', '60 g|breadcrumbs', '1 |egg', '2 tbsp|plain flour', '800 g|potatoes', '300 g|frozen peas', '1 |lemon'],
+    ['Cut potatoes into chips, toss in oil and bake at 220°C for 35 minutes.', 'Coat the fish in flour, beaten egg and breadcrumbs. Bake on an oiled tray for the last 15 minutes.', 'Cook the peas, mash lightly. Serve with lemon.']),
+  R('stew-lamb', 'Irish lamb stew', 'Lamb', 'Irish', 4, 120, [
+    '700 g|lamb pieces', '2 |onions', '3 |carrots', '800 g|potatoes', '2 cube|chicken stock', '2 sprig|thyme', '10 g|parsley'],
+    ['Brown the lamb in batches.', 'Add sliced onion, carrots, stock cubes, thyme and 1 litre water. Simmer covered 1 hour.', 'Add chunky potatoes and cook 40 minutes more. Finish with parsley.']),
+  R('chicken-caesar', 'Chicken Caesar salad', 'Chicken', 'American', 2, 20, [
+    '300 g|chicken breast', '1 |little gem lettuce', '2 slice|bread', '30 g|parmesan', '3 tbsp|caesar dressing', '2 |rashers'],
+    ['Season and fry the chicken 6–8 minutes, slice.', 'Fry the rashers until crisp. Toast cubed bread in the pan for croutons.', 'Toss lettuce with dressing, top with chicken, bacon, croutons and shaved parmesan.']),
+  R('teriyaki-salmon', 'Teriyaki salmon & noodles', 'Seafood', 'Japanese', 2, 20, [
+    '240 g|salmon fillets', '3 tbsp|soy sauce', '1 tbsp|honey', '1 clove|garlic', '10 g|ginger', '150 g|noodles', '150 g|broccoli', '2 |spring onions'],
+    ['Mix soy, honey, grated garlic and ginger.', 'Pan-fry the salmon 4 minutes skin-side down, flip, pour in the sauce and bubble 2 minutes.', 'Cook noodles and broccoli together for 4 minutes, drain.', 'Serve the salmon on the noodles with sauce and spring onion.']),
+  R('korma', 'Chicken korma', 'Chicken', 'Indian', 4, 35, [
+    '600 g|chicken breast', '1 |onion', '3 tbsp|korma paste', '400 ml|coconut milk', '100 ml|cream', '300 g|basmati rice'],
+    ['Fry the onion 6 minutes, add the paste for 1 minute.', 'Add the chicken and cook 5 minutes.', 'Add coconut milk and simmer 15 minutes, stir in the cream.', 'Serve with rice.'])
 ];
 
 // ---------- Meal builder parts (per serving amounts) ----------
@@ -365,7 +414,16 @@ export const B_PROTEIN = {
   lentils: { n: 'Lentils', item: 'red lentils', q: 60, u: 'g', cook: 'Rinse the lentils and simmer in the sauce (add 150 ml extra water per serving) for 20 minutes until soft.', min: 20, veg: true, vegan: true, cost: 0.5 },
   halloumi: { n: 'Halloumi', item: 'halloumi', q: 75, u: 'g', cook: 'Slice the halloumi and fry 2 minutes each side until golden.', min: 5, veg: true, cost: 2 },
   tofu: { n: 'Tofu', item: 'tofu', q: 100, u: 'g', cook: 'Press the tofu dry, cube it and fry until crisp on all sides, about 8 minutes.', min: 10, veg: true, vegan: true, cost: 1.5 },
-  eggs: { n: 'Eggs', item: 'eggs', q: 2, u: '', cook: 'Fry or poach the eggs to your liking (3–4 minutes).', min: 4, veg: true, cost: 0.6 }
+  eggs: { n: 'Eggs', item: 'eggs', q: 2, u: '', cook: 'Fry or poach the eggs to your liking (3–4 minutes).', min: 4, veg: true, cost: 0.6 },
+  'pulled beef': { n: 'Pulled beef', item: 'beef brisket', q: 200, u: 'g', cook: 'Rub the beef with salt, pepper and smoked paprika and brown it all over. Slow-cook covered with 200 ml stock: 8 hours on low in a slow cooker, or 3½–4 hours in the oven at 150°C, until it falls apart. Shred with two forks.', min: 240, veg: false, cost: 3.5, slow: true },
+  'pulled pork': { n: 'Pulled pork', item: 'pork shoulder', q: 200, u: 'g', cook: 'Rub the pork with salt, pepper, smoked paprika and a little brown sugar. Slow-cook covered with 150 ml stock: 8 hours on low, or 4 hours in the oven at 150°C, until it pulls apart. Shred with two forks.', min: 240, veg: false, cost: 2, slow: true },
+  'pulled chicken': { n: 'Pulled chicken', item: 'chicken thighs', q: 170, u: 'g', cook: 'Simmer the chicken thighs, covered, in 150 ml stock for 25 minutes (or slow-cook 4 hours on low), then shred with two forks.', min: 30, veg: false, cost: 2 },
+  meatballs: { n: 'Meatballs', item: 'beef mince', q: 130, u: 'g', cook: 'Season the mince, mix in a little grated onion, roll into walnut-sized balls and brown in a pan for 8–10 minutes, turning.', min: 15, veg: false, cost: 2 },
+  burgers: { n: 'Burgers', item: 'beef mince', q: 150, u: 'g', cook: 'Shape the mince into one patty per person, season well and fry or grill 4–5 minutes each side.', min: 12, veg: false, cost: 2 },
+  lamb: { n: 'Lamb', item: 'lamb pieces', q: 150, u: 'g', cook: 'Season the lamb and brown in a hot pan, then cook through for 10–12 minutes.', min: 15, veg: false, cost: 4 },
+  turkey: { n: 'Turkey', item: 'turkey mince', q: 130, u: 'g', cook: 'Brown the turkey mince in a hot pan for 6–8 minutes, breaking it up.', min: 10, veg: false, cost: 2 },
+  chorizo: { n: 'Chorizo', item: 'chorizo', q: 50, u: 'g', cook: 'Slice the chorizo and fry 3–4 minutes until it releases its oil.', min: 5, veg: false, cost: 1 },
+  'pork chops': { n: 'Pork chops', item: 'pork chops', q: 200, u: 'g', cook: 'Season the chops and fry 4–5 minutes each side until cooked through. Rest 3 minutes.', min: 12, veg: false, cost: 2 }
 };
 export const B_BASE = {
   rice: { n: 'Rice', item: 'basmati rice', q: 75, u: 'g', cook: 'Rinse the rice and cook in boiling salted water for 10–12 minutes. Drain and steam with the lid on.', min: 15 },
@@ -375,7 +433,11 @@ export const B_BASE = {
   wraps: { n: 'Wraps', item: 'wraps', q: 2, u: '', cook: 'Warm the wraps in a dry pan for 20 seconds each side.', min: 2 },
   couscous: { n: 'Couscous', item: 'couscous', q: 70, u: 'g', cook: 'Pour boiling water over the couscous to just cover, cover for 5 minutes, then fluff with a fork.', min: 5 },
   bread: { n: 'Crusty bread', item: 'baguette', q: 0.25, u: '', cook: 'Warm the bread in the oven for 5 minutes.', min: 5 },
-  none: { n: 'No carbs (salad)', item: 'salad leaves', q: 40, u: 'g', cook: 'Arrange the salad leaves on plates.', min: 1 }
+  none: { n: 'No carbs (salad)', item: 'salad leaves', q: 40, u: 'g', cook: 'Arrange the salad leaves on plates.', min: 1 },
+  buns: { n: 'Brioche buns', item: 'burger buns', q: 1, u: '', cook: 'Split the buns and toast them cut-side down for 1 minute.', min: 3 },
+  chips: { n: 'Chips', item: 'oven chips', q: 150, u: 'g', cook: 'Bake the chips at 220°C for 20–25 minutes, turning once.', min: 25 },
+  naan: { n: 'Naan', item: 'naan bread', q: 1, u: '', cook: 'Warm the naan in the oven for 3 minutes.', min: 3 },
+  mash: { n: 'Mash', item: 'potatoes', q: 250, u: 'g', cook: 'Boil the peeled potatoes 15–18 minutes, then mash with a knob of butter and a splash of milk.', min: 20 }
 };
 export const B_STYLE = {
   creamy: { n: 'Creamy garlic', ings: [['', 'onion', 0.25], ['clove', 'garlic', 1], ['ml', 'cream', 60], ['g', 'parmesan', 10], ['g', 'spinach', 30]], sauce: 'Soften the chopped onion for 5 minutes, add the garlic for 1 minute, then pour in the cream and simmer 3 minutes. Stir in the parmesan and spinach until wilted.', rich: 3, spice: 0, healthy: 1 },
@@ -387,6 +449,19 @@ export const B_STYLE = {
   pesto: { n: 'Pesto', ings: [['g', 'pesto', 45], ['g', 'cherry tomatoes', 60], ['g', 'spinach', 20]], sauce: 'Halve the tomatoes and warm them in the pan for 2 minutes, then stir through the pesto and spinach.', rich: 2, spice: 0, healthy: 2 },
   chilli: { n: 'Smoky chilli', ings: [['', 'onion', 0.25], ['clove', 'garlic', 1], ['g', 'chopped tomatoes', 100], ['g', 'kidney beans', 60], ['tsp', 'chilli powder', 0.5], ['tsp', 'ground cumin', 0.25]], sauce: 'Soften the onion and garlic, add the spices for 1 minute, then the tomatoes and drained beans. Simmer 15 minutes.', rich: 1, spice: 2, healthy: 3 },
   lemon: { n: 'Lemon & herb', ings: [['', 'lemon', 0.25], ['clove', 'garlic', 1], ['tbsp', 'olive oil', 0.5], ['g', 'parsley', 5]], sauce: 'Mix lemon zest and juice, crushed garlic, olive oil and chopped parsley. Spoon over at the end.', rich: 1, spice: 0, healthy: 3 },
+  bbq: { n: 'BBQ', ings: [['tbsp', 'bbq sauce', 2.5], ['tsp', 'smoked paprika', 0.5], ['tsp', 'brown sugar', 1], ['tsp', 'cider vinegar', 1], ['', 'onion', 0.25]], sauce: 'Soften the sliced onion, then stir in the BBQ sauce, paprika, sugar, vinegar and 2 tbsp water. Simmer 5 minutes until sticky and toss the meat through it.', rich: 2, spice: 1, healthy: 1 },
+  teriyaki: { n: 'Teriyaki', ings: [['tbsp', 'soy sauce', 1], ['tsp', 'honey', 2], ['clove', 'garlic', 1], ['g', 'ginger', 4], ['', 'spring onion', 1]], sauce: 'Mix the soy sauce, honey, grated garlic and ginger with 2 tbsp water. Pour into the pan and bubble for 2–3 minutes until glossy. Top with sliced spring onion.', rich: 1, spice: 0, healthy: 2 },
+  jerk: { n: 'Jerk', ings: [['tsp', 'allspice', 0.5], ['', 'chilli', 0.5], ['', 'lime', 0.25], ['g', 'thyme', 1], ['tsp', 'honey', 1], ['', 'spring onion', 1]], sauce: 'Blitz or finely chop the chilli, spring onion, thyme, allspice, lime juice and honey into a paste. Rub it over the meat before cooking.', rich: 1, spice: 2, healthy: 2 },
+  peri: { n: 'Peri peri', ings: [['tbsp', 'peri peri sauce', 1], ['', 'lemon', 0.25], ['clove', 'garlic', 1], ['tsp', 'smoked paprika', 0.5]], sauce: 'Mix the peri peri sauce, lemon juice, crushed garlic and paprika. Coat the meat before cooking and spoon the rest over at the end.', rich: 1, spice: 2, healthy: 3 },
+  cajun: { n: 'Cajun', ings: [['tsp', 'smoked paprika', 0.5], ['tsp', 'ground cumin', 0.25], ['tsp', 'dried oregano', 0.25], ['tsp', 'chilli powder', 0.25], ['', 'peppers', 0.5]], sauce: 'Toss the meat in the paprika, cumin, oregano and chilli powder before cooking. Fry the sliced pepper alongside until charred.', rich: 1, spice: 2, healthy: 3 },
+  thai: { n: 'Thai green curry', ings: [['tbsp', 'green curry paste', 0.75], ['ml', 'coconut milk', 100], ['', 'lime', 0.25], ['g', 'coriander', 4], ['g', 'green beans', 40]], sauce: 'Fry the curry paste for 1 minute, add the coconut milk and green beans and simmer 8 minutes. Finish with lime juice and coriander.', rich: 2, spice: 2, healthy: 2 },
+  katsu: { n: 'Katsu curry', ings: [['g', 'breadcrumbs', 25], ['', 'eggs', 0.25], ['tsp', 'curry powder', 1], ['', 'onion', 0.25], ['', 'carrot', 0.25], ['tsp', 'honey', 1], ['cube', 'chicken stock', 0.25]], sauce: 'Coat the meat in flour, beaten egg and breadcrumbs and fry until golden. For the sauce, soften the onion and carrot, add the curry powder, honey, stock and 100 ml water per person, simmer 10 minutes and blend smooth.', rich: 2, spice: 1, healthy: 1 },
+  sweetsour: { n: 'Sweet & sour', ings: [['g', 'pineapple chunks', 50], ['', 'peppers', 0.5], ['tbsp', 'ketchup', 1], ['tsp', 'vinegar', 1], ['tsp', 'soy sauce', 1], ['tsp', 'sugar', 1]], sauce: 'Stir-fry the pepper 3 minutes, add the pineapple, then the ketchup, vinegar, soy sauce, sugar and 2 tbsp pineapple juice. Bubble until glossy.', rich: 1, spice: 0, healthy: 2 },
+  honeygarlic: { n: 'Honey garlic', ings: [['tsp', 'honey', 2], ['clove', 'garlic', 2], ['tbsp', 'soy sauce', 0.75], ['', 'spring onion', 1]], sauce: 'Fry the crushed garlic 30 seconds, add the honey and soy sauce and bubble until sticky. Toss the meat through and top with spring onion.', rich: 1, spice: 0, healthy: 2 },
+  buffalo: { n: 'Buffalo', ings: [['tbsp', 'hot sauce', 1], ['g', 'butter', 8], ['g', 'blue cheese', 15]], sauce: 'Melt the butter with the hot sauce and toss the cooked meat through it. Serve with crumbled blue cheese.', rich: 2, spice: 2, healthy: 1 },
+  greek: { n: 'Greek-style', ings: [['g', 'yogurt', 40], ['clove', 'garlic', 1], ['', 'lemon', 0.25], ['tsp', 'dried oregano', 0.5], ['', 'cucumber', 0.15]], sauce: 'Rub the meat with oregano, lemon juice and garlic before cooking. Grate the cucumber into the yogurt with a pinch of salt for tzatziki.', rich: 1, spice: 0, healthy: 3 },
+  moroccan: { n: 'Moroccan', ings: [['tsp', 'ground cumin', 0.5], ['tsp', 'cinnamon', 0.25], ['g', 'chopped tomatoes', 100], ['g', 'dried apricots', 15], ['tsp', 'honey', 1], ['', 'onion', 0.25]], sauce: 'Soften the onion, add the cumin and cinnamon for 1 minute, then the tomatoes, chopped apricots and honey. Simmer 15 minutes.', rich: 1, spice: 1, healthy: 3 },
+  korean: { n: 'Korean-style', ings: [['tbsp', 'gochujang', 0.5], ['tbsp', 'soy sauce', 0.75], ['tsp', 'honey', 1], ['clove', 'garlic', 1], ['', 'spring onion', 1]], sauce: 'Mix the gochujang, soy sauce, honey and crushed garlic. Toss the meat in it for the last 2 minutes of cooking and top with spring onion.', rich: 1, spice: 2, healthy: 2 },
   gravy: { n: 'Gravy & greens', ings: [['', 'onion', 0.25], ['cube', 'beef stock', 0.25], ['tsp', 'flour', 1], ['g', 'butter', 5]], sauce: 'Soften the sliced onion in the butter for 8 minutes, stir in the flour, then 75 ml hot water per serving with the crumbled stock cube. Simmer until thick.', rich: 2, spice: 0, healthy: 1 }
 };
 export const B_VEG = {
@@ -401,5 +476,8 @@ export const B_VEG = {
   'frozen veg': ['g', 'frozen veg mix', 80, 'Cook the frozen veg as per the pack.'],
   onions: ['', 'onion', 0.35, 'Slice the onion and soften it in the pan for 6–8 minutes before the sauce.'],
   sweetcorn: ['g', 'sweetcorn', 50, 'Stir in the drained sweetcorn for the last 3 minutes.'],
-  tomatoes: ['g', 'cherry tomatoes', 60, 'Halve the tomatoes and add them for the last 3 minutes.']
+  tomatoes: ['g', 'cherry tomatoes', 60, 'Halve the tomatoes and add them for the last 3 minutes.'],
+  coleslaw: ['g', 'coleslaw', 70, 'Serve with coleslaw on the side.'],
+  salad: ['g', 'salad leaves', 30, 'Serve with a handful of salad leaves.'],
+  corn: ['', 'corn on the cob', 0.5, 'Boil or grill the corn cobs 8 minutes.']
 };

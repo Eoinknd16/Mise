@@ -45,9 +45,9 @@ const stars = (n, act, key) => `<div class="stars" role="group" aria-label="Rati
 const shopsOpts = sel => S.settings.shops.concat(SHOPS.filter(s => !S.settings.shops.includes(s))).map(s => `<option${s === sel ? ' selected' : ''}>${esc(s)}</option>`).join('');
 
 /* ================= Router ================= */
-const TITLES = { plan: 'This week', recipes: 'Recipes', list: 'Shopping list', pantry: 'Pantry', more: 'Menu', make: 'What can I make?', builder: 'Create a meal', receipts: 'Receipts', deals: 'Deals', insights: 'Spending', settings: 'Settings', install: 'Install', quiz: 'Your tastes' };
+const TITLES = { plan: 'This week', recipes: 'Recipes', list: 'Shopping list', pantry: 'Pantry', more: 'Menu', make: 'What can I make?', builder: 'Create a meal', receipts: 'Receipts', deals: 'Deals', insights: 'Spending', settings: 'Settings', install: 'Install', quiz: 'Your tastes', add: 'Your recipe' };
 const TAB_OF = { make: 'pantry' };
-const SUBPAGE = { make: 'pantry', receipts: 'more', deals: 'more', insights: 'more', settings: 'more', install: 'more', quiz: 'more', more: 'plan' };
+const SUBPAGE = { add: 'recipes', make: 'pantry', receipts: 'more', deals: 'more', insights: 'more', settings: 'more', install: 'more', quiz: 'more', more: 'plan' };
 function route() {
   const h = (location.hash || '#plan').slice(1);
   if (h === 'tour') { history.replaceState(null, '', '#plan'); ui.route = 'plan'; route(); setTimeout(startTour, 150); return; }
@@ -99,7 +99,7 @@ function viewPlan() {
 function viewRecipes() {
   const tab = ui.recTab;
   let h = `<div class="seg" role="group" data-tour="recTabs">${[['all', 'All'], ['mine', 'Mine'], ['online', 'Online']].map(([k, n]) => `<button data-act="recTab" data-val="${k}" aria-pressed="${tab === k}">${n}</button>`).join('')}</div>
-  <a class="cta" href="#builder" data-tour="buildCta">${ICON.pot}<div><b>Create a meal</b><span>Say what you fancy, get options</span></div></a>
+  <div class="row"><a class="cta grow" href="#builder" data-tour="buildCta" style="width:auto">${ICON.pot}<div><b>Create a meal</b><span>Say what you fancy</span></div></a><a class="btn" href="#add" data-act="newRecipe" data-tour="addRecipe" style="min-height:64px;flex:none">+ Add<br>your own</a></div>
   <input type="search" id="recSearch" placeholder="${tab === 'online' ? 'Search online recipes, then press Enter' : 'Search by name or ingredient'}" value="${esc(ui.recQuery)}" data-in="recQuery" enterkeyhint="search">`;
   if (tab === 'online') {
     h += `<div class="chips">${C.MDB_CATEGORIES.map(c => `<button class="chip" data-act="mdbCat" data-val="${c}" aria-pressed="${ui.onlineCat === c}">${c}</button>`).join('')}<button class="chip" data-act="mdbRandom">Random</button></div>`;
@@ -113,13 +113,13 @@ function viewRecipes() {
   const q = ui.recQuery.toLowerCase().trim();
   let list = Object.values(R).filter(r => tab === 'all' || !String(r.id).startsWith('b:'));
   if (q) list = list.filter(r => r.title.toLowerCase().includes(q) || r.ings.some(i => i.name.toLowerCase().includes(q)) || (r.area || '').toLowerCase().includes(q));
-  list.sort((a, b) => C.prefScore(S, b) - C.prefScore(S, a) || a.title.localeCompare(b.title));
+  list.sort((a, b) => (C.ruledOut(S, a) - C.ruledOut(S, b)) || C.prefScore(S, b) - C.prefScore(S, a) || a.title.localeCompare(b.title));
   if (!list.length) return h + (tab === 'mine' ? `<div class="empty"><h3>No saved recipes yet</h3><p>Build a meal, or add online recipes to your plan, and they'll show here.</p></div>` : `<div class="empty"><h3>Nothing matches</h3><p>Try the Online tab for more.</p></div>`);
   return h + `<div class="rlist">${list.map(card).join('')}</div>`;
 }
 function card(r) {
   const rt = S.ratings[r.id];
-  return `<button class="rcard" data-act="openRecipe" data-key="${esc(r.id)}"><div class="img">${imgSrc(r, true) ? `<img src="${esc(imgSrc(r, true))}" onerror="this.onerror=null;this.src='${esc(C.photoOf(S, r))}'" alt="" loading="lazy">` : esc(r.title[0])}</div><div class="b"><div class="t">${esc(r.title)}</div><div class="tiny muted">${r.stub ? (r.cat || 'Online') : `${r.time} min · ${esc(r.area || r.cat || '')}`}${rt && rt.r ? ' · ' + '★'.repeat(rt.r) : ''}</div></div></button>`;
+  return `<button class="rcard" data-act="openRecipe" data-key="${esc(r.id)}"><div class="img">${imgSrc(r, true) ? `<img src="${esc(imgSrc(r, true))}" onerror="this.onerror=null;this.src='${esc(C.photoOf(S, r))}'" alt="" loading="lazy">` : esc(r.title[0])}</div><div class="b"><div class="t">${esc(r.title)}</div><div class="tiny muted">${r.stub ? (r.cat || 'Online') : `${r.time} min · ${esc(r.area || r.cat || '')}`}${rt && rt.r ? ' · ' + '★'.repeat(rt.r) : ''}</div>${!r.stub && r.ings && C.ruledOut(S, r) ? '<span class="tag warn">has things you avoid</span>' : ''}</div></button>`;
 }
 async function getRecipe(id) {
   if (R[id]) return R[id];
@@ -147,7 +147,8 @@ function renderRecipeSheet() {
   const entry = ctx ? (S.plan[ctx.date] || [])[ctx.idx] : null;
   const hero = C.photoOf(S, r);
   let h = hero ? `<div class="hero"><img src="${esc(hero)}" alt=""></div>` : '';
-  const bad = C.dislikedIn(S, r);
+  const bad = C.dislikedIn(S, r).filter(i => !C.leaveOut(S, r).includes(i)); const lo = C.leaveOut(S, r);
+  if (lo.length) h += `<div class="tag" style="white-space:normal;padding:8px 10px;margin-bottom:8px;font-size:13px">Leave out the ${esc(lo.map(i => i.name).join(', '))}. You don't like ${lo.length > 1 ? 'them' : 'it'}.</div>`;
   if (bad.length) h += `<div class="tag ${bad.some(i => C.likeOf(S, i) <= -9) ? 'deal' : 'warn'}" style="white-space:normal;padding:8px 10px;margin-bottom:8px;font-size:13px">Contains ${esc(bad.map(i => i.name).join(', '))}, which you marked as ${bad.some(i => C.likeOf(S, i) <= -9) ? "can't eat" : "don't like"}.</div>`;
   h += `<h2>${esc(r.title)}</h2>
   <div class="row wrap small muted" style="gap:6px;margin:6px 0 10px"><span class="tag">${r.time} min</span>${r.area ? `<span class="tag">${esc(r.area)}</span>` : ''}${r.cat ? `<span class="tag">${esc(r.cat)}</span>` : ''}<span class="tag yours">≈ ${C.eur(cost.perServe)} a serving</span>${r.src === 'builder' ? '<span class="tag">Built by you</span>' : r.src === 'ai' ? '<span class="tag">AI recipe</span>' : r.src === 'mealdb' ? '<span class="tag">TheMealDB</span>' : ''}</div>
@@ -157,7 +158,7 @@ function renderRecipeSheet() {
   h += `<h3 style="margin:16px 0 0">Ingredients</h3><p class="tiny muted" style="margin:2px 0 4px">Tap one to like or dislike it</p><ul class="ings" data-tour="ings">${r.ings.map((i, idx) => { const it = ITEM[i.item]; const b = it ? C.toBase(i.q * f, i.u, it) : null; const have = it && C.pantryQty(S, it.id) >= (b || 1) * 0.75; const lk = C.likeOf(S, i); return `<li class="${have ? 'have' : ''}" data-act="ingMenu" data-idx="${idx}" style="cursor:pointer"><span class="q">${esc(fmtIng(i.q * f, i.u))}</span><span class="grow">${esc(i.name)}${it && it.staple ? ' <span class="tiny muted">(cupboard)</span>' : ''}</span>${lk <= -9 ? '<span class="tag deal">can\'t eat</span>' : lk < 0 ? '<span class="tag warn">don\'t like</span>' : lk > 0 ? '<span class="tag yours">love</span>' : ''}</li>`; }).join('')}</ul>
   <h3 style="margin:16px 0 8px">Method</h3><ol class="steps">${r.steps.map(s => `<li>${esc(s)}</li>`).join('')}</ol>
   <h3 style="margin:16px 0 4px">Your rating</h3><div data-tour="rating">${stars(rt.r || 0, 'rateSheet', r.id)}</div>
-  <div class="row wrap" style="margin-top:14px"><label class="btn" for="recipePhoto">${S.photos[r.id] ? 'Change photo' : 'Add your photo'}</label><input type="file" id="recipePhoto" accept="image/*" hidden data-change="recipePhoto">${S.photos[r.id] ? '<button class="btn" data-act="removePhoto">Remove photo</button>' : ''}${!saved ? `<button class="btn" data-act="saveRecipe">Save to my recipes</button>` : ''}${r.src !== 'builtin' && saved && !String(r.id).startsWith('b:') ? `<button class="btn" data-act="deleteRecipe" data-key="${esc(r.id)}">Delete recipe</button>` : ''}${r.url ? `<a class="btn ghost" href="${esc(r.url)}" target="_blank" rel="noopener">Original source</a>` : ''}${r.video ? `<a class="btn ghost" href="${esc(r.video)}" target="_blank" rel="noopener">Video</a>` : ''}</div>`;
+  <div class="row wrap" style="margin-top:14px"><label class="btn" for="recipePhoto">${S.photos[r.id] ? 'Change photo' : 'Add your photo'}</label><input type="file" id="recipePhoto" accept="image/*" hidden data-change="recipePhoto">${S.photos[r.id] ? '<button class="btn" data-act="removePhoto">Remove photo</button>' : ''}${!saved ? `<button class="btn" data-act="saveRecipe">Save to my recipes</button>` : ''}${saved && !String(r.id).startsWith('b:') && r.src !== 'mealdb' ? `<button class="btn" data-act="editRecipe" data-key="${esc(r.id)}">Edit</button>` : ''}${String(r.id).startsWith('b:') ? `<button class="btn" data-act="editRecipe" data-key="${esc(r.id)}">Edit a copy</button>` : ''}${r.src !== 'builtin' && saved && !String(r.id).startsWith('b:') ? `<button class="btn" data-act="deleteRecipe" data-key="${esc(r.id)}">Delete</button>` : ''}${r.url ? `<a class="btn ghost" href="${esc(r.url)}" target="_blank" rel="noopener">Original source</a>` : ''}${r.video ? `<a class="btn ghost" href="${esc(r.video)}" target="_blank" rel="noopener">Video</a>` : ''}</div>`;
   setSheet(h);
 }
 function pickerSheet(date) {
@@ -166,7 +167,7 @@ function pickerSheet(date) {
 }
 function renderPicker(keepFocus) {
   const q = (ui.pickQuery || '').toLowerCase();
-  const all = Object.values(R).filter(r => !['Dessert', 'Starter', 'Side'].includes(r.cat));
+  const all = Object.values(R).filter(r => !['Dessert', 'Starter', 'Side'].includes(r.cat) && !C.ruledOut(S, r));
   let list;
   if (q) list = all.filter(r => r.title.toLowerCase().includes(q) || r.ings.some(i => i.name.toLowerCase().includes(q)));
   else { const can = C.whatCanIMake(S).filter(x => x.cover >= 0.6).slice(0, 4).map(x => x.r.id); list = all.sort((a, b) => (can.includes(b.id) - can.includes(a.id)) || (C.prefScore(S, b) - C.prefScore(S, a))).slice(0, 30); }
@@ -176,6 +177,7 @@ function renderPicker(keepFocus) {
   setSheet(body);
   if (keepFocus) { const i = $('#pickSearch'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }
 }
+function keepSuggestion(p) { if (p && p.recipe && !S.recipes[p.rid]) { const r = { ...p.recipe }; delete r.auto; S.recipes[p.rid] = r; refreshRecipes(); } return p; }
 function addToPlan(rid, date, recipe) {
   const r = recipe || R[rid];
   if (r && !String(rid).startsWith('b:') && !S.recipes[rid]) { S.recipes[rid] = r; refreshRecipes(); }
@@ -333,13 +335,14 @@ function viewBuilder() {
       <div class="chips wrap" style="margin-top:8px">${Object.keys(B_VEG).map(v => `<button class="chip" data-act="bVeg" data-val="${v}" aria-pressed="${(sp.veg || []).includes(v)}">${v}</button>`).join('')}</div>
       <div class="seg" style="margin-top:8px">${[[0, 'Mild'], [1, 'Medium'], [2, 'Hot']].map(([k, n]) => `<button data-act="bSpicy" data-val="${k}" aria-pressed="${(sp.spicy ?? 1) === k}">${n}</button>`).join('')}</div>
     </details>
-    <div class="row" data-tour="bGo"><button class="btn primary grow" data-act="bIdeas">Get ideas</button>${S.settings.ai !== 'off' ? `<button class="btn" data-act="bAI"${ui.builderBusy ? ' disabled' : ''}>${ui.builderBusy ? '<span class="spinner"></span>' : 'Ask AI'}</button>` : ''}</div></div>`;
+    <div class="row" data-tour="bGo"><button class="btn primary grow" data-act="bIdeas">Get ideas</button><button class="btn" data-act="bAI"${ui.builderBusy ? ' disabled' : ''}>${ui.builderBusy ? '<span class="spinner"></span>' : 'Ask AI'}</button></div></div>`;
   if (ui.ideas) {
     const I = ui.ideas;
     h += `<section class="card" data-tour="ideas" id="ideasCard"><div class="row between"><h2>Ideas</h2><button class="btn sm" data-act="bIdeas">Shuffle</button></div>${(I.notes || []).map(n => `<span class="tag warn" style="white-space:normal">${esc(n)}</span>`).join('')}
       ${I.built.map((r, k) => { const c = C.recipeCost(S, r, r.serves); return `<button class="meal" style="width:100%;border:1px solid var(--line);border-radius:12px;background:${b && b.id === r.id ? 'var(--accent-soft)' : 'var(--card)'};cursor:pointer;color:inherit;text-align:left" data-act="pickIdea" data-val="${k}"><div class="thumb">${esc(r.title[0])}</div><div class="grow"><div class="t">${esc(r.title)}</div><div class="small muted">${r.time} min · ≈ ${C.eur(c.perServe)} a serving</div></div></button>`; }).join('')}
       ${I.library.length ? `<div class="small muted" style="font-weight:700;margin-top:6px">Already in your recipes</div>` + I.library.map(x => `<button class="meal" style="width:100%;border:1px solid var(--line);border-radius:12px;background:var(--card);cursor:pointer;color:inherit;text-align:left" data-act="openRecipe" data-key="${esc(x.r.id)}">${thumb(x.r)}<div class="grow"><div class="t">${esc(x.r.title)}</div><div class="small muted">${x.r.time} min</div></div></button>`).join('') : ''}
-      ${I.items.length ? `<button class="btn sm" data-act="ideasOnline">More ${esc(ITEM[I.items[0]].n.toLowerCase())} recipes online</button>` : ''}</section>`;
+      ${ui.ideasWeb === 'loading' ? '<div class="small muted row"><span class="spinner"></span> Looking online…</div>' : (ui.ideasWeb || []).length ? `<div class="small muted" style="font-weight:700;margin-top:6px">Online recipes</div>` + ui.ideasWeb.slice(0, 6).map(r => `<button class="meal" style="width:100%;border:1px solid var(--line);border-radius:12px;background:var(--card);cursor:pointer;color:inherit;text-align:left" data-act="openRecipe" data-key="${esc(r.id)}">${thumb(r)}<div class="grow"><div class="t">${esc(r.title)}</div><div class="small muted">${esc(r.area || r.cat || 'Online')}</div></div></button>`).join('') : ''}
+      <div class="row wrap"><button class="btn sm grow" data-act="bAI">Ask AI for this</button><a class="btn sm grow" href="#add" data-act="newRecipe">Write my own</a></div></section>`;
   }
   if (b) {
     const cost = C.recipeCost(S, b, b.serves);
@@ -413,6 +416,10 @@ function viewSettings() {
     ${Object.keys(S.likes).length ? `<div class="card flat">${Object.entries(S.likes).sort((a, b) => a[1] - b[1]).map(([k, v]) => `<div class="pi"><div class="grow"><b>${esc(ITEM[k] ? ITEM[k].n : k.replace(/^x:/, ''))}</b></div>${v <= -9 ? '<span class="tag deal">can\'t eat</span>' : v < 0 ? '<span class="tag warn">don\'t like</span>' : '<span class="tag yours">love</span>'}<button class="icon-btn" data-act="removeLike" data-key="${esc(k)}" aria-label="Remove">${ICON.x}</button></div>`).join('')}</div>` : ''}
     <a class="btn" href="#quiz" data-tour="quizBtn">Retake the taste quiz</a>${(S.settings.diet || []).length ? `<p class="small" style="margin:0">Diet: <b>${esc(S.settings.diet.map(d => (C.DIETS.find(x => x[0] === d) || [, d])[1]).join(', '))}</b></p>` : ''}
     <form class="row wrap" data-form="addLike"><input list="itemsList" id="likeName" placeholder="e.g. Mushrooms" autocomplete="off" style="flex:1 1 140px" aria-label="Ingredient"><select id="likeVal" style="flex:0 1 140px" aria-label="Preference"><option value="-1">Don't like</option><option value="-9">Can't eat</option><option value="1">Love it</option></select><button class="btn primary" type="submit">Add</button></form></div>
+  ${(() => { const tp = C.tasteProfile(S); const chips = (arr, cls) => arr.map(x => `<span class="tag ${cls}" style="font-size:13px">${esc(x)}</span>`).join(' '); return `<div class="card" data-tour="sLearned"><h2>What Mise has learned</h2>
+    ${tp.loves.length || tp.avoids.length || tp.cuisines.length ? `${tp.loves.length ? `<div class="small"><b>You like</b><div class="row wrap" style="gap:6px;margin-top:4px">${chips(tp.loves, 'yours')}</div></div>` : ''}${tp.avoids.length ? `<div class="small"><b>You avoid</b><div class="row wrap" style="gap:6px;margin-top:4px">${chips(tp.avoids, 'warn')}</div></div>` : ''}${tp.cuisines.length ? `<div class="small"><b>Favourite cuisines</b><div class="row wrap" style="gap:6px;margin-top:4px">${chips(tp.cuisines, '')}</div></div>` : ''}` : '<p class="small muted" style="margin:0">Nothing yet. Take the quiz, rate meals and scan receipts.</p>'}
+    <p class="tiny muted" style="margin:0">Learns from the quiz, ratings, what you cook, swap and buy. ${tp.rated} rated · ${tp.cooked} cooked.</p>
+    <button class="btn sm" data-act="resetLearning" style="color:var(--hot);align-self:flex-start">${ui.resetLearnArm ? 'Tap again to reset' : 'Reset learning'}</button></div>`; })()}
   <div class="card" data-tour="sAI"><h2>AI (optional)</h2><p class="small muted" style="margin:0">Optional. Everything works without it.</p>
     <label class="f">AI engine<select data-setting="ai"><option value="off"${st.ai === 'off' ? ' selected' : ''}>Off</option><option value="chrome"${st.ai === 'chrome' ? ' selected' : ''}${ui.aiStatus.chrome ? '' : ' disabled'}>On this device (Chrome built-in)${ui.aiStatus.chrome ? '' : ' – not available here'}</option><option value="puter"${st.ai === 'puter' ? ' selected' : ''}>Puter (free account, cloud)</option></select></label>
     <p class="tiny muted" style="margin:0">${st.ai === 'puter' ? 'Puter asks you to sign in to a free Puter account the first time. Your recipe requests go to their cloud and use your account\'s allowance.' : st.ai === 'chrome' ? 'Runs on this device with Chrome\'s built-in model. Nothing leaves your phone.' : 'On-device AI is only available on some desktop Chrome browsers for now.'}</p></div>
@@ -444,12 +451,12 @@ const A = {
     const dates = C.weekDates(ui.weekOffset).filter(d => !(S.plan[d] || []).length && S.settings.nights[(new Date(d + 'T12:00').getDay() + 6) % 7]);
     if (!dates.length) { toast('Every night is already planned.'); return; }
     const picks = C.suggestWeek(S, dates);
-    for (const p of picks) (S.plan[p.date] = S.plan[p.date] || []).push({ rid: p.rid, serves: S.settings.household || 2, wildcard: p.wildcard });
+    for (const p of picks) { keepSuggestion(p); (S.plan[p.date] = S.plan[p.date] || []).push({ rid: p.rid, serves: S.settings.household || 2, wildcard: p.wildcard }); }
     save(); render(); toast(`Planned ${picks.length} dinner${picks.length > 1 ? 's' : ''}. One is a wildcard to keep things fresh.`);
   },
   addMeal: el => { ui.sheetServes = null; openSheet(''); pickerSheet(el.dataset.date); },
   pickRecipe: el => { addToPlan(el.dataset.key, ui.pickDate); closeSheet(); render(); toast('Added to ' + fmtDay(ui.pickDate)); },
-  pickSuggest: () => { const p = C.suggestWeek(S, [ui.pickDate])[0]; if (!p) { toast('No suggestion available'); return; } addToPlan(p.rid, ui.pickDate); closeSheet(); render(); toast(`Added ${R[p.rid].title}`); },
+  pickSuggest: () => { const p = keepSuggestion(C.suggestWeek(S, [ui.pickDate])[0]); if (!p) { toast('No suggestion available'); return; } addToPlan(p.rid, ui.pickDate); closeSheet(); render(); toast(`Added ${R[p.rid].title}`); },
   pickOnline: () => { ui.recTab = 'online'; go('recipes'); },
   openRecipe: el => { const ctx = el.dataset.date ? { date: el.dataset.date, idx: +el.dataset.idx } : null; openRecipe(el.dataset.key, ctx); },
   sheetServes: el => { ui.sheetServes = Math.max(1, ui.sheetServes + +el.dataset.val); if (ui.sheetCtx) { const e = S.plan[ui.sheetCtx.date][ui.sheetCtx.idx]; e.serves = ui.sheetServes; save(); render(); } renderRecipeSheet(); },
@@ -467,7 +474,7 @@ const A = {
   swap: el => {
     const d = el.dataset.date, i = +el.dataset.idx, e = S.plan[d][i]; const old = R[e.rid];
     S.plan[d].splice(i, 1); C.markSkipped(S, e.rid, old);
-    const p = C.suggestWeek(S, [d]).find(x => x.rid !== e.rid);
+    const p = keepSuggestion(C.suggestWeek(S, [d]).find(x => x.rid !== e.rid));
     if (p) S.plan[d].splice(i, 0, { rid: p.rid, serves: e.serves });
     save(); closeSheet(); render(); toast(p ? `Swapped for ${R[p.rid].title}` : 'Removed');
   },
@@ -482,8 +489,10 @@ const A = {
     ev.stopPropagation();
     const L = C.buildList(S, C.weekDates(ui.listWeek)); const r = L.rows.find(x => x.key === el.dataset.key); if (!r) return; ui.menuRow = r;
     openSheet(`<h2>${esc(r.name)}</h2><p class="small muted">${r.from.map(esc).join(', ')}</p>${r.priceSrc === 'est' ? `<p class="small">Price is an estimate. Scan a receipt to learn the real one${r.shop ? ' at ' + esc(r.shop) : ''}.</p>` : ''}
+      ${r.loose ? `<div class="row"><label class="f grow">Aisle<select id="ciAisle">${AISLES.map(a => `<option value="${a[0]}"${a[0] === r.aisle ? ' selected' : ''}>${a[1]}</option>`).join('')}</select></label><label class="f" style="width:110px">Price €<input id="ciPrice" type="number" inputmode="decimal" step="0.01" value="${r.cost != null ? r.cost : ''}"></label></div><button class="btn primary" data-act="saveCustom" style="margin:8px 0">Save for next time</button>` : ''}
       <div style="display:flex;flex-direction:column;gap:8px"><button class="btn" data-act="haveIt">I already have this</button><button class="btn" data-act="hideItem">Remove from this list</button>${r.extra ? '<button class="btn" data-act="delExtra">Delete added item</button>' : ''}<button class="btn ghost" data-act="closeSheet">Cancel</button></div>`);
   },
+  saveCustom: () => { const r = ui.menuRow; S.customInfo = S.customInfo || {}; const pr = $('#ciPrice').value; S.customInfo[r.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim()] = { aisle: $('#ciAisle').value, price: pr === '' ? undefined : parseFloat(pr) }; save(); closeSheet(false, () => render()); toast('Saved'); },
   haveIt: () => { const r = ui.menuRow; if (r.item) C.addPantry(S, r.item, r.buy || r.qty, r.name); else S.list.hidden[r.key] = true; save(); closeSheet(); render(); toast('Added to your pantry'); },
   hideItem: () => { S.list.hidden[C.weekDates(ui.listWeek)[0] + ':' + ui.menuRow.key] = true; save(); closeSheet(); render(); },
   delExtra: () => { const r = ui.menuRow; S.list.extras = S.list.extras.filter(x => (x.item || 'x:' + x.name.toLowerCase()) !== r.key && x.item !== r.item); save(); closeSheet(); render(); },
@@ -533,7 +542,9 @@ const A = {
     const text = (ui.bDesc || '').trim(); if (!text && !ui.builderSpec.protein) { toast('Type what you fancy first, e.g. "rice with beef mince and onions"'); return; }
     const base = readBuilderSpec(); const I = C.ideasFor(S, text || [ui.builderSpec.protein, ui.builderSpec.base].filter(Boolean).join(' '), 3);
     for (const k of ['protein', 'base', 'serves', 'spicy', 'healthy', 'cheap', 'diet']) if (base[k] !== undefined && ui.builderSpec[k] !== undefined) for (const r of I.built) r.spec[k] = base[k];
-    ui.ideas = I; ui.builder = null; render(); setTimeout(() => { const c = $('#ideasCard'); if (c) c.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 30);
+    ui.ideas = I; ui.builder = null; ui.ideasWeb = 'loading'; render(); setTimeout(() => { const c = $('#ideasCard'); if (c) c.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 30);
+    const q = I.query || text.split(/\s+/).filter(w => w.length > 3).slice(0, 2).join(' ');
+    (async () => { let res = []; try { if (q) res = await C.mdbSearch(S, q); if (!res.length && I.items[0]) res = await C.mdbByIngredient(S, ITEM[I.items[0]].n.replace(/s$/, '')); } catch (e) { res = []; } if (ui.ideas === I) { ui.ideasWeb = res.filter(r => r.stub || !C.ruledOut(S, r)); if (ui.route === 'builder') { const y = scrollY; render(); scrollTo(0, y); } } })();
   },
   bIng: el => {
     const b = ui.builder, i = b.ings[+el.dataset.idx]; ui.bIngSel = i;
@@ -551,12 +562,16 @@ const A = {
   ideasOnline: () => { const id = ui.ideas.items[0]; ui.recTab = 'online'; ui.recQuery = ITEM[id].n; location.hash = 'recipes'; setTimeout(() => onlineSearch(ITEM[id].n.replace(/s$/, '')), 60); },
   bTweak: el => { if (!ui.lastSpec) return; const s = { ...ui.lastSpec, veg: [...(ui.lastSpec.veg || [])] }; C.TWEAKS[el.dataset.val][1](s); const full = C.completeSpec(s, S, ui.builderOpts.pantryFirst); ui.lastSpec = full; ui.builder = C.buildMeal(full); render(); toast(C.TWEAKS[el.dataset.val][0] + ' version'); },
   bAI: async () => {
-    const desc = (ui.bDesc || '').trim(); if (!desc) { toast('Describe the meal first'); return; }
+    const desc = (ui.bDesc || '').trim(); if (!desc) { toast('Type what you fancy first'); return; }
+    if (S.settings.ai === 'off') { openSheet(`<h2>Ask AI</h2><p class="muted">AI understands any dish or ingredient. It's free: it runs through Puter, and you sign in to a free Puter account the first time. Your request goes to their cloud.</p><div class="row"><button class="btn grow" data-act="closeSheet">Not now</button><button class="btn primary grow" data-act="aiEnable">Turn on & ask</button></div>`); return; }
     ui.builderBusy = true; render();
-    try { ui.builder = await C.aiRecipe(S.settings.ai, desc, readBuilderSpec().serves || S.settings.household); ui.lastSpec = null; }
-    catch (e) { toast('AI could not write that one: ' + (e.message || 'unknown error').slice(0, 80)); }
-    ui.builderBusy = false; render();
+    try { const avoid = Object.entries(S.likes).filter(([, v]) => v < 0).map(([k]) => ITEM[k] ? ITEM[k].n : k.replace(/^x:/, '')).concat([...C.dietBlocks(S)].map(id => ITEM[id].n)).slice(0, 40);
+      const list = await C.aiIdeas(S.settings.ai, desc, readBuilderSpec().serves || S.settings.household, avoid);
+      ui.ideas = { built: list, library: [], items: [], notes: ['Written by AI'], query: '' }; ui.ideasWeb = []; ui.builder = null; }
+    catch (e) { toast('AI could not answer: ' + (e.message || 'unknown error').slice(0, 80)); }
+    ui.builderBusy = false; render(); setTimeout(() => { const c = $('#ideasCard'); if (c) c.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 30);
   },
+  aiEnable: () => { S.settings.ai = 'puter'; save(); closeSheet(false, () => A.bAI()); },
   bSave: () => { const r = ui.builder; S.recipes[r.id] = r; refreshRecipes(); save(); ui.sheetRecipe = R[r.id]; ui.sheetServes = r.serves; ui.sheetCtx = null; openSheet(''); renderRecipeSheet(); toast('Saved. Pick a day below.'); },
   bSaveOnly: () => { const r = ui.builder; S.recipes[r.id] = r; refreshRecipes(); save(); toast('Saved to your recipes'); },
   clearWeek: () => {
@@ -585,7 +600,28 @@ const A = {
   quizVote: el => quizVote(+el.dataset.val),
   quizBack: () => { const q = ui.quiz; if (!q.i) return; q.i--; const id = q.deck[q.i]; delete q.votes[id]; delete S.likes[id]; save(); render(); },
   quizFinish: () => { ui.quiz.i = ui.quiz.deck.length; render(); },
-  quizClose: () => { const first = ui.quiz && ui.quiz.first; S.settings.quizDone = true; save(); ui.quiz = null; location.hash = 'plan'; if (first && !S.settings.tourSeen) setTimeout(askTour, 250); },
+  quizClose: () => { const first = ui.quiz && ui.quiz.first; S.settings.quizDone = true; save(); ui.quiz = null; location.hash = 'plan';
+    const clash = C.weekDates(0).concat(C.weekDates(1)).flatMap(d => (S.plan[d] || []).filter(e => !e.cooked && R[e.rid] && C.ruledOut(S, R[e.rid])).map(e => R[e.rid].title));
+    if (clash.length) setTimeout(() => openSheet(`<h2>Swap ${clash.length} planned meal${clash.length > 1 ? 's' : ''}?</h2><p class="muted">${esc(clash.join(', '))} use${clash.length > 1 ? '' : 's'} things you said no to.</p><div class="row"><button class="btn grow" data-act="closeSheet">Keep</button><button class="btn primary grow" data-act="swapAvoided">Swap them</button></div>`), 250);
+    else if (first && !S.settings.tourSeen) setTimeout(askTour, 250); },
+  newRecipe: () => { ui.editDraft = null; if (location.hash !== '#add') location.hash = 'add'; else render(true); },
+  editRecipe: el => {
+    const r = R[el.dataset.key]; if (!r) return; const copy = String(r.id).startsWith('b:');
+    ui.editDraft = { id: copy ? null : r.id, title: r.title + (copy ? ' (mine)' : ''), serves: r.serves, time: r.time, ing: r.ings.map(i => (i.u === 'taste' ? '' : fmtIng(i.q, i.u) + ' ') + i.name).join('\n'), steps: r.steps.join('\n'), img: S.photos[r.id] || r.img || null };
+    closeSheet(false, () => { location.hash = 'add'; });
+  },
+  arPaste: () => openSheet(`<h2>Paste a recipe</h2><p class="small muted">From a website, message or note. Mise splits it into ingredients and steps.</p><textarea id="arPasteText" style="min-height:240px"></textarea><div class="row" style="margin-top:10px"><button class="btn grow" data-act="closeSheet">Cancel</button><button class="btn primary grow" data-act="arPasteGo">Use it</button></div>`),
+  arPasteGo: () => { const p = C.splitRecipeText($('#arPasteText').value); const e = ui.editDraft; if (p.title && !e.title) e.title = p.title; if (p.serves) e.serves = p.serves; if (p.time) e.time = p.time; e.ing = p.ings.map(i => i.raw).join('\n'); e.steps = p.steps.join('\n'); closeSheet(false, () => { render(); toast(`${p.ings.length} ingredients, ${p.steps.length} steps`); }); },
+  arSave: () => {
+    const e = readAddForm(); if (!e.title) { toast('Give it a name'); return; } if (!e.ing.trim()) { toast('Add at least one ingredient'); return; }
+    const r = C.makeOwnRecipe({ id: e.id, title: e.title, serves: e.serves, time: e.time, ingText: e.ing, stepText: e.steps });
+    S.recipes[r.id] = r; if (e.img && e.img.startsWith('data:')) S.photos[r.id] = e.img; refreshRecipes(); save();
+    const unknown = r.ings.filter(i => !i.item && !i.skip && i.u !== 'taste').map(i => i.name);
+    ui.editDraft = null; ui.recTab = 'mine'; location.hash = 'recipes';
+    setTimeout(() => { openRecipe(r.id); if (unknown.length) toast(`Saved. New to Mise: ${unknown.slice(0, 3).join(', ')}. They'll go on your list as-is.`); else toast('Recipe saved'); }, 120);
+  },
+  resetLearning: () => { if (!ui.resetLearnArm) { ui.resetLearnArm = true; render(); setTimeout(() => { ui.resetLearnArm = false; }, 3500); return; } ui.resetLearnArm = false; S.ingPref = {}; S.tagPref = {}; S.skipped = {}; save(); render(); toast('Learning reset. Likes, diet and ratings kept.'); },
+  swapAvoided: () => { let n = 0; for (const d of C.weekDates(0).concat(C.weekDates(1))) { const list = S.plan[d] || []; for (let i = 0; i < list.length; i++) { const r = R[list[i].rid]; if (r && !list[i].cooked && C.ruledOut(S, r)) { const p = keepSuggestion(C.suggestWeek(S, [d])[0]); if (p) { list[i] = { rid: p.rid, serves: list[i].serves }; n++; } else { list.splice(i--, 1); n++; } } } } save(); closeSheet(false, () => render()); toast(`Swapped ${n} meal${n === 1 ? '' : 's'}`); },
   delDeal: el => { S.deals = S.deals.filter(d => d.id !== el.dataset.key); save(); render(); },
   setNum: el => { const k = el.dataset.key; S.settings[k] = Math.max(1, Math.min(12, (S.settings[k] || 1) + +el.dataset.val)); save(); render(); },
   toggleNight: el => { const i = +el.dataset.val; S.settings.nights[i] = S.settings.nights[i] ? 0 : 1; save(); render(); },
@@ -609,6 +645,7 @@ const CHANGE = {
   rcItem: el => { ui.receiptDraft.lines[+el.dataset.idx].item = el.value; },
   rcTotal: el => { ui.receiptDraft.total = el.value === '' ? null : parseFloat(el.value); render(); },
   rcPrice: el => { ui.receiptDraft.lines[+el.dataset.idx].price = parseFloat(el.value) || 0; render(); },
+  arPhoto: async el => { const f = el.files && el.files[0]; if (!f) return; readAddForm(); ui.editDraft.img = await shrinkImage(f); render(); },
   recipePhoto: async el => { const f = el.files && el.files[0]; if (!f) return; try { S.photos[ui.sheetRecipe.id] = await shrinkImage(f); save(); renderRecipeSheet(); render(); toast('Photo added'); } catch (e) { toast('Could not use that image'); } },
   importData: async el => { const f = el.files && el.files[0]; if (!f) return; try { S = C.importState(await f.text()); refreshRecipes(); save(); applyTheme(); render(); toast('Backup restored'); } catch (e) { toast(e.message); } }
 };
@@ -702,7 +739,7 @@ function ensureMeals() {
   const dates = C.weekDates(0);
   if (dates.some(d => (S.plan[d] || []).length)) return;
   ui.tourAddedPlan = true;
-  for (const p of C.suggestWeek(S, dates.slice(0, 4))) (S.plan[p.date] = S.plan[p.date] || []).push({ rid: p.rid, serves: S.settings.household || 2, wildcard: p.wildcard });
+  for (const p of C.suggestWeek(S, dates.slice(0, 4))) { keepSuggestion(p); (S.plan[p.date] = S.plan[p.date] || []).push({ rid: p.rid, serves: S.settings.household || 2, wildcard: p.wildcard }); }
   render();
 }
 async function openFirstMealSheet() {
@@ -729,6 +766,7 @@ const TOUR = [
   { sheet: true, sel: '.sheet-x', title: 'Closing a sheet', text: 'Close any sheet by swiping it down, tapping the ✕, tapping the dark area above it, or pressing your phone\'s back button.' },
   { route: 'recipes', sel: '[data-tour=recTabs]', title: 'Recipes', text: '"All" is every recipe Mise knows. "Mine" is recipes you built or saved. "Online" searches thousands of free recipes from TheMealDB by category or name.' },
   { route: 'recipes', sel: '[data-tour=buildCta]', title: 'Create a meal', text: 'Shortcut to the Create tab, where you describe what you fancy and get recipe ideas.' },
+  { route: 'recipes', sel: '[data-tour=addRecipe]', title: 'Add your own', text: 'Type in a family favourite or paste a recipe from any website. Ingredients Mise doesn\'t know are kept as you wrote them and go on your list.' },
   { route: 'recipes', sel: '#recSearch', title: 'Search', text: 'Search by dish or ingredient, for example "chicken" or "curry". On the Online tab, type and press Enter to search the internet library.' },
   { route: 'recipes', sel: '.rcard', title: 'Recipe cards', text: 'Tap any card to open it. From there you can add it to a day, rate it, or save an online recipe to your own collection.' },
   { route: 'recipes', sheet: true, before: async () => { await openRecipe('b:stirfry'); }, sel: '[data-tour=daypick]', title: 'Add it to a day', text: 'In a recipe you\'re browsing, tap a day here to add it to the week. Set servings first with − and +.' },
@@ -748,7 +786,7 @@ const TOUR = [
   { route: 'builder', sel: '[data-tour=bDesc]', title: 'Create a meal', text: 'Say what you fancy in your own words: ingredients you want to use, a dish, who it\'s for, how spicy, budget, time, or things to avoid. For example "a rice dish with beef mince and onions". Tap an example chip to try one.' },
   { route: 'builder', sel: '[data-tour=bParts]', title: 'Or pick the parts', text: 'Open "Pick parts yourself" to choose the main ingredient, what it\'s served with, the flavour, veg, servings and heat.' },
   { route: 'builder', sel: '[data-tour=bOpts]', title: 'Quick options', text: '"Use what I have" builds from your pantry. Healthier, Cheaper and Veggie steer every idea.' },
-  { route: 'builder', sel: '[data-tour=bGo]', title: 'Get ideas', text: '"Get ideas" gives you four different recipes built around what you typed, plus matching recipes you already have and a link to more online.' },
+  { route: 'builder', sel: '[data-tour=bGo]', title: 'Get ideas', text: '"Get ideas" gives four recipes built around what you typed, plus matching recipes you have and real recipes online. "Ask AI" understands anything else (free, via Puter).' },
   { route: 'builder', before: () => { ui._tourB = ui.builder; ui._tourD = ui.bDesc; ui._tourI = ui.ideas; ui.bDesc = 'A rice dish with beef mince and onions'; A.bIdeas(); }, sel: '[data-tour=ideas]', title: 'Your ideas', text: 'Tap an idea to see the full recipe and cost. "Shuffle" gives you a fresh set.' },
   { route: 'builder', before: () => { if (ui.ideas) A.pickIdea({ dataset: { val: 0 } }); }, sel: '[data-tour=bTweaks]', title: 'Tweak it', text: 'Not quite right? Tap Cheaper, Healthier, Spicier, Quicker, Veggie, More veg or Surprise me, as many times as you like.' },
   { route: 'builder', sel: '[data-tour=bIngs]', title: 'Remove or swap anything', text: 'Tap any ingredient to remove it, swap it, or mark it "never". The recipe adjusts, or picks a new sauce if you remove something it depends on.' },
@@ -857,7 +895,22 @@ function bindQuizSwipe() {
 }
 function quizVote(v) { const q = ui.quiz; const id = q.deck[q.i]; q.votes[id] = v; if (v) S.likes[id] = v; else delete S.likes[id]; save(); q.i++; render(); bindQuizSwipe(); }
 
-const VIEWS = { quiz: viewQuiz, plan: viewPlan, recipes: viewRecipes, list: viewList, pantry: viewPantry, make: viewMake, more: viewMore, receipts: viewReceipts, builder: viewBuilder, deals: viewDeals, insights: viewInsights, settings: viewSettings, install: viewInstall };
+
+/* ================= Your own recipe ================= */
+function viewAdd() {
+  const e = ui.editDraft || (ui.editDraft = { title: '', serves: S.settings.household || 2, time: 30, ing: '', steps: '', id: null, img: null });
+  return `<div class="card"><label class="f">Name<input id="arTitle" value="${esc(e.title)}" placeholder="e.g. Nana's beef stew"></label>
+    <div class="row"><label class="f grow">Serves<input id="arServes" type="number" min="1" value="${e.serves}"></label><label class="f grow">Minutes<input id="arTime" type="number" min="5" step="5" value="${e.time}"></label></div>
+    <label class="f">Ingredients <span class="tiny">one per line, e.g. "500 g beef brisket"</span><textarea id="arIng" style="min-height:150px" placeholder="1.2 kg beef brisket&#10;2 onions&#10;300 ml BBQ sauce">${esc(e.ing)}</textarea></label>
+    <label class="f">Method <span class="tiny">one step per line</span><textarea id="arSteps" style="min-height:120px" placeholder="Rub the beef with spices&#10;Slow cook 8 hours">${esc(e.steps)}</textarea></label>
+    <div class="row wrap"><label class="btn grow" for="arPhoto">${e.img ? 'Change photo' : 'Add photo'}</label><input type="file" id="arPhoto" accept="image/*" hidden data-change="arPhoto"><button class="btn grow" data-act="arPaste">Paste a whole recipe</button></div>
+    ${e.img ? `<img src="${esc(e.img)}" alt="" style="width:100%;border-radius:12px;max-height:200px;object-fit:cover">` : ''}
+    <div id="arCheck"></div>
+    <button class="btn primary block" data-act="arSave">Save recipe</button></div>`;
+}
+function readAddForm() { const e = ui.editDraft; e.title = $('#arTitle').value.trim(); e.serves = +$('#arServes').value || 2; e.time = +$('#arTime').value || 30; e.ing = $('#arIng').value; e.steps = $('#arSteps').value; return e; }
+
+const VIEWS = { add: viewAdd, quiz: viewQuiz, plan: viewPlan, recipes: viewRecipes, list: viewList, pantry: viewPantry, make: viewMake, more: viewMore, receipts: viewReceipts, builder: viewBuilder, deals: viewDeals, insights: viewInsights, settings: viewSettings, install: viewInstall };
 async function boot() {
   S = await C.loadState();
   refreshRecipes(); applyTheme();

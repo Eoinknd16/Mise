@@ -35,7 +35,7 @@ export function freshState() {
     settings: { household: 2, shops: ['Lidl'], defaultShop: 'Lidl', budget: 80, tone: 'cheeky', adventure: 30, nights: [1, 1, 1, 1, 1, 1, 1], mealdbKey: '1', ai: 'off', onboarded: false },
     plan: {}, recipes: {}, ratings: {}, tagPref: {}, skipped: {},
     pantry: [], list: { checked: {}, extras: [], hidden: {}, weekOffset: 0 },
-    prices: [], receipts: [], aliases: {}, deals: [], waste: [], likes: {}, photos: {}, autoImg: {}
+    prices: [], receipts: [], aliases: {}, deals: [], waste: [], likes: {}, photos: {}, autoImg: {}, ingPref: {}
   };
 }
 function migrate(s) {
@@ -261,27 +261,49 @@ export async function autoImageFor(state, r) {
 export const MDB_CATEGORIES = ['Beef', 'Chicken', 'Lamb', 'Pork', 'Seafood', 'Pasta', 'Vegetarian', 'Vegan', 'Breakfast', 'Side', 'Dessert'];
 
 /* ================= Learning ================= */
+// Ingredient-level learning: every rating, cook, swap and receipt nudges how much you like each ingredient
+const mainItems = r => [...new Set(r.ings.map(i => i.item).filter(id => id && ITEM[id] && !ITEM[id].staple && !OPTIONAL.has(id)))];
+function nudge(state, id, d) { state.ingPref = state.ingPref || {}; state.ingPref[id] = Math.max(-3, Math.min(3, (state.ingPref[id] || 0) + d)); }
 export function rate(state, rid, recipe, stars) {
   const prev = state.ratings[rid] || { r: 0, n: 0 };
   const delta = (stars - 3) * 0.5 - (prev.r ? (prev.r - 3) * 0.5 : 0);
   for (const t of recipe.tags) state.tagPref[t] = (state.tagPref[t] || 0) + delta;
+  for (const id of mainItems(recipe)) nudge(state, id, delta * 0.5);
   state.ratings[rid] = { ...prev, r: stars };
 }
 export function markCooked(state, rid, recipe, date) {
   const prev = state.ratings[rid] || { r: 0, n: 0 };
   state.ratings[rid] = { ...prev, n: (prev.n || 0) + 1, last: date };
   for (const t of recipe.tags) state.tagPref[t] = (state.tagPref[t] || 0) + 0.1;
+  for (const id of mainItems(recipe)) nudge(state, id, 0.05);
 }
 export function markSkipped(state, rid, recipe) {
   state.skipped[rid] = (state.skipped[rid] || 0) + 1;
   for (const t of recipe.tags) state.tagPref[t] = (state.tagPref[t] || 0) - 0.15;
+  for (const id of mainItems(recipe)) nudge(state, id, -0.12);
 }
 export function prefScore(state, r) {
   let s = 0; for (const t of r.tags) s += state.tagPref[t] || 0;
   const rt = state.ratings[r.id]; if (rt && rt.r) s += (rt.r - 3) * 1.5;
   s -= (state.skipped[r.id] || 0) * 0.5;
   s += likeScore(state, r);
+  const ip = state.ingPref || {}; for (const id of mainItems(r)) s += (ip[id] || 0) * 0.6;
   return s;
+}
+// Small extras you can just leave out (dislikes here don't rule a recipe out)
+export const OPTIONAL = new Set(['garlic', 'onion', 'red-onion', 'ginger', 'chilli', 'coriander', 'parsley', 'basil', 'thyme', 'rosemary', 'mint', 'spring-onion', 'lemon', 'lime', 'celery', 'chilli-powder', 'paprika', 'cumin', 'curry-powder', 'oregano', 'black-pepper', 'salt', 'cinnamon', 'sweetcorn', 'peas', 'cherry-tomato', 'parmesan']);
+// A recipe is ruled out if a main ingredient is disliked or can't be eaten
+export function ruledOut(state, r) { return r.ings.some(i => { const v = likeOf(state, i); return v <= -9 || (v < 0 && !(i.item && (OPTIONAL.has(i.item) || (ITEM[i.item] && ITEM[i.item].staple)))); }); }
+export const leaveOut = (state, r) => r.ings.filter(i => { const v = likeOf(state, i); return v < 0 && v > -9 && i.item && (OPTIONAL.has(i.item) || (ITEM[i.item] && ITEM[i.item].staple)); });
+export function tasteProfile(state) {
+  const score = {};
+  for (const [k, v] of Object.entries(state.likes || {})) score[k] = (score[k] || 0) + v * 2;
+  for (const [k, v] of Object.entries(state.ingPref || {})) score[k] = (score[k] || 0) + v;
+  for (const id of dietBlocks(state)) delete score[id];
+  const name = k => ITEM[k] ? ITEM[k].n : k.replace(/^x:/, '');
+  const items = Object.entries(score).filter(([, v]) => Math.abs(v) >= 0.3).sort((a, b) => b[1] - a[1]);
+  const tags = Object.entries(state.tagPref || {}).filter(([t, v]) => t.startsWith('area:') && Math.abs(v) >= 0.3).sort((a, b) => b[1] - a[1]);
+  return { loves: items.filter(([, v]) => v > 0).slice(0, 10).map(([k]) => name(k)), avoids: items.filter(([, v]) => v < 0).reverse().slice(0, 10).map(([k]) => name(k)), cuisines: tags.filter(([, v]) => v > 0).slice(0, 5).map(([t]) => t.slice(5)), lessCuisines: tags.filter(([, v]) => v < 0).slice(0, 4).map(([t]) => t.slice(5)), rated: Object.values(state.ratings || {}).filter(x => x.r).length, cooked: Object.values(state.ratings || {}).reduce((a, x) => a + (x.n || 0), 0) };
 }
 export const likeKey = i => i.item || 'x:' + norm(i.name);
 export const DIETS = [
@@ -314,7 +336,7 @@ export function dietBlocks(state) {
   return out;
 }
 export function likeOf(state, i) { if (i.item && dietBlocks(state).has(i.item)) return -9; return (state.likes || {})[likeKey(i)] || 0; }
-export const TASTE_DECK = ['onion', 'garlic', 'mushroom', 'pepper', 'spinach', 'broccoli', 'courgette', 'aubergine', 'cauliflower', 'sweet-potato', 'avocado', 'coriander', 'chilli', 'cherry-tomato', 'peas', 'sweetcorn', 'beetroot', 'kale', 'chickpeas', 'kidney-beans', 'lentils', 'tofu', 'halloumi', 'feta', 'brie', 'eggs', 'chicken-thigh', 'beef-mince', 'steak', 'pork-chop', 'sausages', 'bacon', 'pudding', 'lamb-mince', 'salmon', 'white-fish', 'prawns', 'tuna', 'mackerel', 'coconut-milk', 'curry-paste', 'pesto', 'olives', 'ginger', 'lemon'];
+export const TASTE_DECK = ['onion', 'garlic', 'mushroom', 'pepper', 'spinach', 'broccoli', 'courgette', 'aubergine', 'cauliflower', 'sweet-potato', 'carrot', 'leek', 'cabbage', 'green-beans', 'avocado', 'coriander', 'chilli', 'cherry-tomato', 'peas', 'sweetcorn', 'beetroot', 'kale', 'chickpeas', 'kidney-beans', 'baked-beans', 'lentils', 'tofu', 'halloumi', 'feta', 'mozzarella', 'brie', 'cream', 'eggs', 'chicken-thigh', 'beef-mince', 'steak', 'diced-beef', 'pork-chop', 'sausages', 'bacon', 'pudding', 'chorizo', 'lamb-mince', 'salmon', 'white-fish', 'prawns', 'tuna', 'mackerel', 'coconut-milk', 'curry-paste', 'pesto', 'olives', 'ginger', 'lemon', 'rice', 'pasta', 'noodles', 'potato', 'couscous', 'wraps'];
 export function likeScore(state, r) { let s = 0; for (const i of r.ings) { const v = likeOf(state, i); if (v <= -9) return -50; if (v < 0) s -= 2.5; else if (v > 0) s += 1; } return s; }
 export const hasNever = (state, r) => r.ings.some(i => likeOf(state, i) <= -9);
 export const dislikedIn = (state, r) => r.ings.filter(i => likeOf(state, i) < 0);
@@ -323,9 +345,24 @@ export function suggestWeek(state, dates, opts = {}) {
   const recipes = allRecipes(state), today0 = today();
   const deals = activeDeals(state).map(d => d.item);
   const expiring = new Set(state.pantry.filter(p => p.item && p.exp && daysBetween(today0, p.exp) <= 3).map(p => p.item));
-  const pool = Object.values(recipes).filter(r => !MAIN_EXCLUDE.has(r.cat) && r.ings.length && !hasNever(state, r) && likeScore(state, r) > -5);
   const used = new Set();
   for (const d of dates) for (const e of (state.plan[d] || [])) used.add(e.rid);
+  let pool = Object.values(recipes).filter(r => !MAIN_EXCLUDE.has(r.cat) && r.ings.length && !ruledOut(state, r));
+  // Not enough to choose from? Invent dinners around what you like (via the meal builder)
+  if (pool.length < 30) {
+    const ip = state.ingPref || {}, lk = state.likes || {};
+    const loved = Object.keys(B_PROTEIN).filter(k => { const id = matchIngredient(B_PROTEIN[k].item); return (lk[id] || 0) > 0 || (ip[id] || 0) > 0.3; });
+    const want = Math.min(12, 30 - pool.length);
+    for (let k = 0, tries = 0; k < want && tries < want * 4; tries++) {
+      try {
+        const spec = completeSpec(loved.length && Math.random() < 0.7 ? { protein: loved[Math.floor(Math.random() * loved.length)] } : {}, state);
+        const r = buildMeal(spec); r.id = 'g:' + spec.protein.replace(/\s/g, '-') + '-' + spec.style + '-' + spec.base; r.auto = true;
+        if (ruledOut(state, r) || pool.some(x => x.id === r.id || x.title.toLowerCase() === r.title.toLowerCase()) || used.has(r.id)) continue;
+        pool.push(r); k++;
+      } catch (e) { /* skip */ }
+    }
+  }
+  if (pool.length < dates.length + 2) pool = Object.values(recipes).filter(r => !MAIN_EXCLUDE.has(r.cat) && r.ings.length && !hasNever(state, r)).sort((a, b) => prefScore(state, b) - prefScore(state, a)).slice(0, Math.max(dates.length + 4, pool.length));
   const cooldown = r => { const l = state.ratings[r.id] && state.ratings[r.id].last; return l && daysBetween(l, dates[0]) < 10; };
   const boost = r => r.ings.reduce((a, i) => a + (deals.includes(i.item) ? 1.5 : 0) + (expiring.has(i.item) ? 2 : 0), 0);
   const fav = [], similar = [], fresh = [];
@@ -339,12 +376,12 @@ export function suggestWeek(state, dates, opts = {}) {
   }
   const a = (state.settings.adventure ?? 30) / 100;
   const pNew = 0.1 + a * 0.4, pFav = (1 - pNew) * 0.6, pSim = 1 - pNew - pFav;
-  const out = []; let prevP = null; const areaCount = {}; let wildcardGiven = false;
+  const out = []; let prevP = null; const areaCount = {}; let wildcardGiven = false; const stylesUsed = new Set(), combos = new Set();
   const pick = (list) => {
-    const cands = list.filter(r => !used.has(r.id) && proteinOf(r) !== prevP && (areaCount[r.area] || 0) < 2);
+    const cands = list.filter(r => !used.has(r.id) && proteinOf(r) !== prevP && (areaCount[r.area] || 0) < 2 && !(r.spec && stylesUsed.has(r.spec.style)) && !combos.has(proteinOf(r) + '|' + r.area));
     const L = cands.length ? cands : list.filter(r => !used.has(r.id));
     if (!L.length) return null;
-    const w = L.map(r => Math.max(0.2, 1 + prefScore(state, r) * 0.3 + boost(r) + (opts.quick && r.time <= 30 ? 1 : 0)));
+    const w = L.map(r => Math.max(0.2, (1 + prefScore(state, r) * 0.3 + boost(r) + (opts.quick && r.time <= 30 ? 1 : 0)) * (r.auto ? 0.6 : 1)));
     let x = Math.random() * w.reduce((s, v) => s + v, 0);
     for (let i = 0; i < L.length; i++) { x -= w[i]; if (x <= 0) return L[i]; }
     return L[L.length - 1];
@@ -356,9 +393,9 @@ export function suggestWeek(state, dates, opts = {}) {
     let r = null, bucket = null;
     for (const b of order) { r = pick(b); if (r) { bucket = b; break; } }
     if (!r) break;
-    used.add(r.id); prevP = proteinOf(r); areaCount[r.area] = (areaCount[r.area] || 0) + 1;
+    used.add(r.id); prevP = proteinOf(r); areaCount[r.area] = (areaCount[r.area] || 0) + 1; if (r.spec) stylesUsed.add(r.spec.style); combos.add(proteinOf(r) + '|' + r.area);
     const wild = bucket === fresh && !wildcardGiven; if (wild) wildcardGiven = true;
-    out.push({ date: d, rid: r.id, wildcard: wild });
+    out.push({ date: d, rid: r.id, wildcard: wild, recipe: r.auto ? r : null });
   }
   return out;
 }
@@ -403,7 +440,7 @@ export function cookRecipe(state, recipe, serves) {
 export function whatCanIMake(state) {
   const t = today();
   const expiring = new Set(state.pantry.filter(p => p.item && p.exp && daysBetween(t, p.exp) <= 3).map(p => p.item));
-  return Object.values(allRecipes(state)).filter(r => !MAIN_EXCLUDE.has(r.cat)).map(r => {
+  return Object.values(allRecipes(state)).filter(r => !MAIN_EXCLUDE.has(r.cat) && !ruledOut(state, r)).map(r => {
     const need = r.ings.filter(i => { const it = ITEM[i.item]; return !(it && it.staple) && i.u !== 'taste' && !i.skip; });
     let have = 0; const missing = []; let usesExp = 0;
     for (const i of need) {
@@ -431,13 +468,14 @@ export function buildList(state, dates) {
       if (it && it.staple) { staples[it.id] = it; continue; }
       if (i.u === 'taste' || i.skip) continue;
       if (it) { const b = toBase(i.q * f, i.u, it); const n = add(it.id, { item: it.id, name: it.n, unit: it.u, aisle: it.a }); n.qty += b || 0; n.from.add(r.title); }
-      else { const k = 'x:' + norm(i.name); const n = add(k, { item: null, name: i.name, unit: i.u || '', aisle: 'other', loose: true }); n.qty += i.q * f; n.from.add(r.title); }
+      else { const k = 'x:' + norm(i.name); const ci = (state.customInfo || {})[norm(i.name)] || {}; const n = add(k, { item: null, name: i.name, unit: i.u || '', aisle: ci.aisle || 'other', loose: true, price: ci.price }); n.qty += i.q * f; n.from.add(r.title); }
     }
   }
   for (const x of state.list.extras) {
     const it = ITEM[x.item];
     const k = it ? it.id : 'x:' + norm(x.name);
-    const n = add(k, it ? { item: it.id, name: it.n, unit: it.u, aisle: it.a } : { item: null, name: x.name, unit: '', aisle: 'other', loose: true });
+    const ci = (state.customInfo || {})[norm(x.name)] || {};
+    const n = add(k, it ? { item: it.id, name: it.n, unit: it.u, aisle: it.a } : { item: null, name: x.name, unit: '', aisle: ci.aisle || 'other', loose: true, price: ci.price });
     n.qty += it ? (x.qty || it.packs[0]) : (x.qty || 1); n.from.add('Added by you'); n.extra = true;
   }
   const rows = [], covered = [];
@@ -452,7 +490,7 @@ export function buildList(state, dates) {
       const buy = packs * size;
       const bp = bestPrice(state, it.id);
       rows.push({ ...n, from: [...n.from], need: short, have, packs, size, buy, leftover: buy - short, unitPrice: bp.unit, cost: buy * bp.unit, shop: bp.shop, priceSrc: bp.src, deal: bp.deal || null });
-    } else rows.push({ ...n, from: [...n.from], packs: null, cost: null, shop: state.settings.defaultShop, priceSrc: null });
+    } else rows.push({ ...n, from: [...n.from], packs: null, cost: n.price != null ? n.price : null, shop: state.settings.defaultShop, priceSrc: n.price != null ? 'yours' : null });
   }
   const aisleIdx = Object.fromEntries(AISLES.map((a, i) => [a[0], i]));
   rows.sort((a, b) => (aisleIdx[a.aisle] - aisleIdx[b.aisle]) || a.name.localeCompare(b.name));
@@ -517,6 +555,7 @@ export function saveReceipt(state, { shop, date, lines, total }) {
     state.prices.push({ item: it.id, shop, price: l.price, qty, date, src: 'receipt' });
     if (!['household'].includes(it.cat)) addPantry(state, it.id, qty, it.n, date);
   }
+  for (const l of lines) if (l.item && ITEM[l.item] && !['household', 'personal', 'pet'].includes(ITEM[l.item].cat)) nudge(state, l.item, 0.08);
   state.receipts.unshift(rec);
   if (state.prices.length > 4000) state.prices = state.prices.slice(-4000);
   return rec;
@@ -580,9 +619,9 @@ export function smarterList(state) {
 
 /* ================= Meal builder (rule-based) ================= */
 const WORD_MAP = {
-  protein: [['chicken breast', 'chicken breast'], ['chicken', 'chicken'], ['steak', 'steak'], ['mince', 'beef'], ['beef', 'beef'], ['sausage', 'pork'], ['bacon', 'bacon'], ['salmon', 'salmon'], ['cod', 'white fish'], ['fish', 'white fish'], ['prawn', 'prawns'], ['shrimp', 'prawns'], ['chickpea', 'chickpeas'], ['lentil', 'lentils'], ['halloumi', 'halloumi'], ['tofu', 'tofu'], ['egg', 'eggs']],
-  base: [['rice', 'rice'], ['pasta', 'pasta'], ['spaghetti', 'pasta'], ['noodle', 'noodles'], ['potato', 'potatoes'], ['mash', 'potatoes'], ['wrap', 'wraps'], ['taco', 'wraps'], ['burrito', 'wraps'], ['couscous', 'couscous'], ['bread', 'bread'], ['salad', 'none'], ['low carb', 'none'], ['no carb', 'none']],
-  style: [['creamy', 'creamy'], ['cream', 'creamy'], ['carbonara', 'creamy'], ['curry', 'curry'], ['korma', 'curry'], ['tikka', 'curry'], ['thai', 'curry'], ['tomato', 'tomato'], ['italian', 'tomato'], ['arrabbiata', 'tomato'], ['stir fry', 'stirfry'], ['stir-fry', 'stirfry'], ['asian', 'stirfry'], ['teriyaki', 'stirfry'], ['chinese', 'stirfry'], ['mexican', 'mexican'], ['fajita', 'mexican'], ['taco', 'mexican'], ['burrito', 'mexican'], ['greek', 'mediterranean'], ['mediterranean', 'mediterranean'], ['traybake', 'mediterranean'], ['pesto', 'pesto'], ['chilli', 'chilli'], ['chili', 'chilli'], ['lemon', 'lemon'], ['herb', 'lemon'], ['gravy', 'gravy'], ['irish', 'gravy'], ['comfort', 'gravy']]
+  protein: [['pulled beef', 'pulled beef'], ['shredded beef', 'pulled beef'], ['brisket', 'pulled beef'], ['slow cooked beef', 'pulled beef'], ['pot roast', 'pulled beef'], ['pulled pork', 'pulled pork'], ['shredded pork', 'pulled pork'], ['pork shoulder', 'pulled pork'], ['carnitas', 'pulled pork'], ['pulled chicken', 'pulled chicken'], ['shredded chicken', 'pulled chicken'], ['meatball', 'meatballs'], ['burger', 'burgers'], ['pork chop', 'pork chops'], ['lamb', 'lamb'], ['turkey', 'turkey'], ['chorizo', 'chorizo'], ['chicken breast', 'chicken breast'], ['chicken', 'chicken'], ['steak', 'steak'], ['mince', 'beef'], ['beef', 'beef'], ['sausage', 'pork'], ['bacon', 'bacon'], ['salmon', 'salmon'], ['cod', 'white fish'], ['fish', 'white fish'], ['prawn', 'prawns'], ['shrimp', 'prawns'], ['chickpea', 'chickpeas'], ['lentil', 'lentils'], ['halloumi', 'halloumi'], ['tofu', 'tofu'], ['egg', 'eggs']],
+  base: [['bun', 'buns'], ['bap', 'buns'], ['slider', 'buns'], ['sandwich', 'buns'], ['burger', 'buns'], ['brioche', 'buns'], ['chips', 'chips'], ['fries', 'chips'], ['naan', 'naan'], ['flatbread', 'naan'], ['mash', 'mash'], ['rice', 'rice'], ['pasta', 'pasta'], ['spaghetti', 'pasta'], ['noodle', 'noodles'], ['potato', 'potatoes'], ['wrap', 'wraps'], ['taco', 'wraps'], ['burrito', 'wraps'], ['couscous', 'couscous'], ['bread', 'bread'], ['salad', 'none'], ['low carb', 'none'], ['no carb', 'none']],
+  style: [['bbq', 'bbq'], ['barbecue', 'bbq'], ['barbeque', 'bbq'], ['smokey', 'bbq'], ['teriyaki', 'teriyaki'], ['jerk', 'jerk'], ['peri', 'peri'], ['nando', 'peri'], ['cajun', 'cajun'], ['green curry', 'thai'], ['thai', 'thai'], ['katsu', 'katsu'], ['sweet and sour', 'sweetsour'], ['sweet & sour', 'sweetsour'], ['honey garlic', 'honeygarlic'], ['buffalo', 'buffalo'], ['gyro', 'greek'], ['souvlaki', 'greek'], ['greek', 'greek'], ['moroccan', 'moroccan'], ['tagine', 'moroccan'], ['korean', 'korean'], ['bulgogi', 'korean'], ['creamy', 'creamy'], ['cream', 'creamy'], ['carbonara', 'creamy'], ['curry', 'curry'], ['korma', 'curry'], ['tikka', 'curry'], ['tomato', 'tomato'], ['italian', 'tomato'], ['arrabbiata', 'tomato'], ['stir fry', 'stirfry'], ['stir-fry', 'stirfry'], ['asian', 'stirfry'], ['chinese', 'stirfry'], ['mexican', 'mexican'], ['fajita', 'mexican'], ['taco', 'mexican'], ['burrito', 'mexican'], ['mediterranean', 'mediterranean'], ['traybake', 'mediterranean'], ['pesto', 'pesto'], ['chilli', 'chilli'], ['chili', 'chilli'], ['lemon', 'lemon'], ['herb', 'lemon'], ['gravy', 'gravy'], ['irish', 'gravy'], ['comfort', 'gravy']]
 };
 export function parseDescription(text) {
   const t = ' ' + String(text || '').toLowerCase() + ' ';
@@ -599,6 +638,9 @@ export function parseDescription(text) {
   m = t.match(/(?:under|below|less than|max)\s*€?\s*(\d+(?:\.\d+)?)/); if (m) spec.budget = +m[1];
   for (const mm of t.matchAll(/(?:no|without|hate|not)\s+([a-z]+)/g)) spec.exclude.push(mm[1].replace(/s$/, ''));
   for (const v of Object.keys(B_VEG)) if (t.includes(v.replace(/s$/, '')) && !spec.exclude.some(x => v.startsWith(x))) spec.veg.push(v);
+  if (/\bslaw\b/.test(t) && !spec.veg.includes('coleslaw')) spec.veg.push('coleslaw');
+  const known = new Set([...Object.values(WORD_MAP).flat().flatMap(([w]) => w.split(' ')), ...Object.keys(B_VEG), ...VOCAB, ...'want make cook something dish dinner lunch tea tonight with and the for some using use have got fancy like love meal recipe recipes quick easy fast cheap healthy light spicy hot mild kick budget under below less than minutes mins min people person serves feeds kids family style homemade proper nice good tasty really very bit little lots plan planning plate bowl side sides night week weekend sunday friday saturday party crowd friends no not without hate dont also maybe please into from that this what which make me my our some kind sort of food slaw dishes vegetarian vegan veggie low carb carbs protein high slow cooker oven air fryer fryer grill grilled roast roasted fried baked bake'.split(' ')]);
+  spec.unknown = [...new Set(norm(text).split(' ').filter(w => w.length > 3 && !/^\d/.test(w) && !known.has(w) && !known.has(sing(w)) && !matchIngredient(w)))];
   return spec;
 }
 export function completeSpec(spec, state, pantryFirst) {
@@ -611,13 +653,14 @@ export function completeSpec(spec, state, pantryFirst) {
   const notExcluded = name => !s.exclude.some(x => name.toLowerCase().includes(x) || x.includes(name.toLowerCase().replace(/s$/, '')));
   const inPantry = name => { const id = matchIngredient(name); return id && pantryQty(state, id) > 0; };
   if (!s.protein || !vegOK(s.protein)) {
-    let opts = Object.keys(B_PROTEIN).filter(k => vegOK(k) && notExcluded(B_PROTEIN[k].item) && (!s.maxTime || B_PROTEIN[k].min <= s.maxTime / 2));
+    let opts = Object.keys(B_PROTEIN).filter(k => vegOK(k) && notExcluded(B_PROTEIN[k].item) && !B_PROTEIN[k].slow && (!s.maxTime || B_PROTEIN[k].min <= s.maxTime / 2));
     if (s.cheap) opts = opts.filter(k => B_PROTEIN[k].cost <= 2);
     if (pantryFirst) { const p = opts.filter(k => inPantry(B_PROTEIN[k].item)); if (p.length) opts = p; }
     s.protein = opts[Math.floor(Math.random() * opts.length)] || 'chickpeas';
   }
-  if (!s.style) { let o = Object.keys(B_STYLE).filter(k => (s.spicy === 0 ? B_STYLE[k].spice < 2 : true) && (!s.healthy || B_STYLE[k].healthy >= 2)); s.style = o[Math.floor(Math.random() * o.length)]; }
-  if (!s.base) { const fit = { curry: 'rice', stirfry: 'noodles', mexican: 'wraps', creamy: 'pasta', pesto: 'pasta', tomato: 'pasta', chilli: 'rice', mediterranean: 'couscous', lemon: 'potatoes', gravy: 'potatoes' }; s.base = fit[s.style] || 'rice'; if (s.maxTime && B_BASE[s.base].min > s.maxTime / 2) s.base = 'couscous'; }
+  const Pq = B_PROTEIN[s.protein] || {}; const styleClash = x => (Pq.fish && ['chilli', 'gravy', 'bbq', 'buffalo', 'katsu'].includes(x)) || (Pq.slow && ['stirfry', 'pesto', 'lemon', 'creamy'].includes(x)) || (s.protein === 'eggs' && ['gravy', 'mediterranean'].includes(x)) || (s.protein === 'lentils' && ['stirfry', 'mexican', 'lemon'].includes(x));
+  if (!s.style) { let o = Object.keys(B_STYLE).filter(k => !styleClash(k) && (s.spicy === 0 ? B_STYLE[k].spice < 2 : true) && (!s.healthy || B_STYLE[k].healthy >= 2)); s.style = o[Math.floor(Math.random() * o.length)]; }
+  if (!s.base) { const fit = { curry: 'rice', stirfry: 'noodles', mexican: 'wraps', creamy: 'pasta', pesto: 'pasta', tomato: 'pasta', chilli: 'rice', mediterranean: 'couscous', lemon: 'potatoes', gravy: 'mash', bbq: 'buns', teriyaki: 'rice', jerk: 'rice', peri: 'rice', cajun: 'rice', thai: 'rice', katsu: 'rice', sweetsour: 'rice', honeygarlic: 'rice', buffalo: 'chips', greek: 'wraps', moroccan: 'couscous', korean: 'rice' }; s.base = fit[s.style] || 'rice'; if (s.maxTime && B_BASE[s.base].min > s.maxTime / 2) s.base = 'couscous'; }
   if (!s.veg.length) { const v = Object.keys(B_VEG).filter(k => notExcluded(k) && !(B_STYLE[s.style].ings.some(i => i[1].includes(k.replace(/s$/, ''))))); if (pantryFirst) { const p = v.filter(k => inPantry(B_VEG[k][1])); if (p.length) v.splice(0, v.length, ...p); } s.veg = [v[Math.floor(Math.random() * v.length)]].filter(Boolean); if (s.healthy && v.length > 1) s.veg.push(v.find(x => !s.veg.includes(x))); }
   return s;
 }
@@ -633,9 +676,10 @@ export function buildMeal(spec) {
   if (spec.spicy >= 2 && St.spice < 2) add(Math.max(1, Math.round(n / 2)), '', 'chilli');
   add(1, 'tbsp', 'oil');
   const steps = [];
-  steps.push(`Get everything ready: ${spec.base !== 'none' ? 'put a pan of water on to boil for the ' + Bs.n.toLowerCase() + ', and ' : ''}chop the veg.`);
+  if (P.slow) steps.push(P.cook);
+  steps.push(P.slow ? 'About 30 minutes before the meat is ready, get the rest going.' : `Get everything ready: ${spec.base !== 'none' && Bs.min >= 10 ? 'put a pan of water on to boil for the ' + Bs.n.toLowerCase() + ', and ' : ''}chop the veg.`);
   if (Bs.min >= 10 && spec.base !== 'none') steps.push(Bs.cook);
-  if (spec.protein !== 'lentils') steps.push(P.cook);
+  if (spec.protein !== 'lentils' && !P.slow) steps.push(P.cook);
   steps.push(St.sauce + (spec.protein === 'lentils' ? ' ' + P.cook : ''));
   for (const v of vegUsed) steps.push(B_VEG[v][3]);
   if (spec.spicy >= 2 && St.spice < 2) steps.push('Finely chop the chilli and add it with the sauce for some heat.');
@@ -643,9 +687,9 @@ export function buildMeal(spec) {
   steps.push(spec.protein === 'lentils' || ['curry', 'chilli', 'tomato', 'creamy', 'gravy'].includes(spec.style) ? `Return the ${P.n.toLowerCase()} to the sauce, season to taste and serve with the ${Bs.n.toLowerCase()}.` : `Serve the ${P.n.toLowerCase()} on the ${Bs.n.toLowerCase()} with the sauce over the top.`);
   const time = Math.max(15, Math.round((Math.max(P.min, Bs.min) + 12 + (spec.style === 'mediterranean' ? 15 : 0)) / 5) * 5);
   const pn = P.n.toLowerCase(), Pn = P.n;
-  const core = { curry: `${Pn} curry`, chilli: `Smoky ${pn} chilli`, stirfry: `${Pn} stir-fry`, mexican: spec.base === 'wraps' ? `${Pn} fajitas` : `Fajita-spiced ${pn}`, mediterranean: `Mediterranean ${pn} traybake`, gravy: `${Pn} with onion gravy`, tomato: `${Pn} in tomato & herb sauce`, creamy: `Creamy garlic ${pn}`, pesto: `Pesto ${pn}`, lemon: `Lemon & herb ${pn}` }[spec.style] || `${St.n} ${pn}`;
-  const title = spec.base === 'none' ? core + ' salad' : spec.base === 'wraps' && spec.style === 'mexican' ? core : `${core} with ${Bs.n.toLowerCase()}`;
-  return normalizeRecipe({ id: 'u:' + Date.now().toString(36), src: 'builder', title: title[0].toUpperCase() + title.slice(1), cat: P.veg ? 'Vegetarian' : ({ chicken: 'Chicken', 'chicken breast': 'Chicken', beef: 'Beef', steak: 'Beef', pork: 'Pork', bacon: 'Pork' }[spec.protein] || 'Seafood'), area: { curry: 'Indian', stirfry: 'Chinese', mexican: 'Mexican', mediterranean: 'Mediterranean', tomato: 'Italian', pesto: 'Italian', creamy: 'Italian', chilli: 'Mexican', gravy: 'Irish', lemon: 'Mediterranean' }[spec.style], serves: n, time, ings: lines, steps, spec });
+  const core = { curry: `${Pn} curry`, chilli: `Smoky ${pn} chilli`, stirfry: `${Pn} stir-fry`, mexican: spec.base === 'wraps' ? `${Pn} fajitas` : `Fajita-spiced ${pn}`, mediterranean: `Mediterranean ${pn} traybake`, gravy: `${Pn} with onion gravy`, tomato: `${Pn} in tomato & herb sauce`, creamy: `Creamy garlic ${pn}`, pesto: `Pesto ${pn}`, lemon: `Lemon & herb ${pn}`, bbq: `BBQ ${pn}`, teriyaki: `Teriyaki ${pn}`, jerk: `Jerk ${pn}`, peri: `Peri peri ${pn}`, cajun: `Cajun ${pn}`, thai: `Thai green ${pn} curry`, katsu: `${Pn} katsu curry`, sweetsour: `Sweet & sour ${pn}`, honeygarlic: `Honey garlic ${pn}`, buffalo: `Buffalo ${pn}`, greek: `Greek-style ${pn}`, moroccan: `Moroccan ${pn}`, korean: `Korean-style ${pn}` }[spec.style] || `${St.n} ${pn}`;
+  const title = spec.base === 'buns' ? `${core} in brioche buns` : spec.base === 'none' ? core + ' salad' : spec.base === 'wraps' && spec.style === 'mexican' ? core : core.includes(' with ') ? `${core} & ${Bs.n.toLowerCase()}` : `${core} with ${Bs.n.toLowerCase()}`;
+  return normalizeRecipe({ id: 'u:' + Date.now().toString(36), src: 'builder', title: title[0].toUpperCase() + title.slice(1), cat: P.veg ? 'Vegetarian' : ({ chicken: 'Chicken', 'chicken breast': 'Chicken', 'pulled chicken': 'Chicken', turkey: 'Chicken', beef: 'Beef', steak: 'Beef', 'pulled beef': 'Beef', meatballs: 'Beef', burgers: 'Beef', lamb: 'Lamb', pork: 'Pork', bacon: 'Pork', 'pulled pork': 'Pork', 'pork chops': 'Pork', chorizo: 'Pork' }[spec.protein] || 'Seafood'), area: { curry: 'Indian', stirfry: 'Chinese', mexican: 'Mexican', mediterranean: 'Mediterranean', tomato: 'Italian', pesto: 'Italian', creamy: 'Italian', chilli: 'Mexican', gravy: 'Irish', lemon: 'Mediterranean', bbq: 'American', teriyaki: 'Japanese', jerk: 'Caribbean', peri: 'Portuguese', cajun: 'American', thai: 'Thai', katsu: 'Japanese', sweetsour: 'Chinese', honeygarlic: 'Chinese', buffalo: 'American', greek: 'Greek', moroccan: 'Moroccan', korean: 'Korean' }[spec.style], serves: n, time, ings: lines, steps, spec });
 }
 // "I want a rice dish with mince beef and onions" -> several ideas
 export function mentionedItems(text) {
@@ -666,10 +710,12 @@ export function ideasFor(state, text, n = 4) {
     if (!spec.base && BASE_OF_ITEM[id]) spec.base = BASE_OF_ITEM[id];
     if (VEG_OF_ITEM[id] && !spec.veg.includes(VEG_OF_ITEM[id])) spec.veg.push(VEG_OF_ITEM[id]);
   }
-  const fit = { rice: ['curry', 'chilli', 'stirfry', 'tomato', 'creamy', 'mexican'], pasta: ['tomato', 'creamy', 'pesto', 'chilli', 'lemon'], noodles: ['stirfry', 'curry'], potatoes: ['gravy', 'lemon', 'mediterranean', 'creamy'], wraps: ['mexican', 'chilli', 'lemon'], couscous: ['mediterranean', 'lemon', 'curry'], bread: ['tomato', 'chilli', 'mediterranean'], none: ['lemon', 'mediterranean', 'stirfry'] };
+  const fit = { rice: ['curry', 'chilli', 'stirfry', 'teriyaki', 'jerk', 'thai', 'katsu', 'sweetsour', 'honeygarlic', 'korean', 'cajun', 'peri'], pasta: ['tomato', 'creamy', 'pesto', 'chilli', 'lemon', 'cajun'], noodles: ['stirfry', 'teriyaki', 'korean', 'honeygarlic', 'thai'], potatoes: ['gravy', 'lemon', 'mediterranean', 'creamy', 'peri', 'bbq'], mash: ['gravy', 'bbq', 'creamy'], wraps: ['mexican', 'chilli', 'greek', 'peri', 'cajun', 'bbq'], couscous: ['mediterranean', 'moroccan', 'lemon', 'greek'], bread: ['tomato', 'chilli', 'mediterranean'], buns: ['bbq', 'buffalo', 'cajun', 'peri', 'korean', 'teriyaki'], chips: ['peri', 'buffalo', 'bbq', 'cajun'], naan: ['curry', 'greek', 'moroccan'], none: ['lemon', 'mediterranean', 'stirfry', 'greek', 'cajun'] };
+  if (!spec.base && ['pulled beef', 'pulled pork', 'pulled chicken', 'burgers'].includes(spec.protein)) spec.base = 'buns';
+  if (!spec.style && ['pulled beef', 'pulled pork'].includes(spec.protein)) spec.style = 'bbq';
   let styles = spec.style ? [spec.style] : [];
   const Pp = B_PROTEIN[spec.protein] || {};
-  const clash = x => (Pp.fish && ['chilli', 'gravy'].includes(x)) || (spec.protein === 'eggs' && ['gravy', 'mediterranean'].includes(x)) || (spec.protein === 'lentils' && ['stirfry', 'mexican', 'lemon'].includes(x));
+  const clash = x => (Pp.fish && ['chilli', 'gravy', 'bbq', 'buffalo', 'katsu'].includes(x)) || (Pp.slow && ['stirfry', 'pesto', 'lemon', 'creamy'].includes(x)) || (spec.protein === 'eggs' && ['gravy', 'mediterranean'].includes(x)) || (spec.protein === 'lentils' && ['stirfry', 'mexican', 'lemon'].includes(x));
   const pool = (fit[spec.base] || Object.keys(B_STYLE)).filter(x => !styles.includes(x) && !clash(x) && (spec.spicy === 0 ? B_STYLE[x].spice < 2 : true));
   while (styles.length < n && pool.length) styles.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
   const blocked = dietBlocks(state), notes = [];
@@ -679,10 +725,12 @@ export function ideasFor(state, text, n = 4) {
     for (let k = 0; k < 6; k++) { const sp = completeSpec({ ...spec, style: st, veg: [...spec.veg], protein: spec.protein && !blocked.has(matchIngredient(B_PROTEIN[spec.protein].item)) ? spec.protein : null }, state); const key = sp.protein + sp.style; if (seen.has(key) && k < 5) continue; seen.add(key); built.push(buildMeal(sp)); break; }
   }
   const wanted = new Set(items);
-  const library = Object.values(allRecipes(state)).filter(r => !MAIN_EXCLUDE.has(r.cat) && !hasNever(state, r))
+  const library = Object.values(allRecipes(state)).filter(r => !MAIN_EXCLUDE.has(r.cat) && !ruledOut(state, r))
     .map(r => ({ r, hit: r.ings.filter(i => wanted.has(i.item) || (i.item === 'basmati' && wanted.has('rice')) || (i.item === 'rice' && wanted.has('basmati'))).length }))
     .filter(x => x.hit >= Math.min(2, Math.max(1, wanted.size))).sort((a, b) => b.hit - a.hit || prefScore(state, b.r) - prefScore(state, a.r)).slice(0, 6);
-  return { items, spec, built, library, notes };
+  if (spec.unknown && spec.unknown.length) notes.unshift(`Not sure what "${spec.unknown.join('", "')}" means. Try Ask AI for the best match.`);
+  const query = (WORD_MAP.protein.find(([w]) => norm(text).includes(w)) || [null])[0] || (items[0] && ITEM[items[0]].n) || '';
+  return { items, spec, built, library, notes, query };
 }
 // Remove / swap / never-use a single ingredient; the recipe adjusts or rebuilds around it
 const KEY_ING = { curry: ['curry paste', 'coconut milk'], creamy: ['cream'], pesto: ['pesto'], tomato: ['chopped tomatoes'], chilli: ['chilli powder', 'chopped tomatoes'], mexican: ['smoked paprika'], stirfry: ['soy sauce'], mediterranean: ['peppers', 'courgette'], lemon: ['lemon'], gravy: ['beef stock'] };
@@ -701,6 +749,37 @@ export function editSpec(spec, name, mode) {
     else { s.exclude.push(nm); if ((KEY_ING[s.style] || []).some(k => same(k))) { s.style = null; msg = 'That was key to the sauce, so here is a new flavour'; } else msg = 'Removed'; }
   }
   return { spec: s, msg };
+}
+// Free-text recipes: "200 g beef brisket", "2 onions", "salt and pepper"
+export function parseIngLine(line) {
+  const l = String(line).replace(/^[\s•*\-–·▢☐□]+/, '').trim(); if (!l) return null;
+  const m = l.match(/^([\d½¼¾⅓⅔⅛][\d½¼¾⅓⅔⅛.,\/\s-]*?)\s*([a-zA-Zé]+)\b\.?\s*(.*)$/);
+  let q = 1, u = '', name = l;
+  if (m) { q = parseNumber(m[1]); const un = UNIT_ALIASES[m[2].toLowerCase()]; if (un !== undefined && m[3]) { u = un; name = m[3]; } else name = (m[2] + ' ' + m[3]).trim(); if (isNaN(q)) q = 1; }
+  name = name.replace(/^of\s+/i, '').replace(/\s*\(.*?\)\s*/g, ' ').replace(/\s*,.*$/, '').trim();
+  if (/^(salt|pepper|salt (and|&) pepper)\b/i.test(name) || /to taste/i.test(l)) { u = 'taste'; q = 0; }
+  return { q, u, name, raw: l };
+}
+export function splitRecipeText(text) {
+  const lines = String(text || '').split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+  let mode = null; const ings = [], steps = []; let title = '', serves = null, time = null;
+  for (const line of lines) {
+    const low = line.toLowerCase();
+    if (/^(ingredients?|you will need|shopping list)\b:?$/.test(low)) { mode = 'i'; continue; }
+    if (/^(method|directions|instructions|steps|preparation|how to make( it)?)\b:?$/.test(low)) { mode = 's'; continue; }
+    const sv = low.match(/(?:serves|servings|feeds|makes)\s*:?\s*(\d+)/); if (sv && line.length < 40) { serves = +sv[1]; continue; }
+    const tm = low.match(/(?:time|ready in|takes|total)\s*:?\s*(\d+)\s*(min|hour|hr)/); if (tm && line.length < 40) { time = /h/.test(tm[2]) ? +tm[1] * 60 : +tm[1]; continue; }
+    if (!title && !mode && line.length < 70 && !/^\d/.test(line)) { title = line; continue; }
+    const looksIng = /^[\s•*\-–·▢☐□]*[\d½¼¾⅓⅔⅛]/.test(line) && line.length < 80 || (/^[•*\-–·▢☐□]/.test(line) && line.length < 60);
+    if (mode === 's' || (mode !== 'i' && !looksIng && line.length > 35) || /^(step\s*)?\d+[.):]\s+\w/i.test(line) && line.length > 30) steps.push(line.replace(/^(step\s*)?\d+[.):]\s*/i, ''));
+    else { const p = parseIngLine(line); if (p) ings.push(p); }
+  }
+  return { title, serves, time, ings, steps };
+}
+export function makeOwnRecipe({ id, title, serves, time, ingText, stepText, cat, img }) {
+  const ings = String(ingText || '').split(/\r?\n/).map(parseIngLine).filter(Boolean);
+  const steps = String(stepText || '').split(/\r?\n/).map(x => x.replace(/^(step\s*)?\d+[.):]\s*/i, '').trim()).filter(Boolean);
+  return normalizeRecipe({ id: id || 'u:' + Date.now().toString(36), src: 'mine', title: title || 'My recipe', serves: +serves || 4, time: +time || 40, cat: cat || '', area: '', ings, steps, img: img || undefined });
 }
 export const TWEAKS = {
   cheaper: ['Cheaper', s => { const c = Object.keys(B_PROTEIN).filter(k => B_PROTEIN[k].cost < B_PROTEIN[s.protein].cost && (!s.diet || B_PROTEIN[k].veg)); if (c.length) s.protein = c[Math.floor(Math.random() * c.length)]; s.cheap = true; if (s.style === 'pesto') s.style = 'tomato'; }],
@@ -727,6 +806,12 @@ export async function aiAsk(provider, prompt) {
     return typeof r === 'string' ? r : (r && r.message && (typeof r.message.content === 'string' ? r.message.content : (r.message.content || []).map(c => c.text || '').join(''))) || String(r);
   }
   throw new Error('AI is turned off. Pick an AI option in Settings.');
+}
+export async function aiIdeas(provider, description, serves, avoid) {
+  const prompt = `You are a home-cooking assistant for Irish home cooks shopping at supermarkets like Lidl. The user wants: "${description}". Give 3 different dinner recipes that match, each serving ${serves}.${avoid && avoid.length ? ' Never use: ' + avoid.join(', ') + '.' : ''} Use metric units (g, ml, tsp, tbsp) or plain counts and common supermarket ingredients. Reply with ONLY a JSON array, no prose: [{"title":"...","time":30,"ingredients":[{"qty":200,"unit":"g","name":"beef brisket"}],"steps":["..."]}]`;
+  const text = await aiAsk(provider, prompt);
+  const raw = String(text); const json = JSON.parse(raw.slice(raw.indexOf('['), raw.lastIndexOf(']') + 1));
+  return json.slice(0, 3).map((j, k) => normalizeRecipe({ id: 'u:' + Date.now().toString(36) + k, src: 'ai', title: j.title || 'AI recipe', serves, time: +j.time || 40, cat: '', area: '', ings: (j.ingredients || []).map(i => ({ q: +i.qty || 1, u: UNIT_ALIASES[String(i.unit || '').toLowerCase()] ?? '', name: i.name, raw: `${i.qty || ''} ${i.unit || ''} ${i.name}`.trim() })), steps: j.steps || [] }));
 }
 export async function aiRecipe(provider, description, serves) {
   const prompt = `You are a home-cooking assistant for Irish home cooks shopping at supermarkets like Lidl. Create one dinner recipe for: "${description}". Serves ${serves}. Use metric units (g, ml, tsp, tbsp) or plain counts. Reply with ONLY JSON, no prose, in this shape: {"title":"...","serves":${serves},"time":30,"ingredients":[{"qty":200,"unit":"g","name":"chicken thighs"}],"steps":["..."]}`;
