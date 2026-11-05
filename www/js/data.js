@@ -48,7 +48,7 @@ thyme|Fresh thyme|fruitveg|g|20|0.99|10|veg|thyme sprigs||sprig:1
 rosemary|Fresh rosemary|fruitveg|g|20|0.99|10|veg|rosemary sprigs||sprig:1
 bread|Sliced pan|bakery|pc|20|1.19|5|bakery|bread;sliced bread;white bread;brown bread;wholemeal bread;pan;toast||slice:1;loaf:20
 wraps|Wraps|bakery|pc|8|1.29|14|bakery|tortillas;tortilla wraps;flour tortillas;wrap|
-buns|Burger buns|bakery|pc|6|1.09|5|bakery|burger buns;brioche buns;bap;rolls|
+buns|Burger buns|bakery|pc|6|1.09|5|bakery|burger buns;brioche buns;bap;rolls;hot dog rolls;hot dog buns;burger buns;brioche buns|
 naan|Naan bread|bakery|pc|2|1.29|7|bakery|naan;naans|
 pitta|Pitta bread|bakery|pc|6|0.79|7|bakery|pitta;pita|
 baguette|Baguette|bakery|pc|1|0.69|2|bakery|french stick|
@@ -231,7 +231,8 @@ lasagne|Lasagne sheets|pantry|g|500|0.99|700|pantry|lasagne sheets;cannelloni|
 tinned-fruit|Tinned fruit|pantry|g|410|0.89|700|fruit|peaches tin;pineapple chunks;fruit cocktail;mandarins tin|
 tinned-veg|Tinned veg & pulses|pantry|g|400|0.59|700|pantry|butter beans;cannellini beans;borlotti;tinned potatoes;tinned carrots;mushy peas;processed peas;tinned spaghetti;spaghetti hoops;ravioli tin|
 salmon-tin|Tinned salmon|pantry|g|213|2.49|700|pantry|red salmon;pink salmon|p:fish
-nuggets|Chicken nuggets & goujons|frozen|g|500|2.49|180|ready|nuggets;goujons;chicken dippers;popcorn chicken;breaded chicken;chicken kiev;kievs|p:chicken
+cooked-chicken|Cooked chicken pieces|meat|g|200|2.49|4|meat|cooked chicken;chicken strips;chicken pieces;chicken tikka pieces;frozen chicken strips;roast chicken pieces;shredded chicken;cooked chicken strips|p:chicken
+nuggets|Chicken nuggets & goujons|frozen|g|500|2.49|180|ready|nuggets;goujons;chicken goujons;chicken nuggets;chicken dippers;popcorn chicken;breaded chicken;chicken kiev;chicken kievs;kievs;southern fried chicken|p:chicken
 frozen-fish|Frozen fish|frozen|g|400|2.99|180|fish|breaded fish;battered fish;fish fillets frozen;frozen cod;frozen prawns|p:fish
 frozen-burgers|Frozen burgers & sausages|frozen|pc|8|2.49|180|ready|frozen burgers;frozen sausages|p:beef
 hash-browns|Potato products|frozen|g|750|1.49|180|ready|hash browns;potato waffles;wedges;croquettes;roast potatoes frozen;mash frozen|
@@ -488,6 +489,27 @@ export const BUILTIN = [
     ['Brown the diced lamb.', 'Fry the onion, add paste, then lamb and tomatoes with 200 ml water.', 'Cover and simmer 1 hour 15 minutes until tender, stir in yogurt.', 'Serve with rice.']),
   R('goulash', 'Beef goulash', 'Beef', 'Hungarian', 6, 150, ['800 g|diced beef', '2 |onions', '2 |peppers', '2 tbsp|paprika', '400 g|chopped tomatoes', '1 cube|beef stock', '150 g|creme fraiche', '800 g|potatoes'],
     ['Brown the beef in batches.', 'Fry onions and peppers, add the paprika.', 'Return the beef with tomatoes and stock cube in 400 ml water. Cover and simmer 2 hours.', 'Serve with boiled potatoes and a spoon of crème fraîche.'])
+  ,
+  R('easy-pizza', 'Pizza & salad night', 'Easy', 'Irish', 2, 20, ['1 |frozen pizza', '1 bag|salad', '1 |garlic bread'], ['Heat the oven as the pizza box says.', 'Bake the pizza and garlic bread together.', 'Toss the salad with a little dressing and serve.']),
+  R('easy-fishfingers', 'Fish fingers, chips & peas', 'Easy', 'Irish', 4, 25, ['12 |fish fingers', '600 g|oven chips', '300 g|frozen peas', '2 tbsp|ketchup'], ['Put the chips in the oven (usually 200°C).', 'Add the fish fingers for the last 15 minutes.', 'Boil the peas for 3 minutes. Serve with ketchup.']),
+  R('easy-goujon-wraps', 'Crispy chicken goujon wraps', 'Easy', 'Irish', 2, 20, ['300 g|chicken goujons', '4 |wraps', '1 bag|salad', '2 tbsp|mayo', '1 tbsp|sweet chilli sauce'], ['Oven-cook the goujons as the pack says.', 'Warm the wraps for 20 seconds in the microwave.', 'Fill with salad, goujons, mayo and sweet chilli.']),
+  R('easy-burgers', 'Cheeseburgers & oven chips', 'Easy', 'American', 4, 25, ['4 |frozen burgers', '4 |burger buns', '4 |cheese slices', '600 g|oven chips', '1 bag|salad', '2 tbsp|ketchup'], ['Get the chips in the oven.', 'Grill or fry the burgers from frozen, about 12 minutes, turning.', 'Lay cheese on top for the last minute.', 'Build the burgers with salad and ketchup.']),
+  R('easy-kievs', 'Chicken kievs, potato waffles & sweetcorn', 'Easy', 'British', 4, 30, ['500 g|chicken kievs', '450 g|potato waffles', '340 g|sweetcorn'], ['Oven-cook the kievs and waffles together as the packs say (about 25 minutes).', 'Heat the sweetcorn and serve.']),
+  R('easy-fish-chips', 'Oven fish & chips', 'Easy', 'Irish', 4, 30, ['400 g|breaded fish', '600 g|oven chips', '300 g|frozen peas', '1 |lemon'], ['Get the chips in the oven.', 'Add the breaded fish for the time on the box (usually 20 minutes).', 'Boil the peas and mash them a little with butter. Serve with lemon.']),
+  R('easy-readymeal', 'Freezer ready meal & salad', 'Easy', 'Irish', 2, 40, ['2 |frozen ready meals', '1 bag|salad'], ['Oven or microwave the ready meals as the box says.', 'Serve with a quick salad.']),
+  R('easy-beans-toast', 'Cheesy beans on toast', 'Easy', 'British', 2, 10, ['1 tin|baked beans', '4 slice|bread', '60 g|cheddar', '10 g|butter'], ['Heat the beans.', 'Toast and butter the bread.', 'Pile on the beans and grate over the cheese.']),
+  R('easy-jackets', 'Jacket potatoes with beans & cheese', 'Easy', 'Irish', 4, 25, ['1 kg|potatoes', '2 tin|baked beans', '100 g|cheddar', '20 g|butter'], ['Prick the potatoes and microwave 10–12 minutes until soft.', 'Crisp them in a hot oven for 10 minutes if you have time.', 'Split, butter, and top with hot beans and cheese.']),
+  R('easy-soup-toastie', 'Soup & cheese toasties', 'Easy', 'Irish', 2, 15, ['600 ml|fresh soup', '4 slice|bread', '4 |cheese slices', '10 g|butter'], ['Heat the soup.', 'Butter the bread, fill with cheese and fry or toast until golden.', 'Serve the toasties to dunk.']),
+  R('easy-stirfry', 'Speedy chicken stir-fry', 'Easy', 'Chinese', 2, 15, ['300 g|cooked chicken', '500 g|frozen stir fry veg', '250 g|noodles', '3 tbsp|sweet chilli sauce', '2 tbsp|soy sauce'], ['Cook the noodles as the pack says.', 'Stir-fry the frozen veg from frozen in a hot pan for 5 minutes.', 'Add the chicken, noodles, sweet chilli and soy and toss for 2 minutes.']),
+  R('easy-pesto-pasta', 'Pesto pasta with peas', 'Easy', 'Italian', 2, 15, ['250 g|pasta', '150 g|frozen peas', '4 tbsp|pesto', '30 g|parmesan'], ['Boil the pasta, adding the peas for the last 3 minutes.', 'Drain, stir through the pesto and top with parmesan.']),
+  R('easy-omelette', 'Ham & cheese omelette', 'Easy', 'Irish', 2, 12, ['6 |eggs', '80 g|ham', '60 g|cheddar', '1 bag|salad'], ['Beat the eggs with salt and pepper.', 'Pour into a hot buttered pan, scatter over ham and cheese.', 'Fold when just set. Serve with salad.']),
+  R('easy-quiche', 'Quiche, coleslaw & salad', 'Easy', 'British', 4, 25, ['1 |quiche', '300 g|coleslaw', '1 bag|salad'], ['Warm the quiche in the oven for 20 minutes (or eat it cold).', 'Serve with coleslaw and salad.']),
+  R('easy-fishcakes', 'Fishcakes, wedges & beans', 'Easy', 'British', 2, 25, ['4 |fish cakes', '450 g|potato wedges', '1 tin|baked beans'], ['Oven-cook the fishcakes and wedges together as the packs say.', 'Heat the beans and serve.']),
+  R('easy-sausage-hash', 'Sausages, hash browns & beans', 'Easy', 'Irish', 4, 25, ['8 |sausages', '450 g|hash browns', '2 tin|baked beans'], ['Oven-cook the sausages and hash browns at 200°C for about 25 minutes, turning once.', 'Heat the beans and serve.']),
+  R('easy-hotdogs', 'Hot dogs & wedges', 'Easy', 'American', 4, 20, ['8 |hot dogs', '8 |hot dog rolls', '600 g|potato wedges', '1 |onion', '2 tbsp|ketchup', '1 tbsp|mustard'], ['Get the wedges in the oven.', 'Fry the sliced onion until soft. Heat the hot dogs in simmering water for 5 minutes.', 'Load the rolls with sausages, onions, ketchup and mustard.']),
+  R('easy-tuna-melt', 'Tuna melt toasties', 'Easy', 'British', 2, 12, ['1 tin|tuna', '2 tbsp|mayo', '4 slice|bread', '4 |cheese slices', '1 bag|salad'], ['Mix the tuna with mayo and pepper.', 'Make sandwiches with tuna and cheese and toast in a pan until golden and melted.', 'Serve with salad.']),
+  R('easy-chicken-salad-wrap', 'Chicken Caesar wraps', 'Easy', 'American', 2, 10, ['200 g|cooked chicken', '4 |wraps', '1 bag|salad', '30 g|parmesan', '2 tbsp|mayo', '1 |lemon'], ['Mix mayo with lemon juice and grated parmesan.', 'Fill wraps with salad, chicken and dressing. Roll and halve.']),
+  R('easy-nachos', 'Loaded nachos', 'Easy', 'Mexican', 2, 15, ['200 g|tortilla chips', '400 g|kidney beans', '1 jar|salsa', '100 g|cheddar', '3 tbsp|sour cream'], ['Spread the chips on a tray, scatter over drained beans, salsa and cheese.', 'Bake at 200°C for 8 minutes until melted.', 'Top with sour cream.'])
 ];
 
 // ---------- Meal builder parts (per serving amounts) ----------

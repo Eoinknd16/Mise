@@ -8,7 +8,7 @@ const learn = s => (s.learn = s.learn || { tired: {}, out: {}, effort: 0, cheap:
 
 /* ================= Week rhythm ================= */
 export const MODES = {
-  normal: ['Normal', ''], quick: ['Quick', '20 min or less'], protein: ['Gym night', 'High protein'], cook: ['Proper cook', 'Time to enjoy it'],
+  normal: ['Normal', ''], easy: ['Easy night', 'Oven or freezer, no effort'], quick: ['Quick', '20 min or less'], protein: ['Gym night', 'High protein'], cook: ['Proper cook', 'Time to enjoy it'],
   takeaway: ['Takeaway', 'No cooking'], off: ['No dinner', 'Out or skipping']
 };
 export const THEMES = {
@@ -271,16 +271,28 @@ export function plannerOptions(state, dates) {
     filter: r => !(state.people && state.people.length) || !ruledOutFor(state, r),
     adjust: (r, d) => {
       const n = nightOf(state, d), wd = wdOf(d), pace = ((state.weekCheck || {})[weekKey(d)] || {}).pace || 'normal';
-      const batch = C.isBatch(state, r), t = r.time || 40; let x = 1;
-      if (n.mode === 'quick') x *= t <= 25 ? 2 : batch ? 0.25 : 0.12;
+      const batch = C.isBatch(state, r), ef = C.effort(r), t = ef.total; let x = 1;
+      const weeknight = wd < 5 && n.mode !== 'cook', cap = state.settings.weeknightMax ?? 60, easyMeal = r.tags.includes('easy');
+      // Weeknights: everything (prep, cooking, washing up) has to fit
+      if (weeknight && cap && !ef.slow && t > cap) x *= 0.02;
+      if (weeknight && ef.slow) x *= 0.05;
+      if (weeknight && ef.ings > 10) x *= 0.15; else if (weeknight && ef.ings > 8) x *= 0.5;
+      if (ef.ings > 13 && n.mode !== 'cook') x *= 0.3;
+      if (weeknight && ef.easy) x *= 1.5;
+      // Freezer & oven meals: the main thing on easy nights, an occasional lifesaver otherwise
+      if (n.mode === 'easy') x *= easyMeal ? 8 : ef.easy ? 0.6 : 0.05;
+      else if (easyMeal) x *= (n.mode === 'quick' || pace === 'busy' || (L.tired[wd] || 0) >= 2) ? 1.6 : n.mode === 'cook' || wd >= 5 ? 0.15 : 0.45;
+      // Uses what's already in your fridge, cupboard or freezer
+      const haveN = r.ings.filter(i => i.item && !(ITEM[i.item] || {}).staple && C.pantryQty(state, i.item) > 0).length; if (haveN) x *= Math.min(2.2, 1 + haveN * 0.25);
+      if (n.mode === 'quick') x *= t <= 30 ? 2 : batch ? 0.25 : 0.08;
       if (n.mode === 'protein') { const p = C.proteinOf(r); x *= ['chicken', 'beef', 'pork', 'lamb', 'fish'].includes(p) ? 1.8 : 0.5; const nu = nutrition(state, r, r.serves); if (nu && nu.protein >= 30) x *= 1.4; }
       if (n.mode === 'cook') x *= (t >= 45 || batch || difficulty(r) > 7) ? 1.7 : 0.8;
       if (n.theme && THEMES[n.theme]) x *= THEMES[n.theme][1](r) ? 5 : 0.2;
-      if (pace === 'busy' && wd < 5 && t > 30 && !batch) x *= 0.35;
+      if (pace === 'busy' && wd < 5 && t > 40 && !batch) x *= 0.3;
       if (pace === 'relaxed' && t >= 45) x *= 1.3;
-      if ((L.tired[wd] || 0) >= 2 && t > 30) x *= 0.5;
+      if ((L.tired[wd] || 0) >= 2 && t > 40) x *= 0.5;
       if (kidsEating(state, d)) x *= kidFriendly(state, r) ? 1.7 : 0.45;
-      if (L.effort) x *= (r.ings.length > 10 || (r.steps || []).length > 6) ? 1 / (1 + 0.35 * L.effort) : 1;
+      if (L.effort) x *= (ef.ings > 8 || ef.steps > 6) ? 1 / (1 + 0.4 * L.effort) : 1;
       const cheapW = (L.cheap || 0) + (budgetMode ? 3 : 0); if (cheapW) { const c = cost(r); x *= c <= 2 ? 1 + 0.15 * cheapW : c >= 3.5 ? 1 / (1 + 0.25 * cheapW) : 1; }
       x *= seasonBoost(r, d);
       if (r0 && C.proteinOf(r) === r0.protein) x *= 0.55;

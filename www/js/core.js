@@ -281,6 +281,7 @@ export function recipeTags(r) {
   t.push('p:' + (p || 'veg'));
   if ((r.time || 45) <= 30) t.push('quick');
   if ((r.time || 45) >= 120) t.push('slow');
+  if (r.cat === 'Easy' || r.easy) t.push('easy');
   const title = ' ' + norm(r.title || '') + ' ', ids = new Set((r.ings || []).map(i => i.item).filter(Boolean));
   for (const [k, re] of DISH_TYPES) if (re.test(title) || (k === 'pasta' && r.cat === 'Pasta')) t.push('type:' + k);
   for (const [k, items, re] of FLAVOURS) if ((re && re.test(title)) || items.filter(x => ids.has(x)).length >= (k === 'cheesy' ? 2 : 1)) t.push('fl:' + k);
@@ -478,6 +479,8 @@ export function whyRecipe(state, r) {
   out.push(...tasteFit(state, r).why);
   const deals = activeDeals(state).map(d => d.item); const onDeal = r.ings.find(i => deals.includes(i.item)); if (onDeal) out.push([1.8, `${ITEM[onDeal.item].n} is on offer`]);
   const exp = state.pantry.find(p => p.item && p.exp && daysBetween(today(), p.exp) <= 3 && r.ings.some(i => i.item === p.item)); if (exp) out.push([2.2, `Uses up your ${exp.name.toLowerCase()}`]);
+  else { const have = r.ings.filter(i => i.item && !(ITEM[i.item] || {}).staple && pantryQty(state, i.item) > 0); if (have.length >= 2 || (have.length && ITEM[have[0].item].a === 'frozen')) out.push([1.6, `Uses your ${have.slice(0, 2).map(i => ITEM[i.item].n.toLowerCase()).join(' and ')}`]); }
+  const ef = effort(r); if (ef.easy) out.push([1.4, `Easy: about ${ef.total} min all in`]);
   return out.sort((a, b) => Math.abs(b[0]) - Math.abs(a[0])).slice(0, 4);
 }
 // Train on a dish the user swiped on in the quiz
@@ -524,6 +527,19 @@ export function dishDeck(state, n = 24) {
 // Small extras you can just leave out (dislikes here don't rule a recipe out)
 export const OPTIONAL = new Set(['garlic', 'onion', 'red-onion', 'ginger', 'chilli', 'coriander', 'parsley', 'basil', 'thyme', 'rosemary', 'mint', 'spring-onion', 'lemon', 'lime', 'celery', 'chilli-powder', 'paprika', 'cumin', 'curry-powder', 'oregano', 'black-pepper', 'salt', 'cinnamon', 'sweetcorn', 'peas', 'cherry-tomato', 'parmesan']);
 // A recipe is ruled out if a main ingredient is disliked or can't be eaten
+/* ---- How much work a recipe really is: prep + cook + clean-up ---- */
+export function effort(r) {
+  if (!r || !r.ings) return { total: 40, ings: 0, steps: 0, easy: false };
+  const ings = r.ings.filter(i => !i.skip && i.u !== 'taste' && !(ITEM[i.item] && ITEM[i.item].staple)).length;
+  const steps = (r.steps || []).length;
+  let cook = r.time || 40;
+  if (r.lib) cook = Math.max(cook, 15 + steps * 5 + ings * 2);
+  const slow = cook >= 120;
+  const clean = r.cat === 'Easy' ? 5 : 10 + Math.min(10, steps);
+  const extraPrep = Math.max(0, ings - 6) * 2;
+  const total = Math.round((cook + clean + extraPrep) / 5) * 5;
+  return { total, ings, steps, slow, easy: !slow && total <= 40 && ings <= 8 && steps <= 6 };
+}
 // Dishes you swiped left on or said "never again" to, and close look-alikes
 const titleWords = t => new Set(norm(t).split(' ').filter(w => w.length > 2 && !['with', 'and', 'the', 'easy', 'quick', 'style', 'homemade'].includes(w)).map(sing));
 let rejCache = { key: '', list: [] };
@@ -832,12 +848,15 @@ export function knownUnitPrice(state, itemId, shop) {
   rows.sort((a, b) => b.date.localeCompare(a.date));
   return { unit: rows[0].price / rows[0].qty, date: rows[0].date, shop: rows[0].shop };
 }
+function saneUnit(it, unit) { const est = it.p / it.packs[0]; return unit > est * 0.35 && unit < est * 3.5; }
 export function bestPrice(state, itemId) {
   const it = ITEM[itemId]; if (!it) return null;
   const shops = state.settings.shops.length ? state.settings.shops : ['Lidl'];
   let best = null;
   for (const d of activeDeals(state)) if (d.item === itemId && d.price) { const u = d.price / (d.qty || it.packs[0]); if (!best || u < best.unit) best = { unit: u, shop: d.shop || state.settings.defaultShop, src: 'deal', deal: d }; }
-  for (const s of shops) { const k = knownUnitPrice(state, itemId, s); if (k && (!best || k.unit < best.unit)) best = { unit: k.unit, shop: s, src: 'yours', date: k.date }; }
+  const manual = (state.prices || []).filter(p => p.item === itemId && p.src === 'manual' && p.qty > 0).sort((a, b) => b.date.localeCompare(a.date))[0];
+  if (manual) { const u = manual.price / manual.qty; if (!best || best.src !== 'deal' || u < best.unit) best = { unit: u, shop: manual.shop || state.settings.defaultShop, src: 'yours', date: manual.date }; }
+  if (!manual) { const main = state.settings.defaultShop; const order = [main, ...shops.filter(s => s !== main)]; for (const s of order) { const k = knownUnitPrice(state, itemId, s); if (k && saneUnit(it, k.unit)) { if (!best || (best.src !== 'deal' && s === main) || k.unit < best.unit * 0.85) best = { unit: k.unit, shop: s, src: 'yours', date: k.date }; if (s === main) break; } } }
   if (!best) best = { unit: it.p / it.packs[0], shop: state.settings.defaultShop || shops[0], src: 'est' };
   return best;
 }
@@ -912,12 +931,12 @@ export function buildList(state, dates) {
       const buy = packs * size;
       const bp = bestPrice(state, it.id);
       rows.push({ ...n, from: [...n.from], need: short, have, packs, size, buy, leftover: buy - short, unitPrice: bp.unit, cost: buy * bp.unit, shop: bp.shop, priceSrc: bp.src, deal: bp.deal || null });
-    } else rows.push({ ...n, from: [...n.from], packs: null, cost: n.price != null ? n.price : null, shop: state.settings.defaultShop, priceSrc: n.price != null ? 'yours' : null });
+    } else { const g = n.price == null ? guessCategory(n.name) : null, gp = g && ITEM[g] ? ITEM[g].p : 2; rows.push({ ...n, from: [...n.from], packs: null, cost: n.price != null ? n.price : gp, shop: state.settings.defaultShop, priceSrc: n.price != null ? 'yours' : 'est' }); }
   }
   const aisleIdx = Object.fromEntries(AISLES.map((a, i) => [a[0], i]));
   rows.sort((a, b) => (aisleIdx[a.aisle] - aisleIdx[b.aisle]) || a.name.localeCompare(b.name));
   const stapleRows = Object.values(staples).filter(s => pantryQty(state, s.id) <= 0 && !state.list.hidden['s:' + s.id]).map(s => ({ key: 's:' + s.id, item: s.id, name: s.n }));
-  return { rows, covered, staples: stapleRows, total: rows.reduce((a, r) => a + (r.cost || 0), 0) };
+  return { rows, covered, staples: stapleRows, total: rows.reduce((a, r) => a + (r.cost || 0), 0), estimated: rows.filter(r => r.priceSrc === 'est').length };
 }
 function choosePacks(qty, sizes) {
   let best = null;
@@ -974,7 +993,7 @@ export function saveReceipt(state, { shop, date, lines, total }) {
     const it = ITEM[l.item];
     if (!it) continue;
     const qty = l.weightKg && it.u === 'g' ? l.weightKg * 1000 * (l.qty || 1) : it.packs[0] * (l.qty || 1);
-    state.prices.push({ item: it.id, shop, price: l.price, qty, date, src: 'receipt' });
+    if (l.price > 0) state.prices.push({ item: it.id, shop, price: l.price, qty, date, src: 'receipt' });
     if (!['household'].includes(it.cat)) addPantry(state, it.id, qty, it.n, date);
   }
   for (const l of lines) if (l.item && ITEM[l.item] && !['household', 'personal', 'pet'].includes(ITEM[l.item].cat)) nudge(state, l.item, 0.08);
