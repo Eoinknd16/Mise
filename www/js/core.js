@@ -35,7 +35,7 @@ export function freshState() {
     settings: { household: 2, shops: ['Lidl'], defaultShop: 'Lidl', budget: 80, tone: 'cheeky', adventure: 30, nights: [1, 1, 1, 1, 1, 1, 1], mealdbKey: '1', ai: 'off', onboarded: false },
     plan: {}, recipes: {}, ratings: {}, tagPref: {}, skipped: {},
     pantry: [], list: { checked: {}, extras: [], hidden: {}, weekOffset: 0 },
-    prices: [], receipts: [], aliases: {}, deals: [], waste: []
+    prices: [], receipts: [], aliases: {}, deals: [], waste: [], likes: {}, photos: {}, autoImg: {}
   };
 }
 function migrate(s) {
@@ -133,7 +133,7 @@ const DESCRIPTORS = new Set('fresh chopped diced sliced finely roughly thinly mi
 const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
 const sing = w => w.length > 3 && w.endsWith('ies') ? w.slice(0, -3) + 'y' : w.length > 4 && /(oes|ches|shes)$/.test(w) ? w.slice(0, -2) : w.length > 3 && w.endsWith('s') && !w.endsWith('ss') ? w.slice(0, -1) : w;
 const PHRASES = []; // [normalized phrase, itemId]
-for (const it of CATALOG) for (const p of [it.n, it.id.replace(/-/g, ' '), ...it.al]) { const n = norm(p); if (n) PHRASES.push([n, it.id], [n.split(' ').map(sing).join(' '), it.id]); }
+for (const it of CATALOG) if (!it.id.startsWith('other-')) for (const p of [it.n, it.id.replace(/-/g, ' '), ...it.al]) { const n = norm(p); if (n) PHRASES.push([n, it.id], [n.split(' ').map(sing).join(' '), it.id]); }
 PHRASES.sort((a, b) => b[0].length - a[0].length);
 
 export function matchIngredient(name) {
@@ -154,7 +154,8 @@ const subseq = (t, w) => { if (t[0] !== w[0] || t.length < 3) return false; let 
 const BRANDS = new Set(['tayto', 'pringles', 'haribo', 'monster', 'red bull', 'lucozade', 'coke', 'pepsi', 'fanta', '7up', 'avonmore', 'kerrygold', 'barrys', 'lyons', 'dairy milk', 'weetabix', 'philadelphia', 'roosters', 'maris piper']);
 const UNIT_TOK = /^\d+(\.\d+)?(g|kg|ml|l|ltr|cl|pk|pack|x)?$/;
 const VOCAB = new Set(PHRASES.flatMap(([p]) => p.split(' ')));
-const tokMatch = (t, pt) => t === pt || (VOCAB.has(t) && !pt.startsWith(t) && !t.startsWith(pt)) ? t === pt : pt.startsWith(t) || (t.startsWith(pt) && pt.length >= 3) || (t.length >= 3 && (skel(pt).startsWith(skel(t)) || subseq(t, pt)));
+const subOK = (t, pt) => (t.length >= 4 || t.length / pt.length >= 0.5) && subseq(t, pt);
+const tokMatch = (t, pt) => t === pt || (VOCAB.has(t) && !pt.startsWith(t) && !t.startsWith(pt)) ? t === pt : pt.startsWith(t) || (t.startsWith(pt) && pt.length >= 3) || (t.length >= 3 && (skel(pt).startsWith(skel(t)) || subOK(t, pt)));
 export function matchReceipt(text, aliases = {}) {
   const key = norm(text);
   if (aliases[key]) return aliases[key];
@@ -168,11 +169,30 @@ export function matchReceipt(text, aliases = {}) {
     if (!ptoks.every(pt => toks.some(t => tokMatch(t, pt)))) continue;
     const covered = toks.filter(t => ptoks.some(pt => tokMatch(t, pt))).length;
     const exact = ptoks.filter(pt => toks.includes(pt)).length;
+    if (!BRANDS.has(p) && covered / toks.length < 0.5 && !exact) continue;
     const score = covered * 2 + ptoks.length * 0.5 + exact * 0.3 + (BRANDS.has(p) ? 1.6 : 0);
     if (score > bestScore) { best = id; bestScore = score; }
   }
-  return best || matchIngredient(text);
+  return best || matchIngredient(text) || guessCategory(key);
 }
+const CAT_WORDS = [
+  [/\b(sauce|sce|ketchup|mayo|relish|dressing|chutney|marinade|salsa)\b/, 'other-sauce'],
+  [/\b(beer|lager|wine|cider|vodka|gin|whiske?y|rum|stout|ale|prosecco)\b/, 'other-alcohol'],
+  [/\b(shampoo|soap|tooth|deo|razor|nappy|nappies|wipes|lotion|cream face|plaster)/, 'other-personal'],
+  [/\b(clean|bleach|foil|bags?|tissue|tabs|detergent|wash up|polish|sponge|bin)\b/, 'other-household'],
+  [/\b(dog|cat|pet|puppy|kitten)\b/, 'pet'],
+  [/\b(choc|biscuit|cake|sweet|jelly|candy|toffee|fudge|cookie|dessert|ice cream|lolly)/, 'other-sweet'],
+  [/\b(crisp|snack|popcorn|nuts|pretzel|nachos)/, 'other-snack'],
+  [/\b(juice|drink|cola|water|squash|soda|tonic|lemonade)\b/, 'other-drink'],
+  [/\b(frozen|frz|froz)\b/, 'other-frozen'],
+  [/\b(chicken|chkn|beef|pork|lamb|turkey|ham|sausage|bacon|mince|steak|meat)/, 'other-meat'],
+  [/\b(fish|salmon|cod|tuna|prawn|haddock|hake|seafood)/, 'other-fish'],
+  [/\b(cheese|chs|yog|yoghurt|milk|cream|butter|dairy)/, 'other-dairy'],
+  [/\b(bread|roll|bun|bagel|wrap|pastry|loaf|bap|brioche)/, 'other-bakery'],
+  [/\b(apple|pear|berry|berries|grape|fruit|melon|orange|banana|lemon|lime)/, 'other-fruit'],
+  [/\b(veg|salad|onion|potato|carrot|leek|cabbage|pepper|tomato|lettuce|herb)/, 'other-veg']
+];
+export function guessCategory(text) { const t = ' ' + norm(text) + ' '; for (const [re, id] of CAT_WORDS) if (re.test(t)) return id; return null; }
 
 /* ================= Recipes ================= */
 export function normalizeRecipe(r) {
@@ -192,6 +212,7 @@ export function recipeTags(r) {
   return t;
 }
 export const proteinOf = r => (r.tags.find(t => t.startsWith('p:')) || 'p:veg').slice(2);
+export const photoOf = (state, r) => (state.photos && state.photos[r.id]) || r.img || (state.autoImg && state.autoImg[r.id]) || null;
 export function allRecipes(state) {
   const out = {};
   for (const b of BUILTIN) out[b.id] = normalizeRecipe(b);
@@ -227,6 +248,16 @@ export async function mdbByCategory(state, c) { const d = await mdb(state, 'filt
 export async function mdbByIngredient(state, i) { const d = await mdb(state, 'filter.php?i=' + encodeURIComponent(i.replace(/\s+/g, '_'))); return (d.meals || []).map(m => ({ id: 'm:' + m.idMeal, title: m.strMeal, img: m.strMealThumb, stub: true })); }
 export async function mdbLookup(state, id) { const d = await mdb(state, 'lookup.php?i=' + encodeURIComponent(id.replace(/^m:/, ''))); return d.meals && d.meals[0] ? fromMealDB(d.meals[0]) : null; }
 export async function mdbRandom(state) { const d = await mdb(state, 'random.php'); return d.meals && d.meals[0] ? fromMealDB(d.meals[0]) : null; }
+export async function autoImageFor(state, r) {
+  const stop = new Set(['with', 'and', 'the', 'in', 'a', 'of', 'easy', 'quick', 'my', 'sauce']);
+  const words = t => new Set(norm(t).split(' ').filter(w => w.length > 2 && !stop.has(w)).map(sing));
+  const want = words(r.title); if (!want.size) return '';
+  const main = [...want].sort((a, b) => b.length - a.length)[0];
+  const res = await mdbSearch(state, main).catch(() => []);
+  let best = '', bestJ = 0;
+  for (const m of res) { const w = words(m.title); const inter = [...want].filter(x => w.has(x)).length; const j = inter / (want.size + w.size - inter); if (j > bestJ) { bestJ = j; best = m.img; } }
+  return bestJ >= 0.34 ? best : '';
+}
 export const MDB_CATEGORIES = ['Beef', 'Chicken', 'Lamb', 'Pork', 'Seafood', 'Pasta', 'Vegetarian', 'Vegan', 'Breakfast', 'Side', 'Dessert'];
 
 /* ================= Learning ================= */
@@ -249,14 +280,50 @@ export function prefScore(state, r) {
   let s = 0; for (const t of r.tags) s += state.tagPref[t] || 0;
   const rt = state.ratings[r.id]; if (rt && rt.r) s += (rt.r - 3) * 1.5;
   s -= (state.skipped[r.id] || 0) * 0.5;
+  s += likeScore(state, r);
   return s;
 }
+export const likeKey = i => i.item || 'x:' + norm(i.name);
+export const DIETS = [
+  ['vegetarian', 'Vegetarian', 'No meat or fish'], ['vegan', 'Vegan', 'No animal products'], ['pescatarian', 'Pescatarian', 'Fish but no meat'],
+  ['nopork', 'No pork', ''], ['nobeef', 'No beef', ''], ['gluten', 'Gluten-free', 'Coeliac or avoiding gluten'], ['dairy', 'Dairy-free', 'Lactose or milk allergy'],
+  ['nuts', 'Nut allergy', 'Peanuts and tree nuts'], ['shellfish', 'Shellfish allergy', ''], ['egg', 'Egg-free', '']
+];
+const GLUTEN = ['bread', 'wraps', 'buns', 'naan', 'pitta', 'baguette', 'pasta', 'spaghetti', 'noodles', 'couscous', 'flour', 'fresh-pasta', 'croissants', 'scones', 'soda-bread', 'cake', 'crumpets', 'breadcrumbs', 'lasagne', 'gnocchi', 'biscuits', 'crackers', 'cereal', 'oats', 'beer', 'pizza', 'garlic-bread', 'pizza-dough', 'pot-noodle', 'fish-fingers', 'nuggets', 'soy-sauce', 'grains', 'quiche', 'cereal-bars', 'frozen-fish'];
+let dietCache = { key: null, set: new Set() };
+export function dietBlocks(state) {
+  const diet = (state.settings && state.settings.diet) || [];
+  const key = diet.slice().sort().join(',');
+  if (dietCache.key === key) return dietCache.set;
+  const out = new Set();
+  const prot = it => (it.tags.find(t => t.startsWith('p:')) || '').slice(2);
+  for (const it of CATALOG) {
+    const p = prot(it), meat = ['chicken', 'beef', 'pork', 'lamb'].includes(p) || it.cat === 'meat' || it.id === 'other-meat', fish = p === 'fish' || it.cat === 'fish';
+    if ((diet.includes('vegetarian') || diet.includes('vegan')) && (meat || fish)) out.add(it.id);
+    if (diet.includes('pescatarian') && meat) out.add(it.id);
+    if (diet.includes('vegan') && (it.a === 'dairy' && !['oat-milk', 'eggs'].includes(it.id) || ['eggs', 'honey', 'mayo', 'salad-cream', 'ice-cream', 'custard', 'cream-spray', 'cake', 'chocolate', 'parmesan', 'pesto', 'fresh-pasta', 'other-dairy'].includes(it.id))) out.add(it.id);
+    if (diet.includes('nopork') && p === 'pork') out.add(it.id);
+    if (diet.includes('nobeef') && p === 'beef') out.add(it.id);
+    if (diet.includes('gluten') && GLUTEN.includes(it.id)) out.add(it.id);
+    if (diet.includes('dairy') && (it.a === 'dairy' && !['eggs', 'oat-milk'].includes(it.id) || ['ice-cream', 'custard', 'cream-spray', 'parmesan', 'pesto', 'other-dairy'].includes(it.id))) out.add(it.id);
+    if (diet.includes('nuts') && ['nuts', 'peanut-butter', 'pesto', 'dried-fruit', 'choc-spread'].includes(it.id)) out.add(it.id);
+    if (diet.includes('shellfish') && it.id === 'prawns') out.add(it.id);
+    if (diet.includes('egg') && ['eggs', 'mayo', 'salad-cream', 'cake', 'fresh-pasta', 'noodles'].includes(it.id)) out.add(it.id);
+  }
+  dietCache = { key, set: out };
+  return out;
+}
+export function likeOf(state, i) { if (i.item && dietBlocks(state).has(i.item)) return -9; return (state.likes || {})[likeKey(i)] || 0; }
+export const TASTE_DECK = ['onion', 'garlic', 'mushroom', 'pepper', 'spinach', 'broccoli', 'courgette', 'aubergine', 'cauliflower', 'sweet-potato', 'avocado', 'coriander', 'chilli', 'cherry-tomato', 'peas', 'sweetcorn', 'beetroot', 'kale', 'chickpeas', 'kidney-beans', 'lentils', 'tofu', 'halloumi', 'feta', 'brie', 'eggs', 'chicken-thigh', 'beef-mince', 'steak', 'pork-chop', 'sausages', 'bacon', 'pudding', 'lamb-mince', 'salmon', 'white-fish', 'prawns', 'tuna', 'mackerel', 'coconut-milk', 'curry-paste', 'pesto', 'olives', 'ginger', 'lemon'];
+export function likeScore(state, r) { let s = 0; for (const i of r.ings) { const v = likeOf(state, i); if (v <= -9) return -50; if (v < 0) s -= 2.5; else if (v > 0) s += 1; } return s; }
+export const hasNever = (state, r) => r.ings.some(i => likeOf(state, i) <= -9);
+export const dislikedIn = (state, r) => r.ings.filter(i => likeOf(state, i) < 0);
 // Suggest a week of dinners: favourites / similar / brand new, with cooldown and variety rules
 export function suggestWeek(state, dates, opts = {}) {
   const recipes = allRecipes(state), today0 = today();
   const deals = activeDeals(state).map(d => d.item);
   const expiring = new Set(state.pantry.filter(p => p.item && p.exp && daysBetween(today0, p.exp) <= 3).map(p => p.item));
-  const pool = Object.values(recipes).filter(r => !MAIN_EXCLUDE.has(r.cat) && r.ings.length);
+  const pool = Object.values(recipes).filter(r => !MAIN_EXCLUDE.has(r.cat) && r.ings.length && !hasNever(state, r) && likeScore(state, r) > -5);
   const used = new Set();
   for (const d of dates) for (const e of (state.plan[d] || [])) used.add(e.rid);
   const cooldown = r => { const l = state.ratings[r.id] && state.ratings[r.id].last; return l && daysBetween(l, dates[0]) < 10; };
@@ -375,7 +442,7 @@ export function buildList(state, dates) {
   }
   const rows = [], covered = [];
   for (const n of Object.values(need)) {
-    if (state.list.hidden[n.key]) continue;
+    if (state.list.hidden[n.key] || state.list.hidden[dates[0] + ':' + n.key]) continue;
     const it = ITEM[n.item];
     if (it) {
       const have = n.extra ? 0 : pantryQty(state, it.id);
@@ -410,24 +477,32 @@ export function recipeCost(state, r, serves) {
 }
 
 /* ================= Receipts ================= */
-const SKIP = /\b(sub\s*-?total|total|balance|change|card|visa|mastercard|debit|credit|cash|tender|contactless|vat|tax|amount|payment|lidl plus|points|receipt|thank|store|tel\b|www\.|http|cashier|till|operator|auth|aid:|merchant|terminal|refund due|you saved|saving total|items?\b\s*\d|eur\b total)/i;
+const SKIP = /\b(sub\s*-?total|balance|change due|change|card|visa|mastercard|debit|credit|cash|tender|contactless|vat|tax|payment|points|receipt|thank|store|tel\b|www\.|http|cashier|till|operator|auth|aid:|merchant|terminal|refund due|you saved|saved|savings|items?\s*\d|copy|signature|pin verified|approved|transaction|ref no|date|time)/i;
+const DISCOUNT = /(discount|offer|saving|promo|coupon|reduced|price ?cut|lidl ?plus|plus discount|rabatt|% ?off|multi ?buy|deal|voucher|money off|clubcard|real rewards)/i;
+const TOTAL_RE = /\b(total|to pay|amount due|balance due|sum to pay|grand total)\b/i;
 export function parseReceipt(text) {
   const lines = String(text || '').split(/\r?\n/).map(l => l.replace(/\s+/g, ' ').trim()).filter(Boolean);
-  const out = []; let total = null;
-  for (const line of lines) {
-    const tot = line.match(/\btotal\b.*?(\d+[.,]\d{2})/i);
-    if (tot && !/sub/i.test(line)) { total = parseFloat(tot[1].replace(',', '.')); continue; }
-    const mult = line.match(/^(\d+)\s*[xX×]\s*(\d+[.,]\d{2})\b/);
-    if (mult && out.length) { out[out.length - 1].qty = +mult[1]; continue; }
-    const weight = line.match(/^(\d+[.,]\d+)\s*kg\s*[xX×@]\s*(\d+[.,]\d{2})/i);
+  const out = []; let total = null, afterTotal = false;
+  for (const raw of lines) {
+    if (afterTotal) continue;                                             // payment, VAT and savings summaries follow the total
+    if (/(you saved|total sav|savings total|saved today|your savings)/i.test(raw)) continue;
+    const line = raw.replace(/[€£]/g, ' ').replace(/\s+/g, ' ').trim();
+    const nums = line.match(/-?\d+[.,]\d{2}-?/g) || [];
+    if (TOTAL_RE.test(line) && !/sub|saving|vat|points|items|discount/i.test(line) && nums.length) { total = parseFloat(nums[nums.length - 1].replace(',', '.').replace(/-$/, '')); afterTotal = true; continue; }
+    const mult = line.match(/^(\d+)\s*[xX×*]\s*(?:€\s*)?(\d+[.,]\d{2})\b/);
+    if (mult && out.length) { const prev = out[out.length - 1], n = +mult[1], unit = parseFloat(mult[2].replace(',', '.')); prev.qty = n; if (n > 1 && Math.abs(prev.price + (prev.discount || 0) - unit) < 0.005) prev.price = Math.round((n * unit - (prev.discount || 0)) * 100) / 100; continue; }
+    const weight = line.match(/^(\d+[.,]\d+)\s*kg\s*[xX×@*]/i);
     if (weight && out.length) { out[out.length - 1].weightKg = parseFloat(weight[1].replace(',', '.')); continue; }
-    if (SKIP.test(line)) continue;
-    const m = line.match(/^(.*?[a-zA-Z].*?)\s+(-?\d+[.,]\d{2})\s*(?:-)?\s*[A-Z*]{0,2}$/);
+    if (/%/.test(line) || /^[A-E]\s+\d/.test(line)) continue;            // VAT tables like "A 23% 95.40 17.84"
+    const m = line.match(/^(.*?[a-zA-Z].*?)\s+(-?\d+[.,]\d{2})(-?)\s*(?:[A-Z*]{1,2})?$/);
     if (!m) continue;
-    const price = parseFloat(m[2].replace(',', '.'));
     const name = m[1].replace(/^\d+\s+(?=[a-z])/i, '').trim();
-    if (price < 0 || /discount|offer|saving|promo|coupon|reduced/i.test(name)) { if (out.length) out[out.length - 1].price = Math.round((out[out.length - 1].price + price) * 100) / 100; continue; }
-    if (name.length < 2) continue;
+    if (/\d+[.,]\d{2}/.test(name)) continue;                               // more than one price on the line: a summary row
+    if ((name.match(/[a-z]/gi) || []).length < 3) continue;
+    let price = parseFloat(m[2].replace(',', '.'));
+    const negative = price < 0 || m[3] === '-' || DISCOUNT.test(name);
+    if (negative) { if (out.length) { const prev = out[out.length - 1]; prev.price = Math.round((prev.price - Math.abs(price)) * 100) / 100; prev.discount = Math.round(((prev.discount || 0) + Math.abs(price)) * 100) / 100; } continue; }
+    if (SKIP.test(name)) continue;
     out.push({ text: name, price, qty: 1 });
   }
   return { lines: out, total };
@@ -528,8 +603,12 @@ export function parseDescription(text) {
 }
 export function completeSpec(spec, state, pantryFirst) {
   const s = { serves: state.settings.household || 2, spicy: 1, veg: [], exclude: [], ...spec };
+  const disliked = Object.entries(state.likes || {}).filter(([, v]) => v < 0).map(([k]) => k).concat([...dietBlocks(state)]);
+  const dt = (state.settings && state.settings.diet) || [];
+  if (!s.diet && dt.includes('vegan')) s.diet = 'vegan'; else if (!s.diet && dt.includes('vegetarian')) s.diet = 'veg';
+  for (const k of disliked) { const nm = ITEM[k] ? ITEM[k].n.toLowerCase().replace(/s$/, '') : k.replace(/^x:/, ''); if (!s.exclude.includes(nm)) s.exclude.push(nm); }
   const vegOK = k => !s.diet || (s.diet === 'veg' ? B_PROTEIN[k].veg : B_PROTEIN[k].vegan);
-  const notExcluded = name => !s.exclude.some(x => name.toLowerCase().includes(x));
+  const notExcluded = name => !s.exclude.some(x => name.toLowerCase().includes(x) || x.includes(name.toLowerCase().replace(/s$/, '')));
   const inPantry = name => { const id = matchIngredient(name); return id && pantryQty(state, id) > 0; };
   if (!s.protein || !vegOK(s.protein)) {
     let opts = Object.keys(B_PROTEIN).filter(k => vegOK(k) && notExcluded(B_PROTEIN[k].item) && (!s.maxTime || B_PROTEIN[k].min <= s.maxTime / 2));
@@ -549,7 +628,8 @@ export function buildMeal(spec) {
   add(P.q * n, P.u, P.item);
   if (spec.base !== 'none' || true) add(Bs.q * n, Bs.u, Bs.item);
   for (const [u, name, q] of St.ings) { let qq = q * n; if (spec.healthy && /cream|butter/.test(name)) qq *= 0.5; if (spec.exclude.some(x => name.includes(x))) continue; add(qq, u, name); }
-  for (const v of spec.veg) { const [u, name, q] = B_VEG[v]; add(q * n * (spec.healthy ? 1.5 : 1), u, name); }
+  const vegUsed = spec.veg.filter(v => B_VEG[v] && !lines.some(l => matchIngredient(l.name) === matchIngredient(B_VEG[v][1])));
+  for (const v of vegUsed) { const [u, name, q] = B_VEG[v]; add(q * n * (spec.healthy ? 1.5 : 1), u, name); }
   if (spec.spicy >= 2 && St.spice < 2) add(Math.max(1, Math.round(n / 2)), '', 'chilli');
   add(1, 'tbsp', 'oil');
   const steps = [];
@@ -557,13 +637,70 @@ export function buildMeal(spec) {
   if (Bs.min >= 10 && spec.base !== 'none') steps.push(Bs.cook);
   if (spec.protein !== 'lentils') steps.push(P.cook);
   steps.push(St.sauce + (spec.protein === 'lentils' ? ' ' + P.cook : ''));
-  for (const v of spec.veg) steps.push(B_VEG[v][3]);
+  for (const v of vegUsed) steps.push(B_VEG[v][3]);
   if (spec.spicy >= 2 && St.spice < 2) steps.push('Finely chop the chilli and add it with the sauce for some heat.');
   if (Bs.min < 10 || spec.base === 'none') steps.push(Bs.cook);
   steps.push(spec.protein === 'lentils' || ['curry', 'chilli', 'tomato', 'creamy', 'gravy'].includes(spec.style) ? `Return the ${P.n.toLowerCase()} to the sauce, season to taste and serve with the ${Bs.n.toLowerCase()}.` : `Serve the ${P.n.toLowerCase()} on the ${Bs.n.toLowerCase()} with the sauce over the top.`);
   const time = Math.max(15, Math.round((Math.max(P.min, Bs.min) + 12 + (spec.style === 'mediterranean' ? 15 : 0)) / 5) * 5);
-  const title = `${St.n} ${P.n.toLowerCase()} with ${Bs.n.toLowerCase()}`.replace('with no carbs (salad)', 'salad');
+  const pn = P.n.toLowerCase(), Pn = P.n;
+  const core = { curry: `${Pn} curry`, chilli: `Smoky ${pn} chilli`, stirfry: `${Pn} stir-fry`, mexican: spec.base === 'wraps' ? `${Pn} fajitas` : `Fajita-spiced ${pn}`, mediterranean: `Mediterranean ${pn} traybake`, gravy: `${Pn} with onion gravy`, tomato: `${Pn} in tomato & herb sauce`, creamy: `Creamy garlic ${pn}`, pesto: `Pesto ${pn}`, lemon: `Lemon & herb ${pn}` }[spec.style] || `${St.n} ${pn}`;
+  const title = spec.base === 'none' ? core + ' salad' : spec.base === 'wraps' && spec.style === 'mexican' ? core : `${core} with ${Bs.n.toLowerCase()}`;
   return normalizeRecipe({ id: 'u:' + Date.now().toString(36), src: 'builder', title: title[0].toUpperCase() + title.slice(1), cat: P.veg ? 'Vegetarian' : ({ chicken: 'Chicken', 'chicken breast': 'Chicken', beef: 'Beef', steak: 'Beef', pork: 'Pork', bacon: 'Pork' }[spec.protein] || 'Seafood'), area: { curry: 'Indian', stirfry: 'Chinese', mexican: 'Mexican', mediterranean: 'Mediterranean', tomato: 'Italian', pesto: 'Italian', creamy: 'Italian', chilli: 'Mexican', gravy: 'Irish', lemon: 'Mediterranean' }[spec.style], serves: n, time, ings: lines, steps, spec });
+}
+// "I want a rice dish with mince beef and onions" -> several ideas
+export function mentionedItems(text) {
+  const words = norm(text).split(' ').filter(w => w.length > 2 && !DESCRIPTORS.has(w) && !['dish', 'with', 'want', 'make', 'something', 'using', 'some', 'have', 'got', 'fancy', 'like', 'meal', 'dinner', 'tonight', 'quick', 'easy', 'cheap', 'spicy', 'mild', 'for', 'and', 'the', 'what', 'can', 'use', 'eat'].includes(w));
+  const found = new Set();
+  for (let n = 3; n >= 1; n--) for (let i = 0; i + n <= words.length; i++) { const ph = words.slice(i, i + n).join(' '); const id = matchIngredient(ph); if (id && (n > 1 || ph.length > 3)) found.add(id); }
+  return [...found];
+}
+const PROTEIN_OF_ITEM = Object.fromEntries(Object.entries(B_PROTEIN).map(([k, v]) => [matchIngredient(v.item), k]));
+const BASE_OF_ITEM = Object.fromEntries(Object.entries(B_BASE).filter(([k]) => k !== 'none').map(([k, v]) => [matchIngredient(v.item), k]));
+BASE_OF_ITEM.rice = 'rice'; BASE_OF_ITEM.spaghetti = 'pasta';
+const VEG_OF_ITEM = Object.fromEntries(Object.entries(B_VEG).map(([k, v]) => [matchIngredient(v[1]), k]));
+export function ideasFor(state, text, n = 4) {
+  const spec = parseDescription(text);
+  const items = mentionedItems(text);
+  for (const id of items) {
+    if (!spec.protein && PROTEIN_OF_ITEM[id]) spec.protein = PROTEIN_OF_ITEM[id];
+    if (!spec.base && BASE_OF_ITEM[id]) spec.base = BASE_OF_ITEM[id];
+    if (VEG_OF_ITEM[id] && !spec.veg.includes(VEG_OF_ITEM[id])) spec.veg.push(VEG_OF_ITEM[id]);
+  }
+  const fit = { rice: ['curry', 'chilli', 'stirfry', 'tomato', 'creamy', 'mexican'], pasta: ['tomato', 'creamy', 'pesto', 'chilli', 'lemon'], noodles: ['stirfry', 'curry'], potatoes: ['gravy', 'lemon', 'mediterranean', 'creamy'], wraps: ['mexican', 'chilli', 'lemon'], couscous: ['mediterranean', 'lemon', 'curry'], bread: ['tomato', 'chilli', 'mediterranean'], none: ['lemon', 'mediterranean', 'stirfry'] };
+  let styles = spec.style ? [spec.style] : [];
+  const Pp = B_PROTEIN[spec.protein] || {};
+  const clash = x => (Pp.fish && ['chilli', 'gravy'].includes(x)) || (spec.protein === 'eggs' && ['gravy', 'mediterranean'].includes(x)) || (spec.protein === 'lentils' && ['stirfry', 'mexican', 'lemon'].includes(x));
+  const pool = (fit[spec.base] || Object.keys(B_STYLE)).filter(x => !styles.includes(x) && !clash(x) && (spec.spicy === 0 ? B_STYLE[x].spice < 2 : true));
+  while (styles.length < n && pool.length) styles.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+  const blocked = dietBlocks(state), notes = [];
+  for (const id of items) if (blocked.has(id) || ((state.likes || {})[id] || 0) < 0) notes.push(`${ITEM[id].n} swapped out (${blocked.has(id) ? 'not in your diet' : "you don't like it"})`);
+  const built = [], seen = new Set();
+  for (const st of styles) {
+    for (let k = 0; k < 6; k++) { const sp = completeSpec({ ...spec, style: st, veg: [...spec.veg], protein: spec.protein && !blocked.has(matchIngredient(B_PROTEIN[spec.protein].item)) ? spec.protein : null }, state); const key = sp.protein + sp.style; if (seen.has(key) && k < 5) continue; seen.add(key); built.push(buildMeal(sp)); break; }
+  }
+  const wanted = new Set(items);
+  const library = Object.values(allRecipes(state)).filter(r => !MAIN_EXCLUDE.has(r.cat) && !hasNever(state, r))
+    .map(r => ({ r, hit: r.ings.filter(i => wanted.has(i.item) || (i.item === 'basmati' && wanted.has('rice')) || (i.item === 'rice' && wanted.has('basmati'))).length }))
+    .filter(x => x.hit >= Math.min(2, Math.max(1, wanted.size))).sort((a, b) => b.hit - a.hit || prefScore(state, b.r) - prefScore(state, a.r)).slice(0, 6);
+  return { items, spec, built, library, notes };
+}
+// Remove / swap / never-use a single ingredient; the recipe adjusts or rebuilds around it
+const KEY_ING = { curry: ['curry paste', 'coconut milk'], creamy: ['cream'], pesto: ['pesto'], tomato: ['chopped tomatoes'], chilli: ['chilli powder', 'chopped tomatoes'], mexican: ['smoked paprika'], stirfry: ['soy sauce'], mediterranean: ['peppers', 'courgette'], lemon: ['lemon'], gravy: ['beef stock'] };
+export function editSpec(spec, name, mode) {
+  const s = { ...spec, veg: [...(spec.veg || [])], exclude: [...(spec.exclude || [])] };
+  const id = matchIngredient(name), nm = name.toLowerCase().replace(/s$/, '');
+  const same = n2 => matchIngredient(n2) === id;
+  let msg = '';
+  if (B_PROTEIN[s.protein] && same(B_PROTEIN[s.protein].item)) {
+    s.exclude.push(nm); s.protein = null; msg = mode === 'remove' ? 'New main ingredient picked' : 'Swapped the main ingredient';
+  } else if (B_BASE[s.base] && same(B_BASE[s.base].item)) {
+    s.exclude.push(nm); const opts = Object.keys(B_BASE).filter(k => k !== spec.base && k !== 'none'); s.base = mode === 'remove' ? 'none' : opts[Math.floor(Math.random() * opts.length)]; msg = mode === 'remove' ? 'Served as a salad instead' : `Now with ${B_BASE[s.base].n.toLowerCase()}`;
+  } else {
+    const v = s.veg.find(k => same(B_VEG[k][1]));
+    if (v) { s.veg = s.veg.filter(k => k !== v); s.exclude.push(nm); if (mode === 'swap') { const alt = Object.keys(B_VEG).filter(k => k !== v && !s.veg.includes(k) && !s.exclude.some(x => k.includes(x))); if (alt.length) s.veg.push(alt[Math.floor(Math.random() * alt.length)]); } msg = mode === 'swap' ? 'Swapped the veg' : 'Removed'; }
+    else { s.exclude.push(nm); if ((KEY_ING[s.style] || []).some(k => same(k))) { s.style = null; msg = 'That was key to the sauce, so here is a new flavour'; } else msg = 'Removed'; }
+  }
+  return { spec: s, msg };
 }
 export const TWEAKS = {
   cheaper: ['Cheaper', s => { const c = Object.keys(B_PROTEIN).filter(k => B_PROTEIN[k].cost < B_PROTEIN[s.protein].cost && (!s.diet || B_PROTEIN[k].veg)); if (c.length) s.protein = c[Math.floor(Math.random() * c.length)]; s.cheap = true; if (s.style === 'pesto') s.style = 'tomato'; }],

@@ -154,9 +154,124 @@ kitchen-roll|Kitchen roll|household|pc|2|1.79|999|household|kitchen towel;paper 
 washing-up|Washing-up liquid|household|pc|1|1.29|999|household|washing up liquid;dish soap|
 bin-bags|Bin bags|household|pc|1|1.49|999|household|bin liners|
 laundry|Laundry detergent|household|pc|1|4.99|999|household|washing powder;washing liquid;detergent;capsules|
-`;
 
-export const CATALOG = RAW.trim().split('\n').map(line => {
+bbq-sauce|BBQ sauce|pantry|g|500|1.49|180|sauce|barbecue sauce;bbq;smokey bbq;sticky bbq|s
+hot-sauce|Hot sauce|pantry|ml|150|1.29|365|sauce|sriracha;tabasco;peri peri;piri piri;buffalo sauce;franks|s
+sweet-chilli|Sweet chilli sauce|pantry|ml|300|1.29|365|sauce|sweet chili sauce;sweet chilli|s
+brown-sauce|Brown sauce|pantry|g|450|1.49|180|sauce|hp sauce;chef brown sauce;yr sauce|s
+salad-cream|Salad cream|pantry|g|425|1.49|180|sauce|salad dressing;caesar dressing;dressing;vinaigrette|s
+worcestershire|Worcestershire sauce|pantry|ml|150|1.29|500|sauce|lea perrins;worcester sauce|s
+oyster-sauce|Oyster sauce|pantry|ml|150|1.49|365|sauce|hoisin;hoisin sauce;teriyaki sauce;fish sauce;black bean sauce|s
+pasta-sauce|Pasta sauce|pantry|g|500|1.29|365|sauce|bolognese sauce;tomato pasta sauce;dolmio;arrabbiata sauce;pasta sauce jar;lasagne sauce;white sauce;cheese sauce;carbonara sauce|
+cooking-sauce|Cooking sauce|pantry|g|500|1.49|365|sauce|curry sauce;korma sauce;tikka masala sauce;sweet and sour sauce;stir fry sauce;chasseur sauce;jar sauce;butter chicken sauce;fajita sauce|
+gravy|Gravy granules|pantry|g|300|1.49|365|sauce|bisto;gravy|s
+mint-sauce|Relish & chutney|pantry|g|300|1.39|365|sauce|mint sauce;cranberry sauce;relish;chutney;mango chutney;pickle;branston;apple sauce|s
+salsa|Salsa & dips|chilled|g|300|1.29|14|sauce|salsa;dip;guacamole;tzatziki;sour cream and chive dip|
+pears|Pears|fruitveg|pc|4|1.49|10|fruit|pear;conference pears|
+kiwi|Kiwis|fruitveg|pc|6|1.49|14|fruit|kiwi fruit|
+mango|Mango|fruitveg|pc|1|0.99|6|fruit|mangoes|
+pineapple|Pineapple|fruitveg|pc|1|1.49|6|fruit||
+melon|Melon|fruitveg|pc|1|1.69|7|fruit|watermelon;cantaloupe;honeydew|
+plums|Stone fruit|fruitveg|g|500|1.99|6|fruit|plums;peaches;nectarines;apricots;cherries|
+aubergine|Aubergine|fruitveg|pc|1|0.89|7|veg|eggplant|
+beetroot|Beetroot|fruitveg|g|250|0.99|21|veg|cooked beetroot|
+parsnip|Parsnips|fruitveg|g|500|0.89|21|veg|parsnip;turnip;swede|
+butternut|Butternut squash|fruitveg|pc|1|1.29|30|veg|squash;pumpkin|
+kale|Kale|fruitveg|g|200|1.29|5|veg|cavolo nero;pak choi;bok choy;spring greens|
+asparagus|Asparagus|fruitveg|g|250|2.49|4|veg||
+sugar-snap|Mangetout & sugar snaps|fruitveg|g|150|1.29|5|veg|mange tout;sugar snap peas;baby corn;tenderstem|
+corn-cob|Corn on the cob|fruitveg|pc|2|1.29|5|veg|corn cobs;sweetcorn cobs|
+radish|Radishes|fruitveg|g|200|0.79|7|veg|radish;spring onions bunch|
+mint|Fresh mint|fruitveg|g|20|0.99|6|veg|mint;dill;chives;fresh herbs;tarragon|
+salad-veg|Prepared veg|fruitveg|g|300|1.29|4|veg|stir fry mix;coleslaw mix;veg medley;soup mix;prepared vegetables;diced onion|
+croissants|Croissants & pastries|bakery|pc|4|1.29|3|bakery|croissant;pain au chocolat;danish;pastries;cinnamon swirl|
+scones|Scones|bakery|pc|4|1.49|4|bakery|scone|
+soda-bread|Brown soda bread|bakery|pc|1|1.49|4|bakery|soda bread;wholemeal loaf;brennans;wholegrain bread;sourdough;bloomer|
+cake|Cakes & buns|bakery|pc|1|2.29|5|sweet|cake;muffins;muffin;doughnuts;donuts;brownies;cupcakes;swiss roll;tarts;apple tart|
+crumpets|Crumpets & pancakes|bakery|pc|6|1.09|5|bakery|crumpet;pancakes;potato farls;potato cakes;waffles fresh|
+chicken-drum|Chicken drumsticks|meat|g|1000|3.49|3|meat|drumsticks;chicken legs;chicken drumsticks|p:chicken
+turkey-mince|Turkey mince|meat|g|500|3.49|3|meat|turkey breast;turkey steaks;minced turkey|p:chicken
+burgers|Burgers|meat|pc|4|2.99|3|meat|beef burgers;quarter pounders;burger patties|p:beef
+pudding|Black & white pudding|meat|g|280|1.49|14|meat|black pudding;white pudding;clonakilty;pudding|p:pork
+deli-meat|Cooked meats|meat|g|150|1.79|5|meat|salami;pepperoni;chicken slices;turkey slices;roast beef slices;corned beef;chicken pieces cooked;sliced chicken|p:pork
+hot-dogs|Hot dogs|meat|pc|8|1.29|21|meat|frankfurters;hot dog sausages|p:pork
+gammon|Gammon & bacon joint|meat|g|1000|5.99|7|meat|gammon;bacon joint;ham joint|p:pork
+pork-belly|Pork belly & roast|meat|g|600|4.49|3|meat|pork belly;pork shoulder;pork steaks;pork fillet;pork roast|p:pork
+mackerel|Mackerel & sardines|fish|g|125|1.19|365|fish|mackerel;sardines;tinned mackerel;kippers|p:fish
+fish-cakes|Fish cakes|fish|pc|4|2.49|4|fish|fishcakes;crab sticks|p:fish
+cheese-slices|Cheese slices|dairy|pc|10|1.49|21|dairy|easi singles;cheese singles;sliced cheese;dubliner|
+cottage-cheese|Cottage cheese & soft cheese|dairy|g|300|1.29|10|dairy|cottage cheese;ricotta;mascarpone;quark|
+brie|Speciality cheese|dairy|g|200|2.29|14|dairy|brie;camembert;blue cheese;goats cheese;gouda;emmental;edam;stilton|
+fruit-yogurt|Yogurt pots|dairy|pc|6|1.69|14|dairy|yogurt pots;fruit yogurt;kids yogurt;petits filous;yoplait;muller;activia|
+oat-milk|Plant milk|dairy|ml|1000|1.69|10|dairy|oat milk;soya milk;soy milk;almond milk;coconut drink;alpro|
+spread|Butter spread|dairy|g|500|2.49|60|dairy|dairygold;flora;low fat spread;margarine;olive spread|
+custard|Custard & desserts|dairy|g|500|1.29|10|sweet|custard;rice pudding;jelly pots;trifle;cheesecake;mousse;creme caramel|
+cream-spray|Squirty cream|dairy|ml|250|1.79|21|sweet|aerosol cream;whipped cream|
+fresh-soup|Fresh soup|chilled|ml|600|2.29|5|chilled|soup chilled;fresh soup pot|
+quiche|Quiche & savoury pies|chilled|pc|1|2.49|5|ready|quiche;pork pie;sausage rolls;pasties;scotch eggs|
+garlic-bread|Garlic bread|chilled|pc|2|1.29|7|ready|garlic baguette;garlic slices;dough balls|
+meal-deal|Sandwich or salad|chilled|pc|1|3.29|2|ready|sandwich;wrap meal;salad pot;pasta salad;sushi;meal deal;roll filled|
+olives|Olives & antipasti|chilled|g|200|1.69|30|chilled|olives;sundried tomatoes;antipasti;pickled onions;gherkins|
+pizza-dough|Pastry & dough|chilled|pc|1|1.49|10|chilled|puff pastry;shortcrust pastry;pizza dough;filo pastry|
+soup-tin|Tinned soup|pantry|g|400|0.89|700|pantry|soup tin;cup a soup;packet soup;minestrone|
+pot-noodle|Instant noodles|pantry|pc|1|0.99|300|ready|pot noodle;super noodles;instant noodles;cup noodles|
+crackers|Crackers & rice cakes|snacks|g|200|1.09|180|snack|crackers;cream crackers;rice cakes;crispbread;oatcakes|
+cereal-bars|Cereal bars|snacks|pc|6|1.49|180|snack|cereal bar;granola bars;protein bar;nature valley|
+popcorn|Popcorn & pretzels|snacks|g|100|0.99|180|snack|popcorn;pretzels;puffs|
+gum|Chewing gum & mints|snacks|pc|1|0.99|365|sweet|chewing gum;mints;gum|
+choc-spread|Chocolate spread|pantry|g|400|2.49|365|sweet|nutella;hazelnut spread|
+syrup|Syrup|pantry|g|450|1.69|700|sweet|golden syrup;maple syrup;agave|s
+baking|Baking items|pantry|g|200|1.29|700|pantry|baking powder;bread soda;bicarbonate;yeast;cocoa;vanilla;icing sugar;baking chocolate;chocolate chips|s
+breadcrumbs|Breadcrumbs|pantry|g|200|0.79|300|pantry|panko|s
+dried-fruit|Dried fruit, nuts & seeds|pantry|g|200|1.49|300|pantry|raisins;sultanas;dried apricots;seeds;chia;flaxseed;ground almonds;flaked almonds|
+grains|Quinoa & grains|pantry|g|500|1.79|700|pantry|quinoa;bulgur;pearl barley;polenta|
+gnocchi|Gnocchi|pantry|g|500|1.29|60|pantry||
+lasagne|Lasagne sheets|pantry|g|500|0.99|700|pantry|lasagne sheets;cannelloni|
+tinned-fruit|Tinned fruit|pantry|g|410|0.89|700|fruit|peaches tin;pineapple chunks;fruit cocktail;mandarins tin|
+tinned-veg|Tinned veg & pulses|pantry|g|400|0.59|700|pantry|butter beans;cannellini beans;borlotti;tinned potatoes;tinned carrots;mushy peas;processed peas;tinned spaghetti;spaghetti hoops;ravioli tin|
+salmon-tin|Tinned salmon|pantry|g|213|2.49|700|pantry|red salmon;pink salmon|p:fish
+nuggets|Chicken nuggets & goujons|frozen|g|500|2.49|180|ready|nuggets;goujons;chicken dippers;popcorn chicken;breaded chicken;chicken kiev;kievs|p:chicken
+frozen-fish|Frozen fish|frozen|g|400|2.99|180|fish|breaded fish;battered fish;fish fillets frozen;frozen cod;frozen prawns|p:fish
+frozen-burgers|Frozen burgers & sausages|frozen|pc|8|2.49|180|ready|frozen burgers;frozen sausages|p:beef
+hash-browns|Potato products|frozen|g|750|1.49|180|ready|hash browns;potato waffles;wedges;croquettes;roast potatoes frozen;mash frozen|
+frozen-fruit|Frozen fruit|frozen|g|500|2.49|180|fruit|frozen berries;smoothie mix;frozen mango|
+lollies|Ice lollies|frozen|pc|6|1.99|180|sweet|ice lolly;ice pops;magnum;cornetto;choc ices|
+frozen-meal|Frozen ready meal|frozen|pc|1|2.49|180|ready|frozen lasagne;frozen curry;frozen meal|
+squash|Squash & cordial|drinks|ml|1000|1.49|180|fizzy|squash;cordial;miwadi;ribena;robinsons|
+hot-choc|Hot chocolate|drinks|g|300|2.29|365|sweet|cocoa drink;hot chocolate|
+smoothie|Smoothies|drinks|ml|750|2.49|7|drinks|smoothie;kombucha;kefir|
+sports|Sports drinks|drinks|ml|500|1.29|365|fizzy|lucozade sport;powerade;isotonic|
+spirits|Spirits|drinks|ml|700|19.99|999|alcohol|vodka;gin;whiskey;whisky;rum;tequila;baileys;liqueur|
+shampoo|Shampoo & shower|household|pc|1|2.49|999|personal|shampoo;conditioner;shower gel;body wash;soap;hand wash;bubble bath|
+toothpaste|Toothpaste & dental|household|pc|1|1.49|999|personal|toothpaste;toothbrush;mouthwash;floss|
+deodorant|Deodorant & toiletries|household|pc|1|2.29|999|personal|deodorant;deo;antiperspirant;razors;shaving foam;moisturiser;lotion;sun cream;cotton pads;cotton buds|
+baby|Baby products|household|pc|1|4.99|999|personal|nappies;diapers;baby wipes;wipes;baby food;formula|
+health|Health & medicine|household|pc|1|2.49|999|personal|paracetamol;ibuprofen;plasters;vitamins;cold and flu;lemsip|
+sanitary|Sanitary products|household|pc|1|1.99|999|personal|tampons;sanitary pads;pantyliners;period pants|
+tissues|Tissues|household|pc|1|1.29|999|household|facial tissues;tissue|
+cleaning|Cleaning products|household|pc|1|1.49|999|household|bleach;cleaning spray;surface spray;disinfectant;toilet cleaner;cif;sponges;scourers;cloths;rubber gloves;air freshener|
+dishwasher|Dishwasher tablets|household|pc|1|4.99|999|household|dishwasher tabs;finish;rinse aid|
+fabric|Fabric softener|household|pc|1|2.49|999|household|softener;comfort;fabric conditioner|
+foil|Foil, wrap & bags|household|pc|1|1.49|999|household|tin foil;aluminium foil;cling film;baking paper;freezer bags;sandwich bags;food bags|
+batteries|Batteries & bulbs|household|pc|1|3.99|999|household|batteries;light bulbs;bulb|
+pet|Pet food|household|pc|1|2.99|999|pet|dog food;cat food;pet food;dog treats;cat litter;whiskas;pedigree|
+other-veg|Other veg|fruitveg|pc|1|1.00|7|veg|vegetables;veg|
+other-fruit|Other fruit|fruitveg|pc|1|1.00|7|fruit|fruit|
+other-meat|Other meat|meat|pc|1|4.00|3|meat|meat|
+other-fish|Other fish|fish|pc|1|4.00|3|fish|seafood|
+other-dairy|Other dairy|dairy|pc|1|1.50|10|dairy|dairy|
+other-bakery|Other bakery|bakery|pc|1|1.50|4|bakery|bakery|
+other-food|Other food|pantry|pc|1|1.50|180|pantry|grocery;food|
+other-sauce|Other sauce or condiment|pantry|pc|1|1.50|180|sauce|sauce;condiment|s
+other-snack|Other snacks|snacks|pc|1|1.50|180|snack|snack|
+other-sweet|Other sweets & treats|snacks|pc|1|1.50|180|sweet|treat;dessert|
+other-frozen|Other frozen|frozen|pc|1|2.50|180|ready|frozen|
+other-drink|Other soft drinks|drinks|pc|1|1.50|180|drinks|drink|
+other-alcohol|Other alcohol|drinks|pc|1|6.00|365|alcohol|alcohol;booze|
+other-household|Other household|household|pc|1|2.00|999|household|household|
+other-personal|Other toiletries|household|pc|1|2.00|999|personal|toiletries|`;
+
+export const CATALOG = RAW.trim().split('\n').filter(l => l.trim()).map(line => {
   const [id, n, a, u, packs, p, life, cat, aliases = '', flags = '', extra = ''] = line.split('|');
   const tags = []; let staple = false;
   for (const f of flags.split(',').filter(Boolean)) { if (f === 's') staple = true; else tags.push(f); }
@@ -283,5 +398,8 @@ export const B_VEG = {
   peas: ['g', 'frozen peas', 50, 'Add the peas for the last 3 minutes.'],
   carrots: ['g', 'carrots', 60, 'Slice the carrots and boil or roast until tender.'],
   'green beans': ['g', 'green beans', 50, 'Boil the beans for 4 minutes.'],
-  'frozen veg': ['g', 'frozen veg mix', 80, 'Cook the frozen veg as per the pack.']
+  'frozen veg': ['g', 'frozen veg mix', 80, 'Cook the frozen veg as per the pack.'],
+  onions: ['', 'onion', 0.35, 'Slice the onion and soften it in the pan for 6–8 minutes before the sauce.'],
+  sweetcorn: ['g', 'sweetcorn', 50, 'Stir in the drained sweetcorn for the last 3 minutes.'],
+  tomatoes: ['g', 'cherry tomatoes', 60, 'Halve the tomatoes and add them for the last 3 minutes.']
 };
