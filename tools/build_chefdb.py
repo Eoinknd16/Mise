@@ -75,7 +75,7 @@ for c, s in sav:
 cuisine_tot = collections.Counter(c for c, _ in sav)
 npmi = collections.defaultdict(dict)
 for (a, b), k in pair.items():
-    if k < 4: continue
+    if k < 3: continue
     pab = k / N; pa = cnt[a] / N; pb = cnt[b] / N
     v = math.log(pab / (pa * pb)) / -math.log(pab)
     if v > 0.02: npmi[a][b] = npmi[b][a] = round(v, 3)
@@ -99,7 +99,7 @@ for i, (n, cat) in ingr.items():
         # cuisine lean: share of this ingredient's recipes vs that cuisine's share overall
         lean = {CU[c]: round((v / cnt[n]) / (cuisine_tot[c] / N), 2) for c, v in cuis[n].items() if v >= 3}
         e['cu'] = {k: v for k, v in sorted(lean.items(), key=lambda x: -x[1])[:4] if v > 1.2}
-        top = sorted(npmi[n].items(), key=lambda x: -x[1])[:40]
+        top = sorted(npmi[n].items(), key=lambda x: -x[1])
         if top: e['p'] = dict(top)
     ing_out[n] = e
 used_comps = sorted({c for e in ing_out.values() for c in e.get('k', [])})

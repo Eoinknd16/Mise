@@ -37,9 +37,12 @@ function compCos(a, b) {
 }
 function shared(a, b) { const A = ingOf(a), B = ingOf(b); if (!A || !B || !A.ks || !B.ks) return []; return A.k.filter(c => B.ks.has(c)); }
 // how much more often cooks put them together than chance (normalised PMI, -1..1); null if no recipe evidence
+// recipes often name the juice or peel rather than the fruit, the broth rather than the bird
+const REC_ALIAS = { lemon: ['lemon_juice', 'lemon_peel'], lime: ['lime_juice'], orange: ['orange_juice', 'orange_peel'], pepper: ['bell_pepper', 'green_bell_pepper'], cheese: ['cheddar_cheese'], tomato: ['tomato_juice'], chicken: ['chicken_broth'], beef: ['beef_broth'], scallion: ['onion'] };
 function rec(a, b) {
   const A = ingOf(a), B = ingOf(b); if (!A || !B) return null;
-  const v = (A.p && A.p[b]) || (B.p && B.p[a]);
+  let v = (A.p && A.p[b]) || (B.p && B.p[a]);
+  if (!v) for (const x of [a, ...(REC_ALIAS[a] || [])]) for (const y of [b, ...(REC_ALIAS[b] || [])]) { const X = ingOf(x), Y = ingOf(y); const w = (X && X.p && X.p[y]) || (Y && Y.p && Y.p[x]); if (w && (!v || w > v)) v = w; }
   if (v) return v;
   if (A.n && B.n && A.n > 150 && B.n > 150) return -0.05; // both common, almost never together
   return null;
@@ -248,6 +251,8 @@ export const FINISHES = [
 export function finish(dish) {
   if (!DB) return null;
   const S = new Set(dish.ids), wants = needs(dish.taste, dish.method);
+  if (['parsley', 'coriander', 'basil', 'mint', 'dill', 'spring-onion', 'thyme', 'rosemary'].some(h => S.has(h))) { const i = wants.indexOf('fresh'); if (i >= 0) wants.splice(i, 1); }
+  if (['lemon', 'lime', 'vinegar'].some(h => S.has(h))) { const i = wants.indexOf('sharp'); if (i >= 0 && dish.taste.sharp >= 0.8) wants.splice(i, 1); }
   if (dish.spicy && dish.taste.heat < 0.6) wants.push('heat');
   if (!wants.length) return null;
   const base = harmony(dish.ids, dish.method, dish.hero), b0 = base ? base.h : 0;

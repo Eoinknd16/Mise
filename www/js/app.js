@@ -689,7 +689,12 @@ function viewSpend() {
 /* ================= App updates (Android) ================= */
 const isNative = () => !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
 const UP = { state: 'idle' };
-const updater = () => UP.plugin || (UP.plugin = window.Capacitor.registerPlugin('Updater'));
+// The Android shell has no @capacitor/core bundle, so talk to the native plugin through the bridge directly
+const updater = () => UP.plugin || (UP.plugin = (() => {
+  const cap = window.Capacitor; if (typeof cap.registerPlugin === 'function') return cap.registerPlugin('Updater');
+  const call = m => o => cap.nativePromise('Updater', m, o || {});
+  return { getVersion: call('getVersion'), canInstall: call('canInstall'), openInstallSettings: call('openInstallSettings'), download: call('download'), install: call('install'), addListener: async (ev, cb) => cap.addListener('Updater', ev, cb) };
+})());
 async function checkUpdate(manual) {
   if (!isNative() || UP.state === 'downloading') return;
   try {
@@ -737,8 +742,9 @@ function knowledgeCard() {
 function viewSettings() {
   const st = S.settings, R7 = M.rhythm(S), ppl = S.people || [];
   if (ui.scrollTo) { const id = ui.scrollTo; ui.scrollTo = null; setTimeout(() => { const e = document.querySelector(`[data-tour=${id}]`); if (e) e.scrollIntoView({ block: 'start' }); }, 60); }
-  if (isNative() && !UP.current) updater().getVersion().then(v => { UP.current = v.versionName; UP.code = v.versionCode; if (ui.route === 'settings') render(); }).catch(() => {});
-  return updateCard() + knowledgeCard() + `<div class="card" data-tour="sHouse"><h2>Household</h2>
+  if (isNative() && !UP.current && !UP.asked) (UP.asked = true, updater().getVersion()).then(v => { UP.current = v.versionName; UP.code = v.versionCode; if (ui.route === 'settings') render(); }).catch(() => {});
+  let upc = ''; try { upc = updateCard(); } catch (e) { upc = ''; }
+  return upc + knowledgeCard() + `<div class="card" data-tour="sHouse"><h2>Household</h2>
     <div class="pi" style="border:0;padding:0"><div class="grow"><b>You</b></div></div>
     ${ppl.map(p => `<div class="pi"><div class="grow"><b>${esc(p.name)}</b>${p.kid ? ' <span class="tag">child</span>' : ''}<div class="tiny muted">${[(p.diet || []).map(d => (C.DIETS.find(x => x[0] === d) || [, d])[1]).join(', '), Object.values(p.likes || {}).filter(v => v < 0).length ? Object.values(p.likes).filter(v => v < 0).length + ' dislikes' : ''].filter(Boolean).join(' · ') || 'Eats anything'}</div></div><button class="btn sm" data-act="personEdit" data-key="${p.id}">Edit</button></div>`).join('')}
     <button class="btn" data-act="personAdd">+ Add someone</button>

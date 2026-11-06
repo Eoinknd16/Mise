@@ -218,10 +218,12 @@ export function composeKits(state, stock, n = 14) {
   const rnd = a => a[Math.floor(Math.random() * a.length)];
   for (let tries = 0; out.length < n && tries < n * 12; tries++) {
     const fam = pickW(famW), style = rnd(['wet', 'glaze', 'dry', 'dry', 'wet']);
-    const pool = role => Object.keys(COMP).filter(c => COMP[c].role === role && COMP[c].fam.includes(fam) && avail(c));
+    const pool = role => Object.keys(COMP).filter(c => COMP[c].role === role && COMP[c].fam.includes(fam) && avail(c) && c !== 'garlic-granules');
     const comps = ['garlic'];
     const wpick = c => { const w = c.map(x => 1 / (1 + (usedC[x] || 0) * 0.8)); let t = Math.random() * w.reduce((a, b) => a + b, 0); for (let i = 0; i < c.length; i++) { t -= w[i]; if (t <= 0) return c[i]; } return c[0]; };
-    const add = (role, p = 1) => { if (Math.random() > p) return; const c = pool(role).filter(x => !comps.includes(x)); if (c.length) comps.push(wpick(c)); };
+    // choose each component so it pairs with what's already in the kit (real pairing data when loaded)
+    const fit = x => { if (!Chef.ready()) return 1; const ps = comps.filter(c => c !== 'garlic').map(c => { const p = Chef.pair(c, x); return p ? p.s : 0.05; }); return ps.length ? Math.exp(4 * (ps.reduce((a, v) => a + v, 0) / ps.length)) : 1; };
+    const add = (role, p = 1) => { if (Math.random() > p) return; const c = pool(role).filter(x => !comps.includes(x)); if (!c.length) return; const w = c.map(x => (1 / (1 + (usedC[x] || 0) * 0.8)) * fit(x)); let t = Math.random() * w.reduce((a, v) => a + v, 0); for (let i = 0; i < c.length; i++) { t -= w[i]; if (t <= 0) { comps.push(c[i]); return; } } comps.push(c[0]); };
     if (style === 'wet') { const liq = pool('liquid').concat(pool('paste').length ? ['__paste'] : []); if (!liq.length) continue; const l = rnd(liq); if (l === '__paste') { comps.push(rnd(pool('paste'))); const cl = pool('liquid').filter(x => ['coconut-milk', 'chopped-tomatoes', 'passata', 'stock'].includes(x)); if (!cl.length) continue; comps.push(rnd(cl)); } else comps.push(l); add('spice', 0.8); add('herb', 0.6); add('umami', 0.5); add('heat', 0.3); if (!comps.some(c => COMP[c].rich)) add('rich', 0.25); add('acid', 0.25); add('aroma', 0.4); }
     if (style === 'glaze') { add('umami', 1); add('sweet', 0.85); add('acid', 0.5); add('aroma', 0.7); add('heat', 0.35); add('herb', 0.3); if (fam === 'asian' || fam === 'thai') add('rich', 0.15); }
     if (style === 'dry') { add('spice', 0.9); add('spice', 0.4); add('herb', 0.6); add('acid', 0.6); add('heat', 0.25); add('rich', 0.35); add('sweet', 0.2); }
@@ -236,6 +238,12 @@ export function composeKits(state, stock, n = 14) {
     if (has('pesto') && (has('soy-sauce') || has('curry-paste') || has('cumin'))) continue;
     if (has('mayo') && style === 'wet') continue;
     if (has('ketchup') && (has('coconut-milk') || has('cream'))) continue;
+    if (has('ketchup') && (has('curry-powder') || has('garam-masala') || has('turmeric') || has('dried-rosemary'))) continue;
+    if ((has('cream') || has('double-cream')) && (has('vinegar') || has('ketchup'))) continue;
+    if (has('yogurt') && (has('parmesan') || has('cream') || has('cream-cheese') || has('creme-fraiche'))) continue;
+    if (comps.filter(c => COMP[c].cheese).length > 1) continue;
+    // the kit must hang together: no strong clashes, decent average pairing
+    if (Chef.ready()) { const xs = comps.filter(c => c !== 'garlic' && c !== 'stock'); let t = 0, n2 = 0, worst = 1; for (let i = 0; i < xs.length; i++) for (let j = i + 1; j < xs.length; j++) { const p = Chef.pair(xs[i], xs[j]); if (!p) continue; t += p.s; n2++; worst = Math.min(worst, p.s); } if (n2 && (t / n2 < 0.03 || worst < -0.06)) continue; }
     const key = fam + style + comps.slice().sort().join('+'); if (seen.has(key)) continue; seen.add(key);
     for (const c of comps) usedC[c] = (usedC[c] || 0) + 1;
     out.push(makeKit(fam, comps, style));
@@ -351,6 +359,8 @@ export function buildMeal(state, sp, serves, stock) {
   for (const [id, pp, u] of kitItems) add(id, pp, u);
   // Loose steps
   const mN = main.n, hard = veg.filter(v => VEG[v].kind === 'hard'), firm = veg.filter(v => VEG[v].kind === 'firm'), quick = veg.filter(v => VEG[v].kind === 'quick'), leafy = veg.filter(v => VEG[v].kind === 'leafy'), side = veg.filter(v => VEG[v].kind === 'side');
+  // wet dishes: delicate veg go in for the last few minutes (technique database), not for the whole simmer
+  if (['simmer', 'curry', 'soup', 'pasta', 'noodlesoup', 'risotto'].includes(sp.method)) { const LATE = new Set(['broccoli', 'green-beans', 'peas', 'courgette', 'sugar-snap', 'asparagus', 'frozen-veg', 'cauliflower']); for (const g of [hard, firm]) for (const v of g.filter(x => LATE.has(x))) { g.splice(g.indexOf(v), 1); if (!quick.includes(v)) quick.push(v); } }
   const vn = arr => join(arr.map(vegName));
   const flavour = kit.sauce || kit.rub, rub = kit.rub || kit.sauce;
   const potato = form === 'mash' ? `Boil the ${base.n} until soft, then mash with butter and a splash of milk.` : form === 'wedges' ? `Cut the ${base.n} into wedges, toss with oil and salt and roast at 200°C for 35 minutes.` : null;
