@@ -59,13 +59,13 @@ whole-chicken|Whole chicken|meat|g|1500|5.49|3|meat|roast chicken|p:chicken|chic
 beef-mince|Beef mince|meat|g|500,1000|3.99|3|meat|minced beef;ground beef;mince;lean mince;steak mince|p:beef
 steak|Steak|meat|g|225|4.99|3|meat|sirloin;ribeye;rib eye;striploin|p:beef|steak:225
 diced-beef|Diced beef|meat|g|400|4.99|3|meat|stewing beef;beef chuck;braising steak;beef stew meat|p:beef
-beef-brisket|Beef brisket|meat|g|1000|8.99|4|meat|brisket;beef joint;roasting joint;silverside;topside;beef roast;chuck roast;pulled beef|p:beef
-pork-chop|Pork chops|meat|g|500|3.99|3|meat|pork chop;pork loin|p:pork|chop:200
+beef-brisket|Beef brisket|meat|g|1000|8.99|4|meat|brisket;chuck roast;pulled beef;beef brisket joint|p:beef
+pork-chop|Pork chops|meat|g|500|3.99|3|meat|pork chop;pork chops;loin chops|p:pork|chop:200
 pork-mince|Pork mince|meat|g|500|2.99|3|meat|minced pork;ground pork|p:pork
 sausages|Sausages|meat|pc|8|1.99|5|meat|sausage;pork sausages|p:pork
 bacon|Rashers|meat|g|300|2.49|7|meat|bacon;rashers;streaky bacon;back bacon;smoked bacon;lardons;pancetta|p:pork|rasher:25;slice:25
 lamb-mince|Lamb mince|meat|g|500|4.99|3|meat|minced lamb;ground lamb|p:lamb
-lamb|Lamb pieces|meat|g|500|6.99|3|meat|lamb leg;lamb shoulder;diced lamb;lamb chops|p:lamb
+lamb|Diced lamb|meat|g|500|6.99|3|meat|diced lamb;lamb pieces;lamb stewing;lamb neck|p:lamb
 ham|Sliced ham|meat|g|150|1.79|5|meat|ham slices;cooked ham|p:pork|slice:20
 chorizo|Chorizo|meat|g|200|2.29|21|meat||p:pork
 salmon|Salmon fillets|fish|g|240|4.49|2|fish|salmon;salmon fillet|p:fish|fillet:120
@@ -199,13 +199,25 @@ soda-bread|Brown soda bread|bakery|pc|1|1.49|4|bakery|soda bread;wholemeal loaf;
 cake|Cakes & buns|bakery|pc|1|2.29|5|sweet|cake;muffins;muffin;doughnuts;donuts;brownies;cupcakes;swiss roll;tarts;apple tart|
 crumpets|Crumpets & pancakes|bakery|pc|6|1.09|5|bakery|crumpet;pancakes;potato farls;potato cakes;waffles fresh|
 chicken-drum|Chicken drumsticks|meat|g|1000|3.49|3|meat|drumsticks;chicken legs;chicken drumsticks|p:chicken
-turkey-mince|Turkey mince|meat|g|500|3.49|3|meat|turkey breast;turkey steaks;minced turkey|p:chicken
+turkey-mince|Turkey mince|meat|g|500|3.49|3|meat|minced turkey;turkey mince|p:chicken
 burgers|Burgers|meat|pc|4|2.99|3|meat|beef burgers;quarter pounders;burger patties|p:beef
 pudding|Black & white pudding|meat|g|280|1.49|14|meat|black pudding;white pudding;clonakilty;pudding|p:pork
 deli-meat|Cooked meats|meat|g|150|1.79|5|meat|salami;pepperoni;chicken slices;turkey slices;roast beef slices;corned beef;chicken pieces cooked;sliced chicken|p:pork
 hot-dogs|Hot dogs|meat|pc|8|1.29|21|meat|frankfurters;hot dog sausages|p:pork
 gammon|Gammon & bacon joint|meat|g|1000|5.99|7|meat|gammon;bacon joint;ham joint|p:pork
-pork-belly|Pork belly & roast|meat|g|600|4.49|3|meat|pork belly;pork shoulder;pork steaks;pork fillet;pork roast|p:pork
+beef-roast|Beef roasting joint|meat|g|1200|11.99|4|meat|beef joint;beef roasting joint;roasting joint;silverside;topside;beef roast;roast beef joint;rib of beef;sirloin joint;rolled beef|p:beef
+pork-roast|Pork roasting joint|meat|g|1200|6.99|4|meat|pork roast;pork joint;pork roasting joint;pork shoulder;pork leg;leg of pork;loin joint;pork loin joint;roast pork;pulled pork;shoulder of pork;boston butt|p:pork
+pork-fillet|Pork fillet & steaks|meat|g|450|4.99|3|meat|pork fillet;pork tenderloin;pork medallions;pork steaks;pork loin steaks|p:pork
+pork-ribs|Pork ribs|meat|g|800|5.99|3|meat|ribs;pork ribs;spare ribs;baby back ribs;rack of ribs;bbq ribs|p:pork
+lamb-leg|Lamb leg or shoulder joint|meat|g|1500|14.99|4|meat|leg of lamb;lamb leg;lamb shoulder;shoulder of lamb;lamb joint;roast lamb|p:lamb
+lamb-chops|Lamb chops|meat|g|400|6.49|3|meat|lamb chops;lamb cutlets;lamb loin chops;lamb steaks|p:lamb
+turkey-breast|Turkey breast|meat|g|500|5.49|3|meat|turkey breast;turkey steaks;turkey breast joint;turkey fillets;turkey crown|p:chicken
+duck-breast|Duck breasts|meat|g|350|6.99|4|meat|duck;duck breast;duck breasts;duck legs|p:chicken
+cooked-pork|Leftover cooked pork|meat|g|300|0|3|meat|leftover pork;cooked pork;pulled pork leftovers;roast pork leftovers|p:pork
+cooked-beef|Leftover cooked beef|meat|g|300|0|3|meat|leftover beef;cooked beef;roast beef leftovers;leftover roast beef|p:beef
+cooked-lamb|Leftover cooked lamb|meat|g|300|0|3|meat|leftover lamb;cooked lamb;roast lamb leftovers|p:lamb
+game|Venison & game|meat|g|500|8.99|4|meat|venison;rabbit;pheasant;goat;veal;mutton;wild boar;game;goose|p:beef
+pork-belly|Pork belly|meat|g|600|4.49|3|meat|pork belly;belly pork;pork belly slices;pork belly joint|p:pork
 mackerel|Mackerel & sardines|fish|g|125|1.19|365|fish|mackerel;sardines;tinned mackerel;kippers|p:fish
 fish-cakes|Fish cakes|fish|pc|4|2.49|4|fish|fishcakes;crab sticks|p:fish
 cheese-slices|Cheese slices|dairy|pc|10|1.49|21|dairy|easi singles;cheese singles;sliced cheese;dubliner|
@@ -239,7 +251,7 @@ lasagne|Lasagne sheets|pantry|g|500|0.99|700|pantry|lasagne sheets;cannelloni|
 tinned-fruit|Tinned fruit|pantry|g|410|0.89|700|fruit|peaches tin;pineapple chunks;fruit cocktail;mandarins tin|
 tinned-veg|Tinned veg & pulses|pantry|g|400|0.59|700|pantry|butter beans;cannellini beans;borlotti;tinned potatoes;tinned carrots;mushy peas;processed peas;tinned spaghetti;spaghetti hoops;ravioli tin|
 salmon-tin|Tinned salmon|pantry|g|213|2.49|700|pantry|red salmon;pink salmon|p:fish
-cooked-chicken|Cooked chicken pieces|meat|g|200|2.49|4|meat|cooked chicken;chicken strips;chicken pieces;chicken tikka pieces;frozen chicken strips;roast chicken pieces;shredded chicken;cooked chicken strips|p:chicken
+cooked-chicken|Cooked chicken pieces|meat|g|200|2.49|4|meat|cooked chicken;leftover chicken;leftover roast chicken;chicken strips;chicken pieces;chicken tikka pieces;frozen chicken strips;roast chicken pieces;shredded chicken;cooked chicken strips|p:chicken
 nuggets|Chicken nuggets & goujons|frozen|g|500|2.49|180|ready|nuggets;goujons;chicken goujons;chicken nuggets;chicken dippers;popcorn chicken;breaded chicken;chicken kiev;chicken kievs;kievs;southern fried chicken|p:chicken
 frozen-fish|Frozen fish|frozen|g|400|2.99|180|fish|breaded fish;battered fish;fish fillets frozen;frozen cod;frozen prawns|p:fish
 frozen-burgers|Frozen burgers & sausages|frozen|pc|8|2.49|180|ready|frozen burgers;frozen sausages|p:beef

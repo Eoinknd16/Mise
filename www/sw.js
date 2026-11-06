@@ -1,5 +1,5 @@
 // Mise service worker: app shell offline, recipe images/data cached as you browse.
-const VERSION = 'mise-v10';
+const VERSION = 'mise-v11';
 const SHELL = ['./', 'index.html', 'css/app.css', 'js/app.js', 'js/core.js', 'js/data.js', 'js/smart.js', 'js/builder.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== VERSION && k !== 'mise-runtime').map(k => caches.delete(k)))).then(() => self.clients.claim())); });

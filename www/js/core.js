@@ -699,7 +699,7 @@ export function suggestWeek(state, dates, opts = {}) {
   // Ingredient tracking: what's left over in opened packs (and your pantry) as the week fills up
   const opened = {};
   for (const p of state.pantry) if (p.item && perishable(p.item) && (!p.exp || p.exp >= dates[0])) opened[p.item] = (opened[p.item] || 0) + (p.qty || 0);
-  const needs = (r, serves) => { const out = {}; const f = serves / r.serves; for (const i of r.ings) { if (!perishable(i.item) || i.u === 'taste' || i.skip) continue; const b = toBase(i.q * f, i.u, ITEM[i.item]); if (b) out[i.item] = (out[i.item] || 0) + b; } return out; };
+  const needs = (r, serves) => { const out = {}; const f = serves / r.serves; for (const i of r.ings) { if (!perishable(i.item) || i.u === 'taste' || i.skip) continue; const b = toBase(i.whole ? i.q : i.q * f, i.u, ITEM[i.item]); if (b) out[i.item] = (out[i.item] || 0) + b; } return out; };
   const unit = id => { const bp = bestPrice(state, id); return bp ? bp.unit : 0; };
   const waste = (r, serves) => {
     let reuse = 0, total = 0, binned = 0;
@@ -876,7 +876,9 @@ export function usePantry(state, itemId, qty) {
 }
 export function cookRecipe(state, recipe, serves) {
   const f = serves / recipe.serves;
-  for (const i of recipe.ings) { const it = ITEM[i.item]; if (!it || it.staple) continue; const b = toBase(i.q * f, i.u, it); if (b) usePantry(state, it.id, b); }
+  for (const i of recipe.ings) { const it = ITEM[i.item]; if (!it || it.staple) continue; const b = toBase(i.whole ? i.q : i.q * f, i.u, it); if (b) usePantry(state, it.id, b); }
+  // The rest of a joint goes back in the fridge as cooked meat for quick meals
+  if (recipe.leftover && ITEM[recipe.leftover.item]) { const extra = Math.max(0, serves - recipe.serves) * 130; const g = recipe.leftover.g - extra; if (g >= 100) addPantry(state, recipe.leftover.item, g); }
 }
 export function whatCanIMake(state) {
   const t = today();
@@ -908,7 +910,7 @@ export function buildList(state, dates) {
       const it = ITEM[i.item];
       if (it && it.staple) { staples[it.id] = it; continue; }
       if (i.u === 'taste' || i.skip) continue;
-      if (it) { const b = toBase(i.q * f, i.u, it); const n = add(it.id, { item: it.id, name: it.n, unit: it.u, aisle: it.a }); n.qty += b || 0; n.from.add(r.title); }
+      if (it) { const b = toBase(i.whole ? i.q : i.q * f, i.u, it); const n = add(it.id, { item: it.id, name: it.n, unit: it.u, aisle: it.a }); n.qty += b || 0; n.from.add(r.title); }
       else { const k = 'x:' + norm(i.name); const ci = (state.customInfo || {})[norm(i.name)] || {}; const n = add(k, { item: null, name: i.name, unit: i.u || '', aisle: ci.aisle || 'other', loose: true, price: ci.price }); n.qty += i.q * f; n.from.add(r.title); }
     }
   }
@@ -951,7 +953,7 @@ export function packLabel(row) {
 }
 export function recipeCost(state, r, serves) {
   const f = (serves || r.serves) / r.serves; let total = 0, known = 0, unknown = 0;
-  for (const i of withSubs(state, r.ings)) { const it = ITEM[i.item]; if (!it) { unknown++; continue; } const b = toBase(i.q * f, i.u, it); if (!b) continue; total += b * bestPrice(state, it.id).unit; known++; }
+  for (const i of withSubs(state, r.ings)) { const it = ITEM[i.item]; if (!it) { unknown++; continue; } const b = toBase(i.whole ? i.q : i.q * f, i.u, it); if (!b) continue; total += b * bestPrice(state, it.id).unit; known++; }
   return { total, perServe: total / (serves || r.serves), unknown };
 }
 
