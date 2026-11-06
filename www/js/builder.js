@@ -2,6 +2,7 @@
 import { ITEM } from './data.js';
 import * as C from './core.js';
 import * as F from './flavour.js';
+import * as Chef from './chef.js';
 const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
 
 /* ================= Parts ================= */
@@ -610,7 +611,15 @@ export function buildMeal(state, sp, serves, stock) {
       choc: `Stir a square of dark chocolate into the sauce at the end. It deepens it without tasting sweet.`, swirl: `Swirl in a spoon of ${n} before serving.`, avo: `Slice the avocado over the top with a pinch of salt.` };
     steps.push(T[kind] || `Add the ${n}.`);
   }
-  { const ft = finishingTouch(state, sp, kit, stock, chefCheck(sp, kit)); if (ft) { const u = ITEM[ft.id].u; add(ft.id, u === 'pc' ? 0.25 : u === 'g' ? 5 : 5, u === 'pc' ? '' : u, ITEM[ft.id].n.toLowerCase()); steps.push(ft.text); } }
+  // Recipe grammar: add a SAUCE block to dry dishes and a TEXTURE block to soft ones, chosen by the maths, built from what you have
+  const blk = {};
+  if (Chef.ready()) {
+    const fam = kit.fam || FEEL2FAM[kit.feel] || 'british', ids0 = [...new Set(ings.map(i => i.item).filter(Boolean))];
+    const b = Chef.blocks({ ids: ids0, method: sp.method, fam, tags: kit.tags, hero: sp.main, hasSauce: !!kit.sauce || ['curry', 'simmer', 'pasta', 'soup', 'braise', 'bake', 'pie', 'risotto', 'salad', 'shakshuka', 'noodlesoup'].includes(sp.method), crunch: ids0.some(id => ['nuts', 'breadcrumbs', 'coleslaw', 'cucumber', 'spring-onion', 'red-onion'].includes(id)), have: id => (stock.get(id) || 0) > 0 || (ITEM[id] && ITEM[id].staple && C.stapleHave(state, id)) });
+    if (b.sauce) { for (const id of b.sauce.items) if (ITEM[id] && !ings.some(i => i.item === id)) add(id, ITEM[id].u === 'pc' ? 0.25 : ITEM[id].u === 'g' ? 15 : 15, ITEM[id].u === 'pc' ? '' : ITEM[id].u); steps.push(b.sauce.step); blk.sauce = b.sauce.n; }
+    if (b.texture) { for (const id of b.texture.items) if (ITEM[id] && !ings.some(i => i.item === id)) add(id, ITEM[id].u === 'pc' ? 0.5 : ITEM[id].u === 'g' ? 15 : 5, ITEM[id].u === 'pc' ? '' : ITEM[id].u); steps.push(b.texture.step); blk.texture = b.texture.n; }
+  }
+  { const ft = blk.texture ? null : finishingTouch(state, sp, kit, stock, chefCheck(sp, kit)); if (ft) { const u = ITEM[ft.id].u; add(ft.id, u === 'pc' ? 0.25 : u === 'g' ? 5 : 5, u === 'pc' ? '' : u, ITEM[ft.id].n.toLowerCase()); steps.push(ft.text); blk.finish = ft.text.split(/[:.—-]/)[0].replace(/^Finish with |^Scatter over some |^For crunch, |^Toast /, '').trim(); } }
   // Time and name
   let time = (meth.t || 30) + (sp.method === 'traybake' ? Math.max(0, (main.roast || 25) - 25) : 0) + (main.slow ? 90 : 0) + (form === 'mash' || form === 'wedges' ? 5 : 0);
   if (main.ready && ['wraps', 'bowl', 'burgers'].includes(sp.method)) time = Math.min(time, 25);
@@ -624,6 +633,8 @@ export function buildMeal(state, sp, serves, stock) {
   const id = 'g2:' + specKey(sp).replace(/[^a-z0-9|+-]/gi, '') + (jointG ? '|' + jointG : '');
   const r = C.normalizeRecipe({ id, src: 'built', title, serves, time, cat: 'Built', area: kit.feel || '', ings, steps: steps.filter(Boolean), spec: { ...sp, veg }, named: !!named, nice: niceToAdd });
   if (leftover) { r.leftover = leftover; r.wholeJoint = jointG; }
+  r.blocks = { technique: (sp.gear === 'af' ? 'air fryer ' : sp.gear === 'sc' ? 'slow cooker ' : '') + (sp.method === 'braise' && !main.joint ? 'stew' : METHODS[sp.method].n), flavour: kit.n, ...blk };
+  if (Chef.ready()) { const h = Chef.harmony([...new Set(ings.map(i => i.item).filter(Boolean))], sp.method, sp.main); if (h) r.harmony = Math.round(h.h * 100) / 100; }
   if (J || sp.method === 'sticky' || sp.method === 'braise') r.slow = time > 75;
   if (sp.gear) { r.gear = sp.gear; if (handsOn) r.handsOn = handsOn; }
   return r;
@@ -761,7 +772,10 @@ export function chefCheck(sp, kit) {
   if ((sp.veg || []).length === 0 && !['burgers', 'pulled', 'sticky'].includes(sp.method) && g !== 'veg') score -= 0.7;
   // pairings that are known to work
   score += Math.min(4, pairScore([sp.main, ...(sp.veg || []), ...(sp.add || []), ...kit.core.map(c => c[0])])) * 0.45;
-  return { fail, score, why, rich, hasAcid, hasFresh };
+  // the maths: shared aroma compounds + how often real cooks combine them (Ahn et al. flavour network)
+  const hm = Chef.ready() ? Chef.harmony(ids, sp.method, sp.main) : null;
+  if (hm && hm.pairs >= 3) { score += (hm.h - 0.14) * 7; if (hm.h < 0.03) { fail = true; why.push('poor harmony'); } }
+  return { fail, score, why, rich, hasAcid, hasFresh, harmony: hm ? hm.h : null };
 }
 // The finishing touch: fix balance with what's in the kitchen
 function finishingTouch(state, sp, kit, stock, ck) {

@@ -1,6 +1,7 @@
 // Mise — "knows how you live": rhythm, household, reactions, habits, money, freezer, prep, stats, sharing, import, nutrition.
 import { ITEM, CATALOG } from './data.js';
 import * as C from './core.js';
+import * as K from './chef.js';
 
 const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const wdOf = d => (new Date(d + 'T12:00').getDay() + 6) % 7;
@@ -314,15 +315,17 @@ const NUT = {
   pasta: [355, 12], spaghetti: [355, 12], rice: [350, 7], basmati: [350, 8], noodles: [340, 11], couscous: [360, 13], oats: [370, 13], flour: [340, 10], sugar: [400, 0], 'chopped-tomatoes': [21, 1.2], passata: [30, 1.4], 'tomato-puree': [80, 4], 'coconut-milk': [180, 1.5], stock: [15, 1], chickpeas: [115, 7], 'kidney-beans': [100, 7], 'baked-beans': [80, 4.7], lentils: [330, 24], sweetcorn: [80, 2.7], 'olive-oil': [820, 0], oil: [820, 0], honey: [330, 0], 'curry-paste': [180, 3], pesto: [450, 5], 'peanut-butter': [600, 25], peas: [70, 5.5], 'frozen-veg': [50, 3], chips: [160, 2.5], 'bbq-sauce': [170, 1], 'pasta-sauce': [60, 1.6], 'cooking-sauce': [90, 1.5], aubergine: [90, 4], beetroot: [43, 1.6], parsnip: [75, 1.2], butternut: [450, 10], kale: [35, 2.9], asparagus: [20, 2.2], 'sugar-snap': [40, 2.8], 'corn-cob': [100, 3.5], 'salad-veg': [15, 1], olives: [150, 1], gnocchi: [150, 3.5], lasagne: [350, 12], breadcrumbs: [380, 12], 'salmon-tin': [150, 21], hummus: [300, 7]
 };
 export function nutrition(state, r, serves) {
-  if (!r || !r.ings) return null; let kcal = 0, protein = 0, known = 0, veg = 0;
+  if (!r || !r.ings) return null; let kcal = 0, protein = 0, known = 0, veg = 0, fat = 0, carb = 0, fibre = 0, salt = 0;
   const f = (serves || r.serves) / r.serves;
   for (const i of C.withSubs(state, r.ings)) {
-    const it = ITEM[i.item], n = it && NUT[it.id]; if (it && it.cat === 'veg') veg++;
+    const it = ITEM[i.item]; if (it && it.cat === 'veg') veg++;
+    const usda = it && it.u !== 'pc' ? K.nutritionOf(it.id) : null, n = usda ? [usda.kcal || 0, usda.protein || 0] : it && NUT[it.id];
     if (!n) continue; const b = C.toBase(i.q * f, i.u, it); if (!b) continue;
     const k = it.u === 'pc' ? b : b / 100; kcal += n[0] * k; protein += n[1] * k; known++;
+    if (usda) { fat += (usda.fat || 0) * k; carb += (usda.carb || 0) * k; fibre += (usda.fiber || 0) * k; salt += (usda.sodium || 0) * k * 2.5 / 1000; }
   }
   if (!known) return null; const s = serves || r.serves;
-  return { kcal: Math.round(kcal / s / 10) * 10, protein: Math.round(protein / s), veg };
+  return { kcal: Math.round(kcal / s / 10) * 10, protein: Math.round(protein / s), fat: Math.round(fat / s), carb: Math.round(carb / s), fibre: Math.round(fibre / s), salt: Math.round(salt / s * 10) / 10, veg };
 }
 
 /* ================= Cook mode helpers ================= */

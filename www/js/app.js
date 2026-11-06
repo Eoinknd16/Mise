@@ -3,6 +3,7 @@ import * as C from './core.js';
 import * as M from './smart.js';
 import * as G from './builder.js';
 import * as F from './flavour.js';
+import * as K from './chef.js';
 import { SHOPS, AISLES, CATALOG, ITEM, B_PROTEIN, B_BASE, B_STYLE, B_VEG } from './data.js';
 
 let S = null;               // persisted state
@@ -178,9 +179,9 @@ function renderRecipeSheet() {
   h += `<h2>${esc(r.title)}</h2>
   <div class="row wrap small muted" style="gap:6px;margin:6px 0 10px"><span class="tag">${(() => { const ef = C.effort(r); return r.handsOn ? timeLabel(r) : ef.slow ? `${hm(r.time)} (mostly hands-off)` : `≈ ${ef.total} min all in`; })()}</span>${r.gear ? `<span class="tag yours">${r.gear === 'af' ? 'Air fryer' : 'Slow cooker'}</span>` : ''}${C.effort(r).easy ? '<span class="tag yours">Easy</span>' : ''}${r.area ? `<span class="tag">${esc(r.area)}</span>` : ''}${r.cat && r.cat !== 'Easy' && r.cat !== 'Built' ? `<span class="tag">${esc(r.cat)}</span>` : ''}<span class="tag yours">≈ ${C.eur(cost.perServe)} a serving</span>${r.src === 'builder' ? '<span class="tag">Built by you</span>' : r.src === 'ai' ? '<span class="tag">AI recipe</span>' : r.src === 'mealdb' ? '<span class="tag">TheMealDB</span>' : ''}</div>
   ${(() => { if (r.stub) return ''; const w = C.whyRecipe(S, r); return w.length ? `<div class="why">${w.map(([v, t]) => `<span class="${v < 0 ? 'neg' : ''}">${v < 0 ? '−' : '+'} ${esc(t)}</span>`).join('')}</div>` : ''; })()}
-  ${(() => { if (r.stub || !S.settings.health) return ''; const n = M.nutrition(S, r, serves); return n ? `<div class="small muted" style="margin:-4px 0 8px">≈ ${n.kcal} kcal · ${n.protein} g protein a serving</div>` : ''; })()}
+  ${(() => { if (r.stub || !S.settings.health) return ''; const n = M.nutrition(S, r, serves); return n ? `<div class="small muted" style="margin:-4px 0 8px">A serving: ≈ ${n.kcal} kcal · ${n.protein} g protein${n.carb ? ` · ${n.carb} g carbs` : ''}${n.fat ? ` · ${n.fat} g fat` : ''}${n.fibre ? ` · ${n.fibre} g fibre` : ''}${n.salt ? ` · ${n.salt} g salt` : ''}</div>` : ''; })()}
   ${(() => { if (r.stub) return ''; const tp = M.tipsFor(S, r, ctx && ctx.date); return tp.map(t => `<div class="tag" style="white-space:normal;display:block;margin-bottom:6px;font-size:13px">${esc(t)}</div>`).join(''); })()}
-  ${r.src === 'built' && r.spec ? builtExtras(r, ctx) : ''}${r.exp ? labBox(r) : ''}
+  ${r.blocks ? blocksBox(r) : ''}${r.src === 'built' && r.spec ? builtExtras(r, ctx) : ''}${r.exp ? labBox(r) : ''}
   <div class="row between" data-tour="servings"><div class="stepper"><button data-act="sheetServes" data-val="-1" aria-label="Fewer servings">−</button><span>${serves}</span><button data-act="sheetServes" data-val="1" aria-label="More servings">+</button></div><span class="small muted">servings · ${C.eur(cost.total)} total</span></div>`;
   if (!r.stub && r.src !== 'built' && !(entry && entry.leftover)) { const hh = S.settings.household || 2, b = C.isBatch(S, r), extra = serves - hh;
     h += `<div class="row between" style="margin-top:8px"><span class="small">${b ? (extra >= hh ? `<b>Batch cook.</b> ${Math.floor(extra / hh)} more night${extra >= 2 * hh ? 's' : ''} of leftovers${extra % hh ? ` + ${extra % hh} portion${extra % hh > 1 ? 's' : ''} spare` : ''}` : extra > 0 ? `<b>Batch cook.</b> ${extra} portion${extra > 1 ? 's' : ''} spare` : '<b>Batch cook.</b> Raise servings for leftovers') : 'Always cook the full batch?'}</span><button class="chip" data-act="toggleBatch" aria-pressed="${b}">${b ? 'On' : 'Off'}</button></div>`; }
@@ -725,11 +726,16 @@ function updateCard() {
     <div class="row between" style="margin-top:10px"><span class="small">Update automatically</span><button class="chip" data-act="upAuto" aria-pressed="${S.settings.autoUpdate !== false}">${S.settings.autoUpdate !== false ? 'On' : 'Off'}</button></div>
     <p class="tiny muted" style="margin:6px 0 0">Mise downloads new versions by itself. Android then asks you to tap Install. Your data stays as it is.</p></div>`;
 }
+function knowledgeCard() {
+  const st = K.stats(); if (!st) return '';
+  return `<div class="card"><h2>Chef knowledge</h2><p class="small" style="margin:0">${st.ingredients.toLocaleString()} ingredients · ${st.compounds.toLocaleString()} flavour compounds · ${st.recipes.toLocaleString()} real recipes analysed · ${Math.round(st.pairs).toLocaleString()} proven pairings${st.foods ? ` · nutrition for ${st.foods.toLocaleString()} foods` : ''}</p>
+    <p class="tiny muted" style="margin:6px 0 0">Flavour data: Ahn, Ahnert, Bagrow &amp; Barabási, "Flavor network and the principles of food pairing", Scientific Reports 1:196 (2011). Nutrition: USDA FoodData Central / SR Legacy (public domain).</p></div>`;
+}
 function viewSettings() {
   const st = S.settings, R7 = M.rhythm(S), ppl = S.people || [];
   if (ui.scrollTo) { const id = ui.scrollTo; ui.scrollTo = null; setTimeout(() => { const e = document.querySelector(`[data-tour=${id}]`); if (e) e.scrollIntoView({ block: 'start' }); }, 60); }
   if (isNative() && !UP.current) updater().getVersion().then(v => { UP.current = v.versionName; UP.code = v.versionCode; if (ui.route === 'settings') render(); }).catch(() => {});
-  return updateCard() + `<div class="card" data-tour="sHouse"><h2>Household</h2>
+  return updateCard() + knowledgeCard() + `<div class="card" data-tour="sHouse"><h2>Household</h2>
     <div class="pi" style="border:0;padding:0"><div class="grow"><b>You</b></div></div>
     ${ppl.map(p => `<div class="pi"><div class="grow"><b>${esc(p.name)}</b>${p.kid ? ' <span class="tag">child</span>' : ''}<div class="tiny muted">${[(p.diet || []).map(d => (C.DIETS.find(x => x[0] === d) || [, d])[1]).join(', '), Object.values(p.likes || {}).filter(v => v < 0).length ? Object.values(p.likes).filter(v => v < 0).length + ' dislikes' : ''].filter(Boolean).join(' · ') || 'Eats anything'}</div></div><button class="btn sm" data-act="personEdit" data-key="${p.id}">Edit</button></div>`).join('')}
     <button class="btn" data-act="personAdd">+ Add someone</button>
@@ -1590,6 +1596,19 @@ function buildWeekNow(auto) {
   if (res.freeze && res.freeze.length) S.nudgeFreeze = { items: res.freeze, date: C.today() };
   setTimeout(() => toast(`${res.freeze && res.freeze.length ? `Freeze the ${res.freeze.map(id => ITEM[id].n.toLowerCase()).join(' and ')} today: it won't last until it's needed. ` : ''}Planned ${n} dinner${n !== 1 ? 's' : ''}${lefts ? ` + ${lefts} leftover night${lefts > 1 ? 's' : ''}` : ''}${fz ? ` + ${fz} from the freezer` : ''}${res.unused.length ? `. Not used: ${res.unused.map(id => ITEM[id].n.toLowerCase()).join(', ')} (still on your list)` : ''}.`), 150);
 }
+// How a built dish is put together (recipe grammar) and why its flavours work (the maths)
+function blocksBox(r) {
+  const B = r.blocks, chips = [['Technique', B.technique], ['Flavour', B.flavour], ['Sauce', B.sauce], ['Texture', B.texture], ['Finish', B.finish]].filter(x => x[1]);
+  let why = [];
+  if (K.ready()) {
+    const ids = [...new Set(r.ings.map(i => i.item).filter(id => id && ITEM[id] && !['garlic', 'onion', 'oil', 'olive-oil', 'salt', 'black-pepper', 'stock'].includes(id)))], hero = r.spec && r.spec.main, tech = r.spec && r.spec.method;
+    const ps = []; for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) { const p = K.pair(ids[i], ids[j], tech); if (p && p.s > 0.2) ps.push([p.s + (ids[i] === hero || ids[j] === hero ? 0.1 : 0), ids[i], ids[j]]); }
+    why = ps.sort((a, b) => b[0] - a[0]).slice(0, 3).map(([, a, b]) => `${ITEM[a].n} + ${ITEM[b].n.toLowerCase()}: ${K.why(a, b, tech)}`).filter(x => !x.endsWith('null'));
+  }
+  return `<div class="card flat" style="margin:0 0 10px;padding:10px 12px"><div class="row between"><b class="small">How it's built</b>${r.harmony != null ? `<span class="tiny muted">flavour harmony ${Math.round(Math.min(1, r.harmony / 0.35) * 100)}%</span>` : ''}</div>
+    <div class="chips wrap" style="margin:6px 0 0">${chips.map(([k, v]) => `<span class="chip" style="cursor:default"><span class="tiny muted">${k}</span>&nbsp;${esc(v)}</span>`).join('')}</div>
+    ${why.length ? `<div class="why" style="margin:8px 0 0">${why.map(w => `<span>${esc(w)}</span>`).join('')}</div>` : ''}</div>`;
+}
 function leftBox(r) {
   if (!r.leftover) return '';
   const ideas = (ui.loIdeas = ui.loIdeas || {})[r.id] || (ui.loIdeas[r.id] = G.leftoverIdeas(S, r).map(x => x.title));
@@ -1788,6 +1807,7 @@ async function boot() {
 
   if (!S.settings.onboarded) onboarding();
   if (isNative()) setTimeout(() => checkUpdate(false), 5000);
+  K.load().then(ok => { if (ok && ['builder', 'lab', 'settings'].includes(ui.route)) render(); }); setTimeout(() => K.loadNutrition(), 1500);
   C.aiAvailable().then(a => { ui.aiStatus = a; });
   C.loadLibrary().then(L => { refreshRecipes(); if (ui.route === 'recipes') render(); if (navigator.onLine !== false && (!L.count || Date.now() - L.at > 14 * 864e5)) syncLib(false); });
   if ('serviceWorker' in navigator && location.protocol === 'https:' && !window.Capacitor) navigator.serviceWorker.register('sw.js').catch(() => {});

@@ -4,6 +4,7 @@
 import { ITEM } from './data.js';
 import * as C from './core.js';
 import * as G from './builder.js';
+import * as K from './chef.js';
 
 // Aroma families (plain-English names shown in the app)
 export const NOTES = {
@@ -71,6 +72,7 @@ const CAT = id => {
 export const catOf = CAT;
 // how much two ingredients share, 0..1, plus the notes they share
 export function affinity(a, b) {
+  if (K.ready()) { const p = K.pair(a, b); if (p) return { s: Math.max(0, Math.min(1, p.comp * 1.5 + Math.max(0, p.rec || 0) * 1.6)), shared: K.sharedFams(a, b).filter(k => NOTES[k]).slice(0, 3), data: p }; }
   const x = A[a], y = A[b]; if (!x || !y) return { s: 0, shared: [] };
   let s = 0, tot = 0; const shared = [];
   for (const [k, v] of Object.entries(x.n)) { tot += v; if (y.n[k]) { const m = Math.min(v, y.n[k]); s += m; shared.push([k, m]); } }
@@ -82,7 +84,7 @@ export function affinity(a, b) {
 const CLASSIC = {}; for (const line of ['strawberries cream chocolate vanilla mint lemon yogurt', 'apple cinnamon cheddar sage pork-chop pork-roast honey', 'pears blue-cheese nuts chocolate cinnamon', 'banana chocolate peanut-butter honey cinnamon', 'pineapple ham gammon coconut-milk lime chilli', 'mango lime chilli coconut-milk prawns', 'beetroot goats-cheese orange dill feta', 'coffee chocolate dark-chocolate vanilla cinnamon', 'orange chocolate duck-breast fennel', 'tomato basil mozzarella', 'blueberries lemon yogurt', 'raspberries chocolate dark-chocolate cream lemon', 'rhubarb ginger cream', 'dates nuts cinnamon lamb', 'lemon salmon white-fish chicken-thigh', 'lime chilli coriander', 'blue-cheese nuts honey steak', 'goats-cheese honey nuts', 'miso salmon honey', 'tahini lemon chickpeas'])
   { const [a, ...bs] = line.split(' '); for (const b of bs) { (CLASSIC[a] = CLASSIC[a] || new Set()).add(b); (CLASSIC[b] = CLASSIC[b] || new Set()).add(a); } }
 // does everyone already cook these together?
-const usual = (a, b) => (CLASSIC[a] && CLASSIC[a].has(b)) || G.pairScore([a, b]) > 0 || Object.values(G.KITS).some(k => { const ids = [...k.core, ...k.extra].map(c => c[0]); return (ids.includes(a) && (ids.includes(b) || (k.mains || []).includes(b) || (k.vegPref || []).includes(b))) || (ids.includes(b) && ((k.mains || []).includes(a) || (k.vegPref || []).includes(a))); });
+const usual = (a, b) => (K.ready() && ((K.pair(a, b) || {}).rec || 0) > 0.06) || (CLASSIC[a] && CLASSIC[a].has(b)) || G.pairScore([a, b]) > 0 || Object.values(G.KITS).some(k => { const ids = [...k.core, ...k.extra].map(c => c[0]); return (ids.includes(a) && (ids.includes(b) || (k.mains || []).includes(b) || (k.vegPref || []).includes(b))) || (ids.includes(b) && ((k.mains || []).includes(a) || (k.vegPref || []).includes(a))); });
 // taste contrast: what makes a combo balanced even when aromas don't overlap
 const CONTRAST = { s: 'al', a: 'sf', f: 'a', b: 'sf', l: 'sa', h: 'sf' };
 function contrast(a, b) { return Math.max(contrast1(a, b), contrast1(b, a)); }
@@ -113,7 +115,8 @@ const nm = id => (ITEM[id] ? ITEM[id].n.toLowerCase().replace(/^fresh /, '') : i
 const TASTE_WORD = { s: 'sweet', a: 'sharp', l: 'salty', b: 'bitter', f: 'rich', h: 'hot' };
 export function whyPair(a, b, af = affinity(a, b), ct = contrast(a, b)) {
   const bits = [];
-  if (af.shared.length) bits.push(`both have ${af.shared.slice(0, 2).map(k => NOTES[k]).join(' and ')} notes`);
+  if (K.ready()) { const w = K.why(a, b); if (w) bits.push(w); }
+  if (af.shared.length && !bits.length) bits.push(`both have ${af.shared.slice(0, 2).map(k => NOTES[k]).join(' and ')} notes`);
   if (ct >= 0.5) { const ta = ((A[a] || {}).t || '')[0], tb = ((A[b] || {}).t || '')[0]; if (ta && tb && ta === tb) {} else if (ta && tb) bits.push(`${TASTE_WORD[tb]} ${nm(b)} against ${TASTE_WORD[ta]} ${nm(a)}`); }
   return bits.join('; ') || 'they work as a contrast';
 }
