@@ -1764,9 +1764,9 @@ function viewWeek() {
 }
 function buildWeekNow(auto) {
   const dates = C.weekDates(ui.weekOffset), wk = M.weekKey(dates[0]), W = S.weekCheck[wk] || {}, pr = S.settings.priority || 'balanced';
-  let bk = (S.baskets[wk] || []).slice();
-  if (auto && !bk.length) { bk = G.suggestBasket(S, 3); S.baskets[wk] = bk.slice(); }
+  let bk = (S.baskets[wk] || []).slice(), mine = false;
   let todo = dates.filter(d => !(S.plan[d] || []).length && d >= C.today()); if (!todo.length) todo = dates.filter(d => !(S.plan[d] || []).length);
+  if (auto && !bk.length) { bk = G.suggestBasket(S, Math.min(3, Math.ceil(todo.length / 2))); S.baskets[wk] = bk.slice(); mine = true; }
   if (!todo.length) { toast('Every night is already planned.'); return; }
   const ctxs = {}; for (const d of todo) ctxs[d] = nightCtx(d, W);
   // freezer meals on the busiest nights first
@@ -1777,6 +1777,8 @@ function buildWeekNow(auto) {
   let n = 0, lefts = 0;
   for (const p of res.picks) { if ((S.plan[p.date] || []).length) continue; saveBuilt(p.recipe); S.plan[p.date] = [p.leftover ? { rid: p.recipe.id, serves: p.serves, leftover: p.leftover } : { rid: p.recipe.id, serves: p.serves }]; if (p.leftover) lefts++; else n++; }
   // anything you're buying that no meal used still goes on the list
+  // ...unless Mise picked it itself and the week didn't need it: then just drop it
+  if (mine && res.unused.length) { S.baskets[wk] = bk.filter(b => !res.unused.includes(b.item)); res.unused = []; }
   for (const id of res.unused) if (!S.list.extras.some(x => x.item === id)) S.list.extras.push({ item: id, name: ITEM[id].n, qty: ITEM[id].packs[0] * ((bk.find(b => b.item === id) || {}).packs || 1) });
   save(); location.hash = 'plan';
   if (res.freeze && res.freeze.length) S.nudgeFreeze = { items: res.freeze, date: C.today() };
