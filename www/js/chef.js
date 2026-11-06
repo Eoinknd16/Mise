@@ -131,6 +131,12 @@ export const SAUCES = [
     step: (x, w) => `Whisk a spoon of peanut butter with a splash of soy, a squeeze of ${w[2]} and enough hot water to make it pourable. Drizzle over.` },
   { id: 'salsa', n: 'fresh tomato salsa', techs: 'wraps bowl burgers panfry traybake quesadilla loaded', fams: 'mex american', need: [['tomato', 'cherry-tomato'], ['red-onion', 'onion', 'spring-onion'], ['lime', 'lemon']], not: '',
     step: (x, w) => `Finely chop the ${w[0] === 'cherry-tomato' ? 'cherry tomatoes' : 'tomato'} and a little ${w[1].replace('-', ' ')}, mix with a squeeze of ${w[2]} and a pinch of salt.` },
+  { id: 'tahini', n: 'lemon tahini sauce', techs: 'traybake roast bowl wraps flatbread panfry', fams: 'mideast med', need: [['tahini'], ['lemon', 'lime']], not: 'fl:creamy soy-sauce bbq-sauce',
+    step: (x, w) => `Whisk 2 spoons of tahini with a squeeze of ${w[1]}, a pinch of salt and cold water until smooth and pourable. Drizzle over.` },
+  { id: 'gravy', n: 'onion gravy', techs: 'panfry roast traybake burgers', fams: 'british american', need: [['gravy', 'stock'], ['onion']], not: 'fl:creamy soy-sauce curry-paste coconut-milk',
+    step: () => 'Soften a sliced onion in the pan for 8 minutes, stir in gravy granules or a little flour and stock, and bubble until thick.' },
+  { id: 'pesto', n: 'pesto drizzle', techs: 'panfry roast traybake bowl salad', fams: 'italian med', need: [['pesto'], ['lemon', 'olive-oil']], not: 'fl:creamy soy-sauce curry-paste bbq-sauce',
+    step: (x, w) => `Loosen a spoon of pesto with ${w[1] === 'lemon' ? 'a squeeze of lemon' : 'a little olive oil'} and drizzle over.` },
   { id: 'vinaigrette', n: 'mustard dressing', techs: 'salad bowl', fams: '*', need: [['vinegar', 'lemon'], ['mustard', 'honey']], not: 'fl:creamy',
     step: (x, w) => `Shake 3 spoons of oil with 1 of ${w[0]}, a little ${w[1]} and a pinch of salt. Dress while the ingredients are warm.` }
 ];
@@ -193,4 +199,67 @@ export const stats = () => DB ? { ingredients: Object.keys(DB.ing).length, compo
 if (typeof window === 'undefined' && globalThis.process && process.getBuiltinModule) {
   try { const fs = process.getBuiltinModule('fs'), url = process.getBuiltinModule('url'), path = process.getBuiltinModule('path'); const d = path.join(path.dirname(url.fileURLToPath(import.meta.url)), '..', 'data');
     setDB(JSON.parse(fs.readFileSync(path.join(d, 'chefdb.json'))), JSON.parse(fs.readFileSync(path.join(d, 'nutrition.json'))), JSON.parse(fs.readFileSync(path.join(d, 'nutmap.json')))); } catch (e) { /* no data: engine falls back to the built-in map */ }
+}
+
+// ---------- taste balance: sweet, salty and rich from USDA numbers; sharp, bitter, umami and heat from the flavour tags ----------
+const TAGS = { a: ['lemon', 'lime', 'vinegar', 'capers', 'pickles', 'gherkins', 'yogurt', 'sour-cream', 'creme-fraiche', 'chopped-tomatoes', 'passata', 'tomato', 'cherry-tomato', 'feta', 'goats-cheese', 'kimchi', 'salsa', 'pomegranate', 'apple', 'rhubarb', 'kiwi', 'jalapenos', 'red-onion', 'mint-sauce', 'sweet-chilli', 'bbq-sauce', 'ketchup', 'worcestershire', 'mustard', 'tomato-puree'],
+  u: ['soy-sauce', 'miso', 'fish-sauce', 'oyster-sauce', 'parmesan', 'anchovies', 'mushroom', 'tomato-puree', 'worcestershire', 'stock', 'gravy', 'cheddar', 'bacon', 'chorizo', 'ham', 'kimchi', 'beef-mince', 'steak'],
+  h: ['chilli', 'chilli-powder', 'chilli-flakes', 'cayenne', 'sriracha', 'hot-sauce', 'jalapenos', 'curry-paste', 'chipotle', 'peri-spice', 'cajun-spice', 'black-pepper', 'ginger', 'mustard', 'kimchi'],
+  b: ['coffee', 'cocoa', 'dark-chocolate', 'kale', 'spinach', 'broccoli', 'turmeric', 'tahini', 'olives', 'aubergine'] };
+const TAGSET = Object.fromEntries(Object.entries(TAGS).map(([k, v]) => [k, new Set(v)]));
+// grams of each ingredient per serving -> taste profile of the dish
+export function taste(parts) {
+  const t = { sweet: 0, salty: 0, rich: 0, sharp: 0, umami: 0, heat: 0, bitter: 0 };
+  for (const [id, g] of parts) {
+    const n = nutritionOf(id), w = Math.min(1, g / 100);
+    if (n) { t.sweet += (n.sugar || 0) * g / 100; t.salty += (n.sodium || 0) * g / 100000; t.rich += (n.fat || 0) * g / 100; }
+    if (TAGSET.a.has(id)) t.sharp += 0.5 + w; if (TAGSET.u.has(id)) t.umami += 0.5 + w; if (TAGSET.h.has(id)) t.heat += 0.6; if (TAGSET.b.has(id)) t.bitter += 0.3 + w * 0.5;
+  }
+  return { sweet: +t.sweet.toFixed(1), salty: +t.salty.toFixed(2), rich: +t.rich.toFixed(1), sharp: +t.sharp.toFixed(1), umami: +t.umami.toFixed(1), heat: +t.heat.toFixed(1), bitter: +t.bitter.toFixed(1) };
+}
+// What the plate is missing, from its taste profile
+export function needs(t, method) {
+  const out = [];
+  if (t.rich >= 18 && t.sharp < 1) out.push('sharp');
+  if (t.sweet >= 14 && t.sharp < 1.5) out.push('sharp');
+  if (t.umami < 0.6 && t.salty < 0.5) out.push('savoury');
+  if (['curry', 'simmer', 'braise', 'pulled', 'soup', 'bake', 'pie', 'pasta', 'risotto', 'roast', 'traybake'].includes(method)) out.push('fresh');
+  if (t.bitter >= 1 && t.sweet < 6 && t.rich < 10) out.push('round');
+  return [...new Set(out)];
+}
+// FINISH blocks: the last touch, chosen for what the plate needs and how well it pairs
+export const FINISHES = [
+  { id: 'citrus', n: 'squeeze of lemon', item: 'lemon', fills: 'sharp fresh', fams: 'italian med british french mideast american indian', text: 'Finish with a squeeze of lemon — it lifts the whole plate.' },
+  { id: 'lime', n: 'squeeze of lime', item: 'lime', fills: 'sharp fresh', fams: 'thai asian mex indian american', text: 'Squeeze over some lime just before eating.' },
+  { id: 'vinegar', n: 'splash of vinegar', item: 'vinegar', fills: 'sharp', fams: 'british american asian french', text: 'A small splash of vinegar at the end sharpens a rich dish.' },
+  { id: 'parsley', n: 'chopped parsley', item: 'parsley', fills: 'fresh', fams: 'med french british italian mideast', text: 'Scatter over chopped parsley.' },
+  { id: 'coriander', n: 'fresh coriander', item: 'coriander', fills: 'fresh', fams: 'indian thai mex asian mideast', text: 'Scatter over fresh coriander.' },
+  { id: 'basil', n: 'torn basil', item: 'basil', fills: 'fresh', fams: 'italian med', text: 'Tear over a few basil leaves.' },
+  { id: 'mint', n: 'fresh mint', item: 'mint', fills: 'fresh', fams: 'mideast indian med thai', text: 'Scatter over a little chopped mint.' },
+  { id: 'dill', n: 'fresh dill', item: 'dill', fills: 'fresh', fams: 'british french', text: 'Finish with chopped dill.' },
+  { id: 'scallion', n: 'spring onion', item: 'spring-onion', fills: 'fresh', fams: 'asian thai mex american', text: 'Slice spring onion over the top.' },
+  { id: 'parm', n: 'grated parmesan', item: 'parmesan', fills: 'savoury', fams: 'italian med french', text: 'Grate over a little parmesan.' },
+  { id: 'soy', n: 'dash of soy', item: 'soy-sauce', fills: 'savoury', fams: 'asian thai', text: 'Add a dash of soy to taste.' },
+  { id: 'feta', n: 'crumbled feta', item: 'feta', fills: 'savoury sharp', fams: 'med mideast', text: 'Crumble over a little feta.' },
+  { id: 'honey', n: 'drizzle of honey', item: 'honey', fills: 'round', fams: '*', text: 'A small drizzle of honey softens the bitter edges.' },
+  { id: 'yog', n: 'spoon of yogurt', item: 'yogurt', fills: 'sharp round', fams: 'indian mideast med', text: 'Serve with a spoon of cool yogurt.' },
+  { id: 'chilli', n: 'fresh chilli', item: 'chilli', fills: 'heat', fams: 'asian thai mex indian', text: 'Slice a little fresh chilli over if you like heat.' }
+];
+export function finish(dish) {
+  if (!DB) return null;
+  const S = new Set(dish.ids), wants = needs(dish.taste, dish.method);
+  if (dish.spicy && dish.taste.heat < 0.6) wants.push('heat');
+  if (!wants.length) return null;
+  const base = harmony(dish.ids, dish.method, dish.hero), b0 = base ? base.h : 0;
+  let best = null;
+  for (const f of FINISHES) {
+    if (S.has(f.item) || !dish.have(f.item)) continue;
+    if (f.fams !== '*' && !f.fams.split(' ').includes(dish.fam)) continue;
+    const fill = f.fills.split(' ').filter(x => wants.includes(x)).length; if (!fill) continue;
+    if (dish.clash && dish.clash([...dish.ids, f.item])) continue;
+    const h = harmony([...dish.ids, f.item], dish.method, dish.hero), gain = (h ? h.h : b0) - b0;
+    const v = fill * 0.5 + gain * 3 + Math.random() * 0.15;
+    if (!best || v > best.v) best = { v, f };
+  }
+  return best ? { id: best.f.item, n: best.f.n, text: best.f.text, fills: best.f.fills } : null;
 }

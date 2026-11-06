@@ -4,6 +4,7 @@ import * as M from './smart.js';
 import * as G from './builder.js';
 import * as F from './flavour.js';
 import * as K from './chef.js';
+import * as TQ from './techniques.js';
 import { SHOPS, AISLES, CATALOG, ITEM, B_PROTEIN, B_BASE, B_STYLE, B_VEG } from './data.js';
 
 let S = null;               // persisted state
@@ -567,6 +568,8 @@ function viewLab() {
     }
     const P = F.partners(S, hero, { n: 12 });
     const grp = (k, title, sub) => P[k].length ? `<section class="card flat"><div class="shop-h"><b>${title}</b><span class="tiny muted">${sub}</span></div><div class="chips wrap">${P[k].filter(x => !L.sel.includes(x.id)).map(x => `<button class="chip" data-act="labPick" data-val="${x.id}" title="${esc(x.why)}">${esc(ITEM[x.id].n)}</button>`).join('')}</div>${L.why && P[k].some(x => x.id === L.why) ? `<p class="tiny muted" style="margin:6px 0 0">${esc(P[k].find(x => x.id === L.why).why)}</p>` : ''}</section>` : '';
+    const best = TQ.bestTechniques(hero);
+    if (best.length) h += `<section class="card flat"><div class="shop-h"><b>Best ways to cook ${esc(ITEM[hero].n.toLowerCase())}</b></div>${best.slice(0, 5).map(t => { const nt = TQ.noteOf(hero, t) || {}; return `<div class="small" style="margin-top:6px"><b>${esc(TQ.TECH_NAMES[t] || t)}</b>${nt.time || nt.prep ? ` <span class="tiny muted">${esc([nt.prep, nt.time, nt.heat].filter(Boolean).join(' · '))}</span>` : ''}</div>`; }).join('')}${TQ.safeOf(hero) ? `<div class="tiny muted" style="margin-top:6px">Done: ${esc(TQ.safeOf(hero))}</div>` : ''}</section>`;
     h += `<h3 style="margin:10px 2px 4px">Goes with ${esc(ITEM[hero].n.toLowerCase())}</h3>` + grp('classic', 'Classic', 'everyone does these') + grp('surprising', 'Surprising', 'shared flavours') + grp('wild', 'Wild', 'odd on paper, works in the pan');
   }
   const notes = Object.entries((S.lab || {}).notes || {}).map(([id, n]) => ({ id, ...n, r: S.recipes[id] })).filter(x => x.r).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
@@ -1607,7 +1610,8 @@ function blocksBox(r) {
   }
   return `<div class="card flat" style="margin:0 0 10px;padding:10px 12px"><div class="row between"><b class="small">How it's built</b>${r.harmony != null ? `<span class="tiny muted">flavour harmony ${Math.round(Math.min(1, r.harmony / 0.35) * 100)}%</span>` : ''}</div>
     <div class="chips wrap" style="margin:6px 0 0">${chips.map(([k, v]) => `<span class="chip" style="cursor:default"><span class="tiny muted">${k}</span>&nbsp;${esc(v)}</span>`).join('')}</div>
-    ${why.length ? `<div class="why" style="margin:8px 0 0">${why.map(w => `<span>${esc(w)}</span>`).join('')}</div>` : ''}</div>`;
+    ${why.length ? `<div class="why" style="margin:8px 0 0">${why.map(w => `<span>${esc(w)}</span>`).join('')}</div>` : ''}
+    ${r.tech && r.tech.length ? `<details style="margin-top:8px"><summary class="small" style="font-weight:700;cursor:pointer">Technique notes</summary>${r.tech.map(t => `<div class="small" style="margin-top:6px"><b>${esc(t.n.charAt(0).toUpperCase() + t.n.slice(1))}</b> <span class="tiny muted">${esc(TQ.TECH_NAMES[t.tech] || t.tech)}</span><div class="tiny">${esc([t.prep, t.time, t.heat].filter(Boolean).join(' · '))}</div>${t.done || t.safe ? `<div class="tiny muted">Done: ${esc(t.done && t.safe ? t.done + '. ' + t.safe : t.done || t.safe)}</div>` : ''}</div>`).join('')}</details>` : ''}</div>`;
 }
 function leftBox(r) {
   if (!r.leftover) return '';

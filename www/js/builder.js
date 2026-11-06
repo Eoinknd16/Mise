@@ -3,6 +3,7 @@ import { ITEM } from './data.js';
 import * as C from './core.js';
 import * as F from './flavour.js';
 import * as Chef from './chef.js';
+import * as Tech from './techniques.js';
 const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
 
 /* ================= Parts ================= */
@@ -619,7 +620,16 @@ export function buildMeal(state, sp, serves, stock) {
     if (b.sauce) { for (const id of b.sauce.items) if (ITEM[id] && !ings.some(i => i.item === id)) add(id, ITEM[id].u === 'pc' ? 0.25 : ITEM[id].u === 'g' ? 15 : 15, ITEM[id].u === 'pc' ? '' : ITEM[id].u); steps.push(b.sauce.step); blk.sauce = b.sauce.n; }
     if (b.texture) { for (const id of b.texture.items) if (ITEM[id] && !ings.some(i => i.item === id)) add(id, ITEM[id].u === 'pc' ? 0.5 : ITEM[id].u === 'g' ? 15 : 5, ITEM[id].u === 'pc' ? '' : ITEM[id].u); steps.push(b.texture.step); blk.texture = b.texture.n; }
   }
-  { const ft = blk.texture ? null : finishingTouch(state, sp, kit, stock, chefCheck(sp, kit)); if (ft) { const u = ITEM[ft.id].u; add(ft.id, u === 'pc' ? 0.25 : u === 'g' ? 5 : 5, u === 'pc' ? '' : u, ITEM[ft.id].n.toLowerCase()); steps.push(ft.text); blk.finish = ft.text.split(/[:.—-]/)[0].replace(/^Finish with |^Scatter over some |^For crunch, |^Toast /, '').trim(); } }
+  // TASTE + FINISH: work out what the plate tastes like per serving, then finish it where it falls short
+  let tasteNow = null;
+  if (Chef.ready()) {
+    const parts = ings.filter(i => i.item && ITEM[i.item] && ITEM[i.item].u !== 'pc').map(i => [i.item, (C.toBase(i.q, i.u, ITEM[i.item]) || 0) / serves]);
+    tasteNow = Chef.taste(parts);
+    const fam = kit.fam || FEEL2FAM[kit.feel] || 'british', ids1 = [...new Set(ings.map(i => i.item).filter(Boolean))];
+    const fb = Chef.finish({ ids: ids1, method: sp.method, fam, hero: sp.main, taste: tasteNow, spicy: ((state.taste || {}).spice || 0) >= 2, have: id => (stock.get(id) || 0) > 0 || (ITEM[id] && ITEM[id].staple && C.stapleHave(state, id)), clash: ids => chefCheck({ ...sp, add: [...(sp.add || []), ...ids.filter(id => !spItems(sp).includes(id))] }, kit).fail });
+    if (fb && !blk.texture) { const u = ITEM[fb.id].u; add(fb.id, u === 'pc' ? 0.25 : 5, u === 'pc' ? '' : u, ITEM[fb.id].n.toLowerCase()); steps.push(fb.text); blk.finish = fb.n; }
+  }
+  { const ft = blk.texture || blk.finish || Chef.ready() ? null : finishingTouch(state, sp, kit, stock, chefCheck(sp, kit)); if (ft) { const u = ITEM[ft.id].u; add(ft.id, u === 'pc' ? 0.25 : u === 'g' ? 5 : 5, u === 'pc' ? '' : u, ITEM[ft.id].n.toLowerCase()); steps.push(ft.text); blk.finish = ft.text.split(/[:.—-]/)[0].replace(/^Finish with |^Scatter over some |^For crunch, |^Toast /, '').trim(); } }
   // Time and name
   let time = (meth.t || 30) + (sp.method === 'traybake' ? Math.max(0, (main.roast || 25) - 25) : 0) + (main.slow ? 90 : 0) + (form === 'mash' || form === 'wedges' ? 5 : 0);
   if (main.ready && ['wraps', 'bowl', 'burgers'].includes(sp.method)) time = Math.min(time, 25);
@@ -633,6 +643,14 @@ export function buildMeal(state, sp, serves, stock) {
   const id = 'g2:' + specKey(sp).replace(/[^a-z0-9|+-]/gi, '') + (jointG ? '|' + jointG : '');
   const r = C.normalizeRecipe({ id, src: 'built', title, serves, time, cat: 'Built', area: kit.feel || '', ings, steps: steps.filter(Boolean), spec: { ...sp, veg }, named: !!named, nice: niceToAdd });
   if (leftover) { r.leftover = leftover; r.wholeJoint = jointG; }
+  // technique notes for each ingredient, and the doneness cue on the main's cooking step
+  const tech = Tech.techOf(sp.method, sp.gear), notes = [];
+  { const nm = Tech.noteOf(sp.main, tech) || {}, safe = Tech.safeOf(sp.main); if (nm.prep || nm.time || safe) notes.push({ id: sp.main, n: main.n, tech, ...nm, safe });
+    for (const v of veg) { const nv = Tech.noteOf(v, VEG[v].kind === 'side' ? 'raw' : tech); if (nv && (nv.prep || nv.time)) notes.push({ id: v, n: vegName(v), tech: VEG[v].kind === 'side' ? 'raw' : tech, ...nv }); }
+    if (sp.base) { const bt = form === 'roast' || form === 'wedges' ? (sp.gear === 'af' ? 'airfry' : 'roast') : form === 'jacket' ? 'bake' : 'boil'; const nb = Tech.noteOf(sp.base, bt); if (nb && (nb.prep || nb.time)) notes.push({ id: sp.base, n: base.n, tech: bt, ...nb }); }
+    const done = !main.ready && Tech.PROTEIN[sp.main] && Tech.PROTEIN[sp.main].safe !== 'ready' ? (Tech.noteOf(sp.main, tech) || {}).done || Tech.safeOf(sp.main) : null;
+    if (done && r.steps) { const k = r.steps.findIndex(st => st.includes(main.n) || st.includes(mainCook.slice(0, 18))); if (k >= 0 && !/°C|cooked through|no pink|juices run clear|until pink/.test(r.steps[k])) r.steps[k] = r.steps[k].replace(/\.?\s*$/, '') + ` (done when: ${done}).`; } }
+  r.tech = notes; if (tasteNow) r.taste = tasteNow;
   r.blocks = { technique: (sp.gear === 'af' ? 'air fryer ' : sp.gear === 'sc' ? 'slow cooker ' : '') + (sp.method === 'braise' && !main.joint ? 'stew' : METHODS[sp.method].n), flavour: kit.n, ...blk };
   if (Chef.ready()) { const h = Chef.harmony([...new Set(ings.map(i => i.item).filter(Boolean))], sp.method, sp.main); if (h) r.harmony = Math.round(h.h * 100) / 100; }
   if (J || sp.method === 'sticky' || sp.method === 'braise') r.slow = time > 75;
@@ -859,6 +877,8 @@ export function candidates(state, opts = {}) {
       if (!GR.oven && OVEN_ONLY.has(meth) && gear !== 'af' && gear !== 'sc') continue;
       if (!GR.hob && HOB_ONLY.has(meth) && gear !== 'af' && gear !== 'sc') continue;
       if (!GR.hob && !GR.oven && gear !== 'af' && gear !== 'sc') continue;
+      const tech = Tech.techOf(meth, gear), mfit = Tech.fitOf(mid, tech);
+      if (mfit === 0 && !typed) continue; // e.g. stewing beef can't be stir-fried
       if (gear !== 'sc') {
         if (m.slow && !opts.allowSlow && !typed) continue;
         if (!okMethod(meth, typed ? { ...opts, maxTime: null } : gear === 'af' ? { ...opts, maxTime: opts.maxTime ? opts.maxTime + 15 : null } : opts)) continue;
@@ -892,7 +912,7 @@ export function candidates(state, opts = {}) {
         // veg: what you have first, then what suits the flavour
         const kinds = VEG_FOR[meth] || ['firm', 'quick'];
         const prefs = k.vegPref && k.vegPref.length ? k.vegPref : DEFAULT_VEG;
-        let vegC = Object.keys(VEG).filter(v => kinds.includes(VEG[v].kind) && !ex.has(v) && okItem(state, v) && v !== base && !(v === 'sweet-potato' && ['sweet-potato', 'potato'].includes(base)) && (prefs.includes(v) || inSt(v) || (want.veg && want.veg.includes(v))));
+        let vegC = Object.keys(VEG).filter(v => kinds.includes(VEG[v].kind) && (VEG[v].kind === 'side' || Tech.fitOf(v, tech) !== 0) && !ex.has(v) && okItem(state, v) && v !== base && !(v === 'sweet-potato' && ['sweet-potato', 'potato'].includes(base)) && (prefs.includes(v) || inSt(v) || (want.veg && want.veg.includes(v))));
         const vScore = v => (inSt(v) ? (useStock ? (prefs.includes(v) ? 4.5 : 3.6) : 3) : 0) - (opts.recent ? Math.min(3, recentUse(state, v) * 0.6) : 0) + sq(T.veg[v]) * 0.4 + (want.veg && want.veg.includes(v) ? 5 : 0) + (['onion', 'pepper'].includes(v) && ['wraps', 'stirfry', 'simmer', 'curry', 'pasta', 'friedrice', 'panfry', 'soup', 'shakshuka', 'quesadilla'].includes(meth) ? 0.8 : 0) + (VEG[v].kind === 'side' && meth === 'burgers' && v === 'salad' ? 1 : 0) + Math.random() * 1.4 + (C.likeOf(state, { item: v, name: ITEM[v].n }) > 0 ? 1 : 0) + (k.extra.some(e => e[0] === v) ? 1 : 0) + pairWith(v, [mid, ...k.core.map(c => c[0])]) * 0.9 + (prefs.length - Math.max(0, prefs.indexOf(v))) * 0.1 + (opts.healthy ? 0.5 : 0);
         const ranked = vegC.map(v => [vScore(v), v]).sort((a, b) => b[0] - a[0]);
         const stockVeg = ranked.filter(([, v]) => inSt(v)).length;
@@ -938,6 +958,7 @@ export function candidates(state, opts = {}) {
         s += urgBonus(urg.get(mid), 5) + veg.reduce((a, v) => a + urgBonus(urg.get(v), 1.2), 0) + (base ? urgBonus(urg.get(base), 0.8) : 0) + adds.reduce((a, v) => a + urgBonus(urg.get(v), 0.6), 0);
         if (m.cut && !['roast', 'pulled', 'braise'].includes(meth)) s -= opts.allowSlow && !(urg.get(mid) <= 3) ? 2 : 0.4;
         if (seenM) { const e = seenM[recentKey(sp)]; if (e) s -= Math.min(5, e.n * Math.pow(0.6, C.daysBetween(e.d, tday)) * 1.6); }
+        if (mfit === 2) s += 0.6; else if (mfit === 1) s -= 0.2;
         if (gear === 'af' && opts.maxTime) s += 0.8; if (gear === 'sc') s += opts.allowSlow ? 0 : 0.3 - (used.gear || 0) * 1.5;
         if (opts.mustUse) { const its = new Set(spItems(sp)); for (const id of opts.mustUse) if (its.has(id)) s += 2.5; }
         if (want.kit === kid) s += 3; if (want.main === mid) s += 3; if (want.method === meth) s += 2;
