@@ -21,7 +21,8 @@ export async function loadNutrition() {
 }
 
 // ---------- ingredient identity ----------
-export const keyOf = id => CATKEY[id] || null;
+const sd = id => (id && ITEM[id] && ITEM[id].standin) || id;
+export const keyOf = id => CATKEY[sd(id)] || null;
 export function fname(id) { return keyOf(id); }
 const keyData = k => (DB && k ? DB.keys[k] : null);
 // how much more often real dishes combine two ingredient families than chance (normalised PMI); null = no evidence
@@ -48,6 +49,7 @@ function aroCos(a, b, tech) {
 }
 // The pairing score between two Mise ingredients (optionally as cooked by a technique)
 export function pair(idA, idB, tech) {
+  idA = sd(idA); idB = sd(idB);
   if (!DB || !idA || !idB || idA === idB) return null;
   const k = (idA < idB ? idA + '|' + idB : idB + '|' + idA) + '|' + (tech && BROWN.has(tech) ? 'b' : '');
   if (cache.has(k)) return cache.get(k);
@@ -69,6 +71,7 @@ export function sharedFams(idA, idB, tech) {
 const QUIET = new Set(['garlic', 'onion', 'oil', 'olive-oil', 'salt', 'black-pepper', 'stock', 'flour', 'sugar', 'butter']);
 // Harmony of a whole dish: mean pairing over its meaningful pairs, with the hero pairings counted double
 export function harmony(ids, tech, hero) {
+  ids = ids.map(sd); hero = sd(hero);
   if (!DB) return null;
   const xs = [...new Set(ids.filter(id => id && !QUIET.has(id)))];
   let t = 0, w = 0, known = 0;
@@ -80,6 +83,7 @@ export function harmony(ids, tech, hero) {
 }
 // Plain-English reasons for a pairing
 export function why(idA, idB, tech) {
+  idA = sd(idA); idB = sd(idB);
   const p = pair(idA, idB, tech); if (!p) return null;
   const bits = [];
   if (p.known === 2) bits.push('a classic pairing'); else if (p.known === 1) bits.push('a bold pairing chefs use');
@@ -190,7 +194,7 @@ export function blocks(dish) {
 
 // ---------- nutrition from USDA SR28 ----------
 export function nutritionOf(id) {
-  if (!NUT) return null; const ndb = NUTMAP[id]; if (!ndb) return null;
+  if (!NUT) return null; const ndb = NUTMAP[id] || NUTMAP[sd(id)]; if (!ndb) return null;
   NUT.idx = NUT.idx || new Map(NUT.foods.map(r => [r[0], r]));
   const r = NUT.idx.get(ndb); if (!r) return null; const o = {}; NUT.cols.forEach((c, i) => o[c] = r[i]); return o;
 }

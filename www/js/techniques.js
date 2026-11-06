@@ -141,20 +141,25 @@ export const METHOD_TECH = { panfry: 'sear', stirfry: 'stirfry', friedrice: 'sti
 export function techOf(method, gear) { if (gear === 'af') return 'airfry'; if (gear === 'sc') return 'slowcook'; return METHOD_TECH[method] || 'sear'; }
 // how well an ingredient suits a technique: 2 great, 1 fine, 0 poor, null unknown
 export function fitOf(id, tech) {
+  id = sd(id);
   const p = PROTEIN[id] || VEGTECH[id]; if (!p || !p.fit) return null;
   if (tech === 'slowcook' && p.fit.slowcook == null) return p.fit.braise ?? null;
   if (tech === 'airfry' && p.fit.airfry == null) return p.fit.roast ?? null;
   return p.fit[tech] ?? null;
 }
-export const safeOf = id => (PROTEIN[id] ? SAFE[PROTEIN[id].safe] : null);
+// world ingredients ("w:<stand-in>:<name>") are cooked like their stand-in
+const sd = id => { const m = /^w:([a-z0-9-]+):/.exec(id || ''); return m ? m[1] : id; };
+export const safeOf = id => { id = sd(id); return PROTEIN[id] ? SAFE[PROTEIN[id].safe] : null; };
 // one line of guidance for an ingredient in a technique
 export function noteOf(id, tech) {
+  id = sd(id);
   const p = PROTEIN[id];
   if (p) { const t = p[tech] || (tech === 'airfry' ? p.roast : null); return t ? { prep: t[0], time: t[1], heat: t[2], done: t[3] } : { done: SAFE[p.safe] }; }
   const v = VEGTECH[id]; if (!v) return null;
   return { prep: v.prep, time: v[tech] || null };
 }
 export function bestTechniques(id) {
+  id = sd(id);
   const p = PROTEIN[id] || VEGTECH[id]; if (!p || !p.fit) return [];
   return Object.entries(p.fit).filter(([, f]) => f === 2).map(([t]) => t);
 }

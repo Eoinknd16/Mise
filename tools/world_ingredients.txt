@@ -1,0 +1,240 @@
+# Mise world ingredients, written for Mise. One per line:
+# names separated by ; (each its own ingredient) | cooks like (catalog id)
+# The stand-in is what the meal engine cooks it as; the pantry and recipes keep your name.
+## Meat & cured
+guanciale; cured pork cheek | bacon
+pancetta; cubed pancetta | bacon
+lardons | bacon
+speck | bacon
+prosciutto; parma ham; serrano ham; jamon; jamón; jamon iberico | deli-meat
+bresaola | deli-meat
+salami; milano salami; napoli salami | deli-meat
+mortadella | deli-meat
+nduja; 'nduja | chorizo
+sobrasada | chorizo
+morcilla | pudding
+merguez; merguez sausages | sausages
+toulouse sausage | sausages
+cumberland sausage; lincolnshire sausage | sausages
+italian sausage; salsiccia | sausages
+bratwurst | sausages
+kielbasa | sausages
+frankfurters; hot dogs; wieners | sausages
+boerewors | sausages
+longaniza | chorizo
+lap cheong; chinese sausage | chorizo
+spam; luncheon meat | deli-meat
+corned beef | deli-meat
+pastrami | deli-meat
+oxtail | beef-brisket
+beef cheeks; ox cheek | beef-brisket
+short ribs; beef short ribs | beef-brisket
+shin of beef; beef shin; beef shank | beef-brisket
+chuck steak; braising steak; stewing beef; diced beef | beef-brisket
+skirt steak; flank steak; bavette; hanger steak | steak
+ribeye; rib eye; sirloin; fillet steak; t-bone; rump steak; picanha; tomahawk | steak
+veal; veal escalope; veal chop | pork-chop
+ossobuco; osso buco | beef-brisket
+lamb shank; lamb shanks | lamb
+lamb neck; neck of lamb; lamb shoulder; diced lamb | lamb
+mutton; goat; goat meat; diced goat | lamb
+rack of lamb; lamb rack; lamb cutlets | lamb-chops
+pork shoulder; pork butt; boston butt | pork-roast
+pork collar; pork neck | pork-chop
+pork tenderloin | pork-fillet
+pork cheeks | pork-belly
+ham hock; pork knuckle | gammon
+pigs trotters; pig's trotters | gammon
+rabbit; hare | chicken-thigh
+pheasant; partridge; pigeon; quail; guinea fowl | chicken-thigh
+venison steak; venison loin | steak
+venison mince | beef-mince
+wild boar | pork-roast
+duck legs; duck leg; confit duck | duck-breast
+goose; goose breast | duck-breast
+turkey thigh; turkey leg; turkey drumstick | chicken-thigh
+chicken livers; chicken liver | chicken-thigh
+chicken hearts | chicken-thigh
+spatchcock chicken; poussin | whole-chicken
+chicken mince; ground chicken | turkey-mince
+lamb kofta mince | lamb-mince
+## Fish & seafood
+monkfish | white-fish
+sea bass; seabass; sea bream; bream; dorade | white-fish
+hake; haddock; pollock; coley; whiting; ling | white-fish
+plaice; sole; dover sole; lemon sole; turbot; brill; halibut; john dory | white-fish
+skate; ray wing | white-fish
+tilapia; basa; pangasius; catfish | white-fish
+smoked haddock; finnan haddie | white-fish
+smoked mackerel; kipper; kippers; herring; sardines; anchovies fresh; sprats | mackerel
+swordfish; tuna steak | tuna
+trout; rainbow trout; arctic char | salmon
+smoked salmon; gravadlax; gravlax; lox | salmon
+mussels; clams; cockles; vongole | prawns
+scallops; queen scallops | prawns
+squid; calamari; octopus; cuttlefish | prawns
+crab; crab meat; crab claws | prawns
+lobster; langoustine; crayfish; dublin bay prawns; tiger prawns; king prawns | prawns
+surimi; crab sticks | prawns
+salt cod; bacalao; bacalhau | white-fish
+## Dairy & eggs
+paneer | halloumi
+burrata | mozzarella
+stracciatella | mozzarella
+ricotta | cream-cheese
+mascarpone | cream-cheese
+quark; cottage cheese | cream-cheese
+labneh; labne | yogurt
+skyr; greek yogurt; greek yoghurt | yogurt
+kefir | yogurt
+buttermilk | yogurt
+creme fraiche; crème fraîche; sour cream | creme-fraiche
+double cream; single cream; whipping cream; clotted cream | cream
+ghee; clarified butter | butter
+pecorino; pecorino romano; grana padano; parmigiano reggiano; parmigiano | parmesan
+gruyere; gruyère; comte; comté; emmental; jarlsberg; fontina; raclette; taleggio | cheddar
+manchego | cheddar
+gouda; edam; red leicester; double gloucester; wensleydale; lancashire; cheshire; gubbeen; dubliner | cheddar
+gorgonzola; roquefort; stilton; cashel blue; dolcelatte; danish blue | blue-cheese
+camembert; brie de meaux | brie
+goat cheese; goats cheese; chevre; chèvre | goats-cheese
+queso fresco; cotija; feta cheese | feta
+provolone; scamorza | mozzarella
+duck eggs; quail eggs | eggs
+## Vegetables
+broccolini; tenderstem broccoli | tenderstem
+purple sprouting broccoli; sprouting broccoli | tenderstem
+cavolo nero; black kale; tuscan kale; lacinato kale | kale
+chard; swiss chard; rainbow chard | spinach
+pak choi; bok choy; pak choy; choy sum | cabbage
+napa cabbage; chinese cabbage; chinese leaf | cabbage
+savoy cabbage; hispi cabbage; sweetheart cabbage; pointed cabbage; spring greens | cabbage
+brussels sprouts; sprouts | cabbage
+romanesco | cauliflower
+kohlrabi | carrot
+celeriac | parsnip
+fennel; fennel bulb | onion
+jerusalem artichoke; sunchoke | potato
+artichoke; artichoke hearts; globe artichoke | courgette
+okra; ladies fingers; bhindi | courgette
+aubergine; eggplant; brinjal | aubergine
+marrow | courgette
+patty pan; summer squash; yellow squash | courgette
+pumpkin; kabocha; acorn squash; delica squash | butternut
+sweet potatoes; yam; kumara | sweet-potato
+cassava; yuca; manioc; taro; eddoes | potato
+new potatoes; baby potatoes; charlotte potatoes; rooster potatoes; maris piper | potato
+swede; rutabaga; turnip | carrot
+radish; daikon; mooli | carrot
+salsify; parsley root | parsnip
+shallots; banana shallots; echalion | onion
+spring onions; scallions; green onions | spring-onion
+ramps; wild garlic | spring-onion
+samphire; sea asparagus | asparagus
+fine beans; runner beans; french beans; string beans; yardlong beans | green-beans
+edamame; soya beans | peas
+broad beans; fava beans | peas
+mangetout; snow peas; sugar snap peas | sugar-snap
+watercress; rocket; arugula; mizuna | salad
+radicchio; chicory; endive; frisee | salad
+bean sprouts; beansprouts | sugar-snap
+bamboo shoots; water chestnuts | sugar-snap
+shiitake; oyster mushrooms; enoki; king oyster mushrooms; porcini; chanterelles; girolles; morels; chestnut mushrooms; portobello | mushroom
+padron peppers; pimientos de padron; shishito peppers | pepper
+jalapeños; jalapenos; scotch bonnet; habanero; bird's eye chilli; thai chilli | chilli
+poblano; anaheim pepper | pepper
+plantain; plantains | sweet-potato
+jackfruit; young jackfruit | pork-roast
+corn on the cob; corn | sweetcorn
+beetroot; beets | beetroot
+## Fruit
+yuzu; kaffir lime; makrut lime | lime
+blood orange; clementine; mandarin; satsuma | orange
+grapefruit; pomelo | orange
+pomegranate; pomegranate seeds | berries
+figs; fig | plums
+dates; medjool dates | dried-fruit
+apricots; peaches; nectarines | plums
+cherries; sour cherries | plums
+quince | pears
+lychee; rambutan; mangosteen | mango
+papaya; guava; passion fruit; dragon fruit; persimmon | mango
+rhubarb | apple
+cranberries; blackcurrants; redcurrants; gooseberries; blackberries | berries
+## Grains, pasta & starches
+quinoa | couscous
+bulgur; bulgur wheat; freekeh; farro; spelt; pearl barley; giant couscous; pearl couscous | couscous
+polenta; cornmeal; grits | couscous
+orzo; risoni | pasta
+gnocchi | pasta
+tagliatelle; pappardelle; fettuccine; bucatini; linguine; spaghettini; vermicelli | spaghetti
+rigatoni; orecchiette; conchiglie; farfalle; fusilli; macaroni; ziti; paccheri | pasta
+lasagne sheets | pasta
+udon; udon noodles; soba; soba noodles; ramen noodles; rice noodles; glass noodles; vermicelli rice noodles; egg noodles | noodles
+jasmine rice; basmati; basmati rice; brown rice; wild rice; sushi rice; sticky rice; glutinous rice | rice
+arborio; carnaroli; risotto rice; paella rice; bomba rice | risotto-rice
+naan; flatbreads; pitta; pita; chapati; roti; paratha; lavash | wraps
+tortillas; corn tortillas; flour tortillas | wraps
+brioche; sourdough; ciabatta; focaccia; baguette | bread
+## Beans & pulses
+black beans; pinto beans; cannellini beans; borlotti beans; haricot beans; navy beans; flageolet beans | kidney-beans
+butter beans; lima beans; gigantes | butter-beans
+puy lentils; green lentils; brown lentils; beluga lentils | lentils
+red lentils; masoor dal; toor dal; chana dal; moong dal; urad dal; dal | lentils
+split peas; yellow split peas | lentils
+tempeh; seitan | tofu
+silken tofu; firm tofu | tofu
+## Herbs & aromatics
+lemongrass; lemon grass | ginger
+galangal | ginger
+turmeric root; fresh turmeric | ginger
+curry leaves | coriander
+thai basil; holy basil | basil
+dill; chervil; tarragon; lovage | parsley
+sage; oregano fresh; marjoram; savory; bay leaves | thyme
+chives | spring-onion
+shiso; perilla | mint
+## Spices & seasonings
+sumac | lemon
+za'atar; zaatar | oregano
+ras el hanout | curry-powder
+baharat; berbere; garam masala; chaat masala; panch phoron | curry-powder
+five spice; chinese five spice | curry-powder
+sichuan pepper; szechuan pepper | chilli-flakes
+gochugaru; aleppo pepper; pul biber; urfa biber; kashmiri chilli | chilli-flakes
+smoked paprika; pimenton; pimentón | paprika
+cajun seasoning; jerk seasoning; old bay; creole seasoning | paprika
+star anise; cloves; allspice; cardamom; fenugreek; nigella seeds; mustard seeds; caraway | cumin
+saffron | turmeric
+asafoetida; hing | garlic
+vanilla; vanilla pod; vanilla extract | vanilla
+## Sauces, pastes & condiments
+gochujang | sriracha
+doenjang; miso; white miso; red miso | soy-sauce
+fish sauce; nam pla | soy-sauce
+oyster sauce; hoisin; hoisin sauce | soy-sauce
+tamari; shoyu; dark soy; light soy; kecap manis | soy-sauce
+mirin; shaoxing wine; rice wine; sake | vinegar
+rice vinegar; black vinegar; sherry vinegar; red wine vinegar; white wine vinegar; cider vinegar; apple cider vinegar | vinegar
+balsamic; balsamic vinegar | vinegar
+harissa; chipotle paste; chipotle in adobo; sambal oelek; chilli paste; chili crisp; chilli oil | sriracha
+tamarind; tamarind paste | lemon
+thai red curry paste; thai green curry paste; massaman paste; rendang paste; laksa paste | curry-paste
+tikka paste; korma paste; madras paste; vindaloo paste; tandoori paste | curry-paste
+tahini; sesame paste | tahini
+pesto rosso; red pesto | pesto
+anchovies; anchovy fillets; anchovy paste | anchovies
+capers; caperberries | capers
+gherkins; cornichons; pickled onions; kimchi; sauerkraut | capers
+tomato puree; tomato paste; passata; sun-dried tomatoes; sundried tomatoes | tomato-puree
+dijon mustard; wholegrain mustard; english mustard | mustard
+mayo; kewpie mayo; aioli | mayo
+worcestershire sauce; brown sauce | worcestershire
+maple syrup; golden syrup; agave; date syrup; molasses; treacle | honey
+coconut cream | coconut-milk
+stock cubes; stock pot; bouillon; chicken stock; beef stock; vegetable stock | stock
+## Nuts & seeds
+almonds; flaked almonds; cashews; walnuts; pecans; hazelnuts; pistachios; macadamias; pine nuts; brazil nuts | nuts
+peanuts | nuts
+sesame seeds; pumpkin seeds; sunflower seeds; chia seeds; flaxseed; linseed | nuts
+desiccated coconut | nuts

@@ -52,7 +52,7 @@ def('soy-sauce', 'Um3 R2 Ca1', 'l'); def('miso', 'Um3 R1 Fr1 Fu1', 'l'); def('fi
 def('tahini', 'R3', 'bf'); def('peanut-butter', 'R3 Cr1', 'f'); def('nuts', 'R2 Cr1', 'f'); def('sesame-oil', 'R3', 'f'); def('olive-oil', 'Gr2 Fr1', 'f');
 def('vinegar', 'Fr1', 'a'); def('bbq-sauce', 'Sm2 Ca2', 'sa'); def('sweet-chilli', 'Ca1', 'sh'); def('sriracha hot-sauce', 'Sv1', 'ha'); def('curry-paste', 'Sp2 Ci1', 'h'); def('pesto', 'An1 Gr2 Fu1', 'f');
 
-export const aroma = id => A[id] || null;
+export const aroma = id => A[id] || (id && ITEM[id] && ITEM[id].standin ? A[ITEM[id].standin] || null : null);
 const CAT = id => {
   const it = ITEM[id]; if (!it) return 'other';
   if (['coffee', 'cocoa', 'cinnamon', 'star-anise', 'fennel-seeds', 'cardamom', 'ground-coriander', 'cumin', 'paprika', 'nutmeg', 'five-spice', 'black-pepper', 'chilli-flakes', 'garam-masala', 'curry-powder', 'chilli-powder', 'turmeric'].includes(id)) return 'dry';

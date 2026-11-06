@@ -10,3 +10,8 @@ Rebuild with `python3 tools/build_chefdb.py FNDDS_DIR SR28_DIR CNF_DIR`.
 ## Fonts
 
 Fraunces and Inter, both under the SIL Open Font Licence 1.1 (licence texts in `www/fonts/`). Free to bundle in a commercial app.
+
+## World ingredients (data/ingdb.json)
+
+- `tools/world_ingredients.txt`: written for Mise.
+- FoodOn food ontology (https://foodon.org, https://github.com/FoodOntology/foodon), CC BY 4.0. Names, synonyms and the family tree were used to map each ingredient to the Mise ingredient it cooks like. Built with `tools/foodon_extract.py`, `tools/foodon_map.mjs` and `tools/build_ingdb.mjs`.
