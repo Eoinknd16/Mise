@@ -42,7 +42,17 @@ spring-onion|Spring onions|fruitveg|pc|8|0.69|7|veg|scallions;green onions;sprin
 apple|Apples|fruitveg|pc|6|1.49|21|fruit|apples|
 banana|Bananas|fruitveg|pc|5|0.95|6|fruit|bananas|
 orange|Oranges|fruitveg|pc|6|1.49|14|fruit|oranges;easy peelers;clementines;mandarins|
-berries|Berries|fruitveg|g|150|1.99|4|fruit|strawberries;blueberries;raspberries|
+berries|Mixed berries|fruitveg|g|150|1.99|4|fruit|mixed berries;berries|
+strawberries|Strawberries|fruitveg|g|400|2.49|4|fruit|strawberry|
+raspberries|Raspberries|fruitveg|g|150|1.99|3|fruit|raspberry|
+blueberries|Blueberries|fruitveg|g|150|1.79|7|fruit|blueberry|
+rhubarb|Rhubarb|fruitveg|g|400|1.99|7|fruit|rhubarb stalks|
+pomegranate|Pomegranate|fruitveg|pc|1|0.99|14|fruit|pomegranate seeds|
+fennel|Fennel|fruitveg|pc|1|1.19|10|veg|fennel bulb|
+sage|Fresh sage|fruitveg|g|20|0.99|7|veg|sage leaves|
+dill|Fresh dill|fruitveg|g|20|0.99|5|veg|dill|
+tarragon|Fresh tarragon|fruitveg|g|20|0.99|5|veg|tarragon|
+lemongrass|Lemongrass|fruitveg|pc|2|0.99|14|veg|lemon grass;lemongrass stalks|
 grapes|Grapes|fruitveg|g|500|1.99|7|fruit|grape|
 thyme|Fresh thyme|fruitveg|g|20|0.99|10|veg|thyme sprigs||sprig:1
 rosemary|Fresh rosemary|fruitveg|g|20|0.99|10|veg|rosemary sprigs||sprig:1
@@ -79,6 +89,8 @@ cheddar|Cheddar|dairy|g|200,400|2.19|30|dairy|cheese;cheddar cheese;mature chedd
 mozzarella|Mozzarella|dairy|g|125|0.89|10|dairy|mozzarella ball;grated mozzarella||ball:125
 parmesan|Parmesan|dairy|g|100|2.49|60|dairy|grana padano;parmigiano;hard cheese|
 feta|Feta|dairy|g|200|1.49|14|dairy|feta cheese;salad cheese|
+blue-cheese|Blue cheese|dairy|g|150|2.29|21|dairy|blue cheese;gorgonzola;stilton;cashel blue;roquefort;danish blue|
+goats-cheese|Goat's cheese|dairy|g|150|1.99|14|dairy|goats cheese;goat cheese;chevre;goat's cheese|
 halloumi|Halloumi|dairy|g|225|2.49|30|dairy|grilling cheese|p:veg
 cream|Cream|dairy|ml|250|1.29|7|dairy|single cream;cooking cream;fresh cream;whipping cream||
 double-cream|Double cream|dairy|ml|250|1.49|7|dairy|heavy cream|
@@ -139,7 +151,7 @@ black-pepper|Black pepper|spices|g|50|0.99|999|pantry|pepper ground;ground black
 paprika|Paprika|spices|g|50|0.89|700|pantry|smoked paprika|s
 cumin|Cumin|spices|g|40|0.89|700|pantry|ground cumin;cumin seeds|s
 chilli-powder|Chilli powder|spices|g|50|0.89|700|pantry|chili powder;cayenne;chilli flakes;red pepper flakes|s
-curry-powder|Spice mix|spices|g|50|0.89|700|pantry|curry powder;garam masala;turmeric;ground coriander;ground ginger;allspice;nutmeg;five spice;cardamom|s
+curry-powder|Curry powder|spices|g|50|0.89|700|pantry|curry powder;mild curry powder;turmeric;ground coriander;ground ginger;allspice;nutmeg;five spice;cardamom|s
 oregano|Dried herbs|spices|g|15|0.79|700|pantry|oregano;dried oregano;mixed herbs;italian herbs;dried thyme;dried basil;bay leaf;bay leaves|s
 cinnamon|Cinnamon|spices|g|40|0.89|700|pantry|ground cinnamon|s
 turmeric|Turmeric|spices|g|40|0.89|700|pantry|ground turmeric;haldi|s
@@ -159,6 +171,11 @@ dried-rosemary|Dried rosemary|spices|g|15|0.79|700|pantry|dried rosemary|s
 dried-basil|Dried basil|spices|g|10|0.79|700|pantry|dried basil|s
 bay-leaves|Bay leaves|spices|g|5|0.79|700|pantry|bay leaf;bay leaves|s
 nutmeg|Nutmeg|spices|g|30|0.99|700|pantry|ground nutmeg|s
+star-anise|Star anise|spices|g|15|1.29|700|pantry|star anise|s
+cardamom|Cardamom|spices|g|20|1.49|700|pantry|cardamom pods;ground cardamom|s
+fennel-seeds|Fennel seeds|spices|g|30|0.99|700|pantry|fennel seed|s
+cocoa|Cocoa powder|spices|g|250|2.49|700|pantry|cocoa;cacao;cocoa powder|s
+vanilla|Vanilla extract|spices|ml|38|1.99|700|pantry|vanilla;vanilla essence;vanilla extract|s
 cayenne|Cayenne pepper|spices|g|30|0.89|700|pantry|cayenne;cayenne pepper|s
 peas|Frozen peas|frozen|g|1000|1.99|180|veg|peas;garden peas;petits pois||handful:40
 frozen-veg|Frozen veg mix|frozen|g|1000|1.79|180|veg|mixed veg;stir fry veg;stir fry vegetables;frozen vegetables;mixed vegetables|
@@ -166,7 +183,9 @@ chips|Oven chips|frozen|g|1500|2.49|180|ready|chips;fries;potato wedges|
 fish-fingers|Fish fingers|frozen|pc|10|1.99|180|ready|fish finger|p:fish
 ice-cream|Ice cream|frozen|ml|900|2.49|180|sweet|ice cream tub;vanilla ice cream|
 crisps|Crisps|snacks|pc|1|1.29|90|snack|crisp;tayto;crisps multipack;pringles;tortilla chips;nachos|
-chocolate|Chocolate|snacks|g|100|0.99|180|sweet|choc;chocolate bar;dairy milk;chocolate buttons|
+chocolate|Chocolate|snacks|g|100|0.99|180|sweet|choc;chocolate bar;dairy milk;chocolate buttons;milk chocolate|
+dark-chocolate|Dark chocolate|snacks|g|100|1.19|365|sweet|dark chocolate;70% chocolate;cooking chocolate;bitter chocolate|
+dates|Dates|snacks|g|200|1.99|180|sweet|medjool dates;dried dates|
 biscuits|Biscuits|snacks|g|300|1.19|90|sweet|cookies;digestives;biscuit|
 sweets|Sweets|snacks|g|200|1.29|180|sweet|jellies;candy;haribo;gummies|
 nuts|Nuts|snacks|g|200|2.29|180|snack|peanuts;cashews;almonds;mixed nuts|
@@ -209,7 +228,7 @@ asparagus|Asparagus|fruitveg|g|250|2.49|4|veg||
 sugar-snap|Mangetout & sugar snaps|fruitveg|g|150|1.29|5|veg|mange tout;sugar snap peas;baby corn;tenderstem|
 corn-cob|Corn on the cob|fruitveg|pc|2|1.29|5|veg|corn cobs;sweetcorn cobs|
 radish|Radishes|fruitveg|g|200|0.79|7|veg|radish;spring onions bunch|
-mint|Fresh mint|fruitveg|g|20|0.99|6|veg|mint;dill;chives;fresh herbs;tarragon|
+mint|Fresh mint|fruitveg|g|20|0.99|6|veg|mint;chives;fresh herbs|
 salad-veg|Prepared veg|fruitveg|g|300|1.29|4|veg|stir fry mix;coleslaw mix;veg medley;soup mix;prepared vegetables;diced onion|
 croissants|Croissants & pastries|bakery|pc|4|1.29|3|bakery|croissant;pain au chocolat;danish;pastries;cinnamon swirl|
 scones|Scones|bakery|pc|4|1.49|4|bakery|scone|
@@ -259,6 +278,11 @@ cereal-bars|Cereal bars|snacks|pc|6|1.49|180|snack|cereal bar;granola bars;prote
 popcorn|Popcorn & pretzels|snacks|g|100|0.99|180|snack|popcorn;pretzels;puffs|
 gum|Chewing gum & mints|snacks|pc|1|0.99|365|sweet|chewing gum;mints;gum|
 choc-spread|Chocolate spread|pantry|g|400|2.49|365|sweet|nutella;hazelnut spread|
+miso|Miso paste|pantry|g|300|3.49|365|sauce|miso;white miso;red miso|s
+tahini|Tahini|pantry|g|300|2.99|365|sauce|tahini|s
+chipotle|Chipotle paste|pantry|g|90|2.29|365|sauce|chipotle;chipotle paste;chipotle in adobo|s
+anchovies|Anchovies|pantry|g|50|1.49|700|sauce|anchovy;anchovy fillets|s
+kimchi|Kimchi|chilled|g|300|2.99|30|sauce|kimchi|
 syrup|Syrup|pantry|g|450|1.69|700|sweet|golden syrup;maple syrup;agave|s
 baking|Baking items|pantry|g|200|1.29|700|pantry|baking powder;bread soda;bicarbonate;yeast;cocoa;vanilla;icing sugar;baking chocolate;chocolate chips|s
 breadcrumbs|Breadcrumbs|pantry|g|200|0.79|300|pantry|panko|s

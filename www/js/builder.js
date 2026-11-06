@@ -93,7 +93,7 @@ export const VEG = {
 const LEAFY = /kale|chard|rocket|lettuce|spinach|cabbage|greens|pak choi|bok choy/, HARDV = /root|parsnip|turnip|swede|beet|celeriac|squash|pumpkin|carrot|sweet potato/, QUICKV = /asparagus|bean|mangetout|pea|corn|tomato|sprout/;
 export function ensureVeg(id) {
   if (VEG[id] || BASES[id] || !ITEM[id] || ITEM[id].cat !== 'veg') return !!VEG[id];
-  const n = ITEM[id].n.toLowerCase(); if (/garlic|ginger|chilli|coriander|parsley|basil|thyme|rosemary|mint|other/.test(n)) return false;
+  const n = ITEM[id].n.toLowerCase(); if (/garlic|ginger|chilli|coriander|parsley|basil|thyme|rosemary|mint|sage|dill|tarragon|lemongrass|other/.test(n)) return false;
   VEG[id] = V(ITEM[id].u === 'pc' ? 0.5 : 80, LEAFY.test(n) ? 'leafy' : HARDV.test(n) ? 'hard' : QUICKV.test(n) ? 'quick' : 'firm'); return true;
 }
 export function ensureMain(id, label) {
@@ -301,7 +301,7 @@ export function partTaste(state) {
 const sq = v => Math.tanh((v || 0) / 3) * 3;
 
 /* ================= Is a part allowed for you? ================= */
-const okItem = (state, id, prep) => { const it = ITEM[id]; if (!it) return false; return C.likeOf(state, { item: id, name: it.n, prep: prep || null }) > -1; };
+export const okItem = (state, id, prep) => { const it = ITEM[id]; if (!it) return false; return C.likeOf(state, { item: id, name: it.n, prep: prep || null }) > -1; };
 function spiceCap(state, opts) { if (opts.kids) return 1; const s = (state.taste || {}).spice; return s == null ? 3 : s === 0 ? 0 : s === 1 ? 1 : 3; }
 export function kitAllowed(state, kitId, opts = {}) { const k = kitOf(kitId); if (!k) return false; if (k.spice > spiceCap(state, opts)) return false; return k.core.every(([id]) => okItem(state, id)); }
 

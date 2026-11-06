@@ -867,8 +867,8 @@ export function bestPrice(state, itemId) {
 export function pantryQty(state, itemId) { return state.pantry.filter(p => p.item === itemId).reduce((a, p) => a + (p.qty || 0), 0); }
 // Spice rack: the cupboard things you tick once, instead of guessing
 export const RACK = [
-  ['Spices & dried herbs', 'salt black-pepper paprika cumin chilli-powder chilli-flakes cayenne curry-powder garam-masala turmeric ground-coriander ground-ginger cinnamon nutmeg five-spice oregano mixed-herbs dried-thyme dried-rosemary dried-basil bay-leaves garlic-granules onion-granules cajun-spice fajita-mix peri-spice'],
-  ['Sauces & jars', 'soy-sauce bbq-sauce ketchup mayo mustard sweet-chilli hot-sauce sriracha worcestershire oyster-sauce fish-sauce brown-sauce salad-cream mint-sauce honey syrup'],
+  ['Spices & dried herbs', 'salt black-pepper paprika cumin chilli-powder chilli-flakes cayenne curry-powder garam-masala turmeric ground-coriander ground-ginger cinnamon nutmeg five-spice oregano mixed-herbs dried-thyme dried-rosemary dried-basil bay-leaves garlic-granules onion-granules cajun-spice fajita-mix peri-spice star-anise cardamom fennel-seeds cocoa vanilla'],
+  ['Sauces & jars', 'soy-sauce bbq-sauce ketchup mayo mustard sweet-chilli hot-sauce sriracha worcestershire oyster-sauce fish-sauce brown-sauce salad-cream mint-sauce honey syrup miso tahini chipotle anchovies'],
   ['Oils, stock & baking', 'oil olive-oil sesame-oil vinegar stock gravy tomato-puree flour sugar breadcrumbs baking']
 ].map(([n, ids]) => [n, ids.split(' ').filter(id => ITEM[id])]);
 export const RACK_IDS = new Set(RACK.flatMap(r => r[1]));

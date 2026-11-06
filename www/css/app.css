@@ -290,3 +290,5 @@ ul.tips{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
 .scanbox{position:relative;border-radius:16px;overflow:hidden;background:#000;aspect-ratio:4/3;margin-top:8px}
 .scanbox video{width:100%;height:100%;object-fit:cover;display:block}
 .scanline{position:absolute;left:12%;right:12%;top:50%;height:2px;background:var(--accent);box-shadow:0 0 12px var(--accent);opacity:.8}
+.exp-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0}
+.card.exp{border-left:3px solid var(--accent)}
