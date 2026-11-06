@@ -4,7 +4,7 @@
 :root{
   --bg:#f7f3ec; --card:#fffdf9; --ink:#2b2a27; --muted:#6a655b; --line:#e6ded0; --soft:#ede6da;
   --accent:#1f4d3a; --accent-ink:#ffffff; --accent-soft:#e1eadd; --sage:#a8b89a;
-  --hot:#b5452e; --hot-soft:#f6e1d9; --warn:#86591a; --warn-soft:#f5e9d0; --gold:#c8963e;
+  --hot:#a33c26; --hot-soft:#f6e1d9; --warn:#86591a; --warn-soft:#f5e9d0; --gold:#c8963e;
   --display:"Fraunces", Georgia, "Times New Roman", serif;
   --body:"Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --r:16px; --tab:64px; --side:232px;

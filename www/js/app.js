@@ -40,7 +40,7 @@ const ICON = {
 };
 function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 2400); }
 function imgSrc(r, small) { const u = r && C.photoOf(S, r); if (!u) return null; return small && /themealdb/.test(u) ? u + '/preview' : u; }
-function thumb(r, cls = 'thumb') { const u = imgSrc(r, true); return u ? `<img class="${cls}" src="${esc(u)}" onerror="this.onerror=null;this.src='${esc(C.photoOf(S, r))}'" alt="" loading="lazy">` : `<div class="${cls}">${esc((r && r.title || '?')[0])}</div>`; }
+function thumb(r, cls = 'thumb') { const u = imgSrc(r, true); return u ? `<img class="${cls}" src="${esc(u)}" onerror="this.onerror=null;this.src='${esc(C.photoOf(S, r))}'" alt="" loading="lazy">` : tile(r, cls); }
 function fmtIng(q, u) {
   if (u === 'taste') return 'to taste';
   if (u === 'g' || u === 'ml') return C.fmtQty(q, u);
@@ -54,7 +54,7 @@ const shopsOpts = sel => S.settings.shops.concat(SHOPS.filter(s => !S.settings.s
 /* ================= Router ================= */
 const TITLES = { plan: 'This week', recipes: 'Saved meals', list: 'Shopping list', pantry: 'Pantry', more: 'Menu', make: 'What can I make?', builder: 'Mise', receipts: 'Receipts', deals: 'Deals', insights: 'Stats', settings: 'Settings', install: 'Install', quiz: 'Taste quiz', add: 'Your recipe', tastes: 'Your tastes', discover: 'Discover', swipe: 'Teach Mise your taste', week: 'Plan the week', lab: 'Flavour lab', ing: 'Ingredient' };
 const TAB_OF = { make: 'pantry', lab: 'builder' };
-const SUBPAGE = { ing: 'builder', swipe: 'discover', week: 'plan', recipes: 'more', tastes: 'more', add: 'recipes', make: 'pantry', receipts: 'more', deals: 'more', insights: 'more', settings: 'more', install: 'more', quiz: 'more', more: 'builder' };
+const SUBPAGE = { ing: 'builder', lab: 'builder', swipe: 'discover', week: 'plan', recipes: 'more', tastes: 'more', add: 'recipes', make: 'pantry', receipts: 'more', deals: 'more', insights: 'more', settings: 'more', install: 'more', quiz: 'more', more: 'builder' };
 const OLD_ROUTES = { meals: 'recipes', saved: 'recipes', home: 'builder' };
 function checkShared() { const shared = M.readShareLink(location.hash); if (!shared) return false; ui.importing = shared; history.replaceState(null, '', location.pathname + '#recipes'); ui.route = 'recipes'; render(true); setTimeout(() => openSheet(`<h2>${esc(shared.title)}</h2><p class="small muted">Someone shared this recipe with you. ${shared.ings.length} ingredients, ${shared.steps.length} steps.</p><button class="btn primary block" data-act="importKeep">Save to my recipes</button>`), 200); return true; }
 function route() {
@@ -68,7 +68,7 @@ function route() {
   if (ui.route === 'quiz' && (!ui.quiz || ui.quiz.stage === 'done' || (ui.quiz.stage === 'swipe' && ui.quiz.i >= (ui.quiz.deck || []).length))) ui.quiz = { stage: 'diet', first: ui.quiz && ui.quiz.first };
   const tab = TAB_OF[ui.route] || ui.route;
   document.querySelectorAll('.tabbar a').forEach(a => { if (a.dataset.tab === tab) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
-  const parent = SUBPAGE[ui.route]; $('#backBtn').hidden = !parent; if (ui.route === 'ing') $('#backBtn').dataset.act = 'goBack'; else delete $('#backBtn').dataset.act; $('#brandMark').style.display = parent ? 'none' : ''; if (parent) $('#backBtn').setAttribute('href', '#' + parent); $('#menuBtn').hidden = ui.route === 'more';
+  const parent = SUBPAGE[ui.route]; $('#backBtn').hidden = !parent; if (ui.route === 'ing' || ui.route === 'lab') $('#backBtn').dataset.act = 'goBack'; else delete $('#backBtn').dataset.act; $('#brandMark').style.display = parent ? 'none' : ''; if (parent) $('#backBtn').setAttribute('href', '#' + parent); $('#menuBtn').hidden = ui.route === 'more';
   render(true);
 }
 function render(scrollTop) {
@@ -134,7 +134,7 @@ function tonightCard() {
 function viewRecipes() {
   if (!['regular', 'mine', 'easy', 'recent'].includes(ui.recTab)) ui.recTab = 'regular';
   const tab = ui.recTab, q = (ui.recQuery || '').toLowerCase().trim();
-  let h = `<div class="quick3"><a href="#swipe" data-tour="discoverCta">${ICON.spark}<b>Discover</b><span>Swipe to teach Mise</span></a><a href="#builder" data-tour="buildCta">${ICON.pot}<b>Make a meal</b><span>Say what you fancy</span></a><a href="#add" data-act="newRecipe" data-tour="addRecipe"><span style="font:700 22px var(--display)">+</span><b>Add yours</b><span>Type, link, photo</span></a></div>
+  let h = `<div class="quick3"><a href="#discover" data-tour="discoverCta">${ICON.spark}<b>Discover</b><span>New dishes to try</span></a><a href="#builder" data-tour="buildCta">${ICON.pot}<b>Ask Home</b><span>Say what you fancy</span></a><a href="#add" data-act="newRecipe" data-tour="addRecipe"><span style="font:700 22px var(--display)">+</span><b>Add yours</b><span>Type, link, photo</span></a></div>
   <div class="seg" role="group" data-tour="recTabs">${[['regular', 'Regulars'], ['mine', 'Yours'], ['easy', 'Easy'], ['recent', 'Recent']].map(([k, n]) => `<button data-act="recTab" data-val="${k}" aria-pressed="${tab === k}">${n}</button>`).join('')}</div>
   <input type="search" id="recSearch" placeholder="Search" value="${esc(ui.recQuery)}" data-in="recQuery" enterkeyhint="search">`;
   let list = [];
@@ -431,7 +431,7 @@ function viewMake() {
 
 /* ================= More ================= */
 function viewMore() {
-  const tiles = [['#receipts', ICON.receipt, 'Receipts', 'Scan & review'], ['#deals', ICON.tag, 'Deals', 'Offers you spotted'], ['#insights', ICON.chart, 'Stats', 'Savings, streaks, challenges'], ['#recipes', ICON.pot, 'Saved meals', 'Regulars, yours, recent'], ['#tastes', ICON.pot, 'Your tastes', 'What you like & why'], ['#settings', ICON.gear, 'Settings', 'Household, shops, backup'], ['#tour', ICON.spark, 'App tour', 'How everything works'], ['#install', ICON.phone, 'Install', 'Home screen & Android']];
+  const tiles = [['#recipes', ICON.pot, 'Saved meals', 'Regulars, yours, recent'], ['#tastes', '<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>', 'Your tastes', 'What you like & why'], ['#lab', ICON.spark, 'Flavour lab', 'What goes with what'], ['#receipts', ICON.receipt, 'Receipts', 'Scan & review'], ['#deals', ICON.tag, 'Deals', 'Offers you spotted'], ['#insights', ICON.chart, 'Stats', 'Savings, streaks, challenges'], ['#settings', ICON.gear, 'Settings', 'Household, shops, backup'], ['#tour', ICON.spark, 'App tour', 'How everything works'], ['#install', ICON.phone, 'Install', 'Home screen & Android']];
   return `<div class="more-grid">${tiles.map(t => `<a href="${t[0]}">${t[1]}<b>${t[2]}</b><span>${t[3]}</span></a>`).join('')}</div>`;
 }
 function viewInstall() {
@@ -1543,8 +1543,8 @@ const TOUR = [
   { sheet: true, sel: 'label[for=recipePhoto]', title: 'Add a photo', text: 'Tap "Add your photo" to use a picture you took of your own dish. Recipes without a photo try to find one online automatically.' },
   { sheet: true, sel: '.sheet-x', title: 'Closing a sheet', text: 'Close any sheet by swiping it down, tapping the ✕, tapping the dark area above it, or pressing your phone\'s back button.' },
   { route: 'recipes', sel: '[data-tour=recTabs]', title: 'Saved meals', text: 'Regulars are built meals you loved. Yours are recipes you added. Easy is oven and freezer meals. Recent is what Mise built lately.' },
-  { route: 'recipes', sel: '[data-tour=buildCta]', title: 'Make a meal', text: 'Say what you fancy and Mise builds three options around your tastes and what you have.' },
-  { route: 'recipes', sel: '[data-tour=discoverCta]', title: 'Discover', text: 'Swipe through dishes from around the web: right if you\'d eat it, left if not. Mise doesn\'t plan these recipes; it learns the flavours and kinds of dinner you like. "My way" builds something similar from easy ingredients.' },
+  { route: 'recipes', sel: '[data-tour=buildCta]', title: 'Ask Home', text: 'Say what you fancy on Home and Mise builds options around your tastes and what you have.' },
+  { route: 'recipes', sel: '[data-tour=discoverCta]', title: 'Discover', text: 'Collections of meals built from your kitchen, with filters for time and price. "Teach Mise your taste" lets you swipe dishes so suggestions learn what you like.' },
   { route: 'recipes', sel: '[data-tour=addRecipe]', title: 'Add your own', text: 'Type in a family favourite or paste a recipe from any website. Ingredients Mise doesn\'t know are kept as you wrote them and go on your list.' },
   { route: 'recipes', sel: '#recSearch', title: 'Search', text: 'Search your meals by name or ingredient.' },
   { route: 'list', sel: '[data-tour=listWeek]', title: 'Shopping list', text: 'Your list is built automatically from the dinners in your plan. Switch between this week and next week here.' },
