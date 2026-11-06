@@ -716,7 +716,9 @@ export function likeThis(state, r) {
 
 /* ================= Scoring & choosing ================= */
 /* ---------- Your kitchen kit ---------- */
-export const gearOf = state => ({ oven: true, hob: true, microwave: true, airfryer: false, slowcooker: false, ...(state.gear || {}) });
+export const gearOf = state => ({ oven: true, hob: true, microwave: true, airfryer: false, slowcooker: false, pan: true, pot: true, tin: true, dish: true, ...(state.gear || {}) });
+// Which pan, pot or tin each way of cooking needs (an air fryer or slow cooker stands in when it's used)
+export const KIT_NEED = { panfry: 'pan', hash: 'pan', frittata: 'pan', shakshuka: 'pan', burgers: 'pan', quesadilla: 'pan', stirfry: 'pan', friedrice: 'pan', simmer: 'pot', curry: 'pot', soup: 'pot', noodlesoup: 'pot', pasta: 'pot', risotto: 'pot', braise: 'pot', pulled: 'pot', roast: 'tin', traybake: 'tin', sticky: 'tin', loaded: 'tin', flatbread: 'tin', bake: 'dish', pie: 'dish' };
 // air fryer minutes at 200°C for each main (from raw)
 export const AFT = { 'chicken-thigh': 18, 'chicken-breast': 15, 'chicken-drum': 24, 'chicken-wings': 22, sausages: 12, salmon: 10, 'white-fish': 10, 'frozen-fish': 14, 'fish-cakes': 12, halloumi: 8, chickpeas: 14, 'pork-chop': 13, 'pork-fillet': 18, 'lamb-chops': 10, 'turkey-breast': 15, nuggets: 10, tofu: 14, prawns: 7, burgers: 11, 'pork-belly': 25, 'pork-ribs': 30, gnocchi: 12, 'sweet-potato': 18 };
 const HOB_ONLY = new Set(['panfry', 'stirfry', 'simmer', 'curry', 'pasta', 'soup', 'noodlesoup', 'friedrice', 'risotto', 'shakshuka', 'frittata', 'hash', 'quesadilla', 'burgers']);
@@ -887,6 +889,7 @@ export function candidates(state, opts = {}) {
       if (!GR.oven && OVEN_ONLY.has(meth) && gear !== 'af' && gear !== 'sc') continue;
       if (!GR.hob && HOB_ONLY.has(meth) && gear !== 'af' && gear !== 'sc') continue;
       if (!GR.hob && !GR.oven && gear !== 'af' && gear !== 'sc') continue;
+      if (KIT_NEED[meth] && GR[KIT_NEED[meth]] === false && gear !== 'af' && gear !== 'sc') continue;
       const tech = Tech.techOf(meth, gear), mfit = Tech.fitOf(mid, tech);
       if (mfit === 0 && !typed) continue; // e.g. stewing beef can't be stir-fried
       if (gear !== 'sc') {

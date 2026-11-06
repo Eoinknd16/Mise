@@ -307,10 +307,20 @@ function rackSheet() {
   ${C.RACK.map(([n, ids]) => `<div class="small" style="font-weight:700;margin:10px 0 4px">${n}</div><div class="chips wrap">${ids.map(id => `<button class="chip" data-act="rackTog" data-val="${id}" aria-pressed="${!!have[id]}">${esc(ITEM[id].n)}</button>`).join('')}</div>`).join('')}
   <div class="row" style="margin-top:14px"><button class="btn grow" data-act="rackAll">Tick all</button><button class="btn grow" data-act="rackNone">Clear</button><button class="btn primary grow" data-act="rackDone">Done</button></div>`;
 }
+const EQUIP = [
+  ['Appliances', [['oven', 'Oven', 'Roasts, traybakes, bakes and pies', 'roast traybake bake pie sticky loaded flatbread braise'], ['hob', 'Hob', 'Pan-fries, stir-fries, curries, pasta and soups', 'panfry stirfry simmer curry pasta soup friedrice risotto hash'], ['microwave', 'Microwave', 'Quicker jacket potatoes and rice', ''], ['airfryer', 'Air fryer', 'Crisp chicken, chips and roasties in about half the time', 'panfry roast traybake loaded'], ['slowcooker', 'Slow cooker', '15 minutes in the morning, dinner ready when you get home', 'pulled braise curry simmer soup']]],
+  ['Pans & pots', [['pan', 'Frying pan or wok', 'Pan-fries, stir-fries, fried rice, hash and frittata', 'panfry stirfry friedrice hash frittata shakshuka burgers quesadilla'], ['pot', 'Large pot with a lid', 'Curries, stews, soups, pasta and pot roasts', 'simmer curry soup noodlesoup pasta risotto braise pulled']]],
+  ['Tins & dishes', [['tin', 'Roasting tin or baking tray', 'Roasts, traybakes and loaded potatoes', 'roast traybake sticky loaded flatbread'], ['dish', 'Ovenproof dish', 'Pasta bakes, pies and gratins', 'bake pie']]]];
+function gearReach(meths) {
+  if (!meths) return null; const ms = meths.split(' '), mains = [...G.pantryStock(S).keys()].filter(id => G.MAINS[id]);
+  const fit = mains.filter(id => { const m = G.MAINS[id].methods; return ms.some(x => (Array.isArray(m) ? m : String(m).split(' ')).includes(x)); });
+  return fit;
+}
 function gearSheet() {
   const g = G.gearOf(S);
-  return `<h2>Kitchen kit</h2><p class="small muted">What you cook with. An air fryer makes weeknights quicker, and a slow cooker means 15 minutes in the morning and dinner's ready when you're home.</p>
-  <div class="chips wrap">${GEAR.map(([k, n]) => `<button class="chip" data-act="gearTog" data-val="${k}" aria-pressed="${!!g[k]}">${n}</button>`).join('')}</div><button class="btn primary block" style="margin-top:14px" data-act="closeSheet">Done</button>`;
+  return `<h2>Equipment</h2><p class="small muted">Mise only suggests meals you can cook with what you've got. Turn on what you have; turn off anything you don't.</p>
+  ${EQUIP.map(([grp, list]) => `<div class="small" style="font-weight:700;margin:12px 0 6px">${grp}</div><div class="eq">${list.map(([k, n, what, meths]) => { const fit = gearReach(meths); return `<button class="eqi" data-act="gearTog" data-val="${k}" aria-pressed="${!!g[k]}"><span class="sw2" aria-hidden="true"></span><div class="grow"><b>${n}</b><span>${what}</span>${fit && fit.length ? `<span class="reach">Works with ${fit.length === 1 ? 'your ' + esc(ITEM[fit[0]].n.toLowerCase()) : `${fit.length} things you have`}</span>` : ''}</div></button>`; }).join('')}</div>`).join('')}
+  <button class="btn primary block" style="margin-top:14px" data-act="closeSheet">Done</button>`;
 }
 function unlockSheet(res) {
   if (!res) return `<h2>One thing to buy</h2><p class="muted">Working out what unlocks the most meals…</p>`;
@@ -399,14 +409,18 @@ function viewPantry() {
   }
   const items = S.pantry.slice().sort((a, b) => (a.exp || '9999').localeCompare(b.exp || '9999'));
   const soon = items.filter(p => p.exp && C.daysBetween(t, p.exp) <= 3);
-  const longLife = items.filter(p => !soon.includes(p) && (!p.exp || C.daysBetween(t, p.exp) > 60));
-  const rest = items.filter(p => !soon.includes(p) && !longLife.includes(p));
-  h += `<div class="quick3 two"><a href="#builder" data-act="togetherGo" data-tour="make">${ICON.pot}<b>What can I make?</b><span>${soon.length ? `${soon.length} thing${soon.length > 1 ? 's' : ''} to use soon` : 'From what you have'}</span></a><button data-act="snapFridge" data-tour="snap">${ICON.receipt}<b>Snap your fridge</b><span>AI adds what it sees</span></button></div>
-  <form class="row" data-form="addPantry" data-tour="addPantry"><input id="pantryName" placeholder="Add something you have" autocomplete="off" aria-label="Pantry item"><button class="btn icon" type="button" data-act="scanOpen" aria-label="Scan a barcode" data-tour="scan">${ICON.scan}</button><button class="btn primary" type="submit">Add</button></form>${dymBox('pantry')}
-  <div class="chips wrap" style="margin-top:-2px"><button class="chip" data-act="rackOpen" data-tour="rack">Spice rack${C.rackOn(S) ? ` · ${Object.values(S.rack.have).filter(Boolean).length}` : ''}</button><button class="chip" data-act="gearOpen">Kitchen kit${gearSummary()}</button><button class="chip" data-act="unlockOpen">One thing to buy</button></div><input type="file" id="fridgePhoto" accept="image/*" capture="environment" hidden data-change="fridgePhoto">`;
-  if (!items.length) return h + `<div class="empty"><h3>Nothing tracked yet</h3><p>Scan a receipt, finish a shopping trip, or add things here.</p><a class="btn" href="#receipts">Scan a receipt</a></div>`;
+  const recent = items.filter(p => !soon.includes(p) && p.added && C.daysBetween(p.added, t) <= 2);
+  const longLife = items.filter(p => !soon.includes(p) && !recent.includes(p) && (!p.exp || C.daysBetween(t, p.exp) > 60));
+  const rest = items.filter(p => !soon.includes(p) && !recent.includes(p) && !longLife.includes(p));
+  const filt = ui.pFilter || 'all';
+  h += `<form class="ask-in" data-form="addPantry" data-tour="addPantry"><input id="pantryName" placeholder="Add food: 2 onions, pork roast, milk…" autocomplete="off" enterkeyhint="done" aria-label="Add food"><button class="btn icon" type="button" data-act="scanOpen" aria-label="Scan a barcode" data-tour="scan">${ICON.scan}</button><button class="go" type="submit" aria-label="Add"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button></form>${dymBox('pantry')}
+  <div class="quick3 two"><a href="#builder" data-act="togetherGo" data-tour="make">${ICON.pot}<b>What can I make?</b><span>${soon.length ? `${soon.length} thing${soon.length > 1 ? 's' : ''} to use soon` : 'From what you have'}</span></a><button data-act="snapFridge" data-tour="snap">${ICON.receipt}<b>Snap your fridge</b><span>AI adds what it sees</span></button></div><input type="file" id="fridgePhoto" accept="image/*" capture="environment" hidden data-change="fridgePhoto">`;
+  const kit = () => { const g = G.gearOf(S), on = EQUIP.flatMap(([, l]) => l).filter(x => g[x[0]]).map(x => x[1].split(' or ')[0]); return `<h3 class="sec-h" style="margin-top:10px">Your kitchen</h3><div class="kit2"><button class="kitc" data-act="rackOpen" data-tour="rack">${ICON.spark}<b>Spice rack</b><span>${C.rackOn(S) ? `${Object.values(S.rack.have).filter(Boolean).length} ticked` : 'Tick what you have'}</span></button><button class="kitc" data-act="gearOpen" data-tour="gear">${ICON.pot}<b>Equipment</b><span>${esc(on.slice(0, 3).join(', '))}${on.length > 3 ? ` +${on.length - 3}` : ''}</span></button><button class="kitc" data-act="unlockOpen">${ICON.tag}<b>One thing to buy</b><span>Unlocks the most meals</span></button></div>`; };
+  if (!items.length) return h + `<div class="empty"><h3>Nothing tracked yet</h3><p>Add food above, scan a barcode or a receipt, or tap Done shopping on your list.</p><a class="btn" href="#receipts">Scan a receipt</a></div>` + kit();
+  h += `<div class="chips">${[['all', 'All', items.length], ['soon', 'Use soon', soon.length], ['recent', 'Recently added', recent.length], ['long', 'Long-life', longLife.length]].filter(x => x[0] === 'all' || x[2]).map(([k, n, c]) => `<button class="chip" data-act="pFilter" data-val="${k}" aria-pressed="${filt === k}">${n}${k !== 'all' ? ` · ${c}` : ''}</button>`).join('')}</div>`;
   const sec = (title, arr) => arr.length ? `<section class="card flat"><div class="shop-h"><b>${title}</b><span class="small muted">${arr.length}</span></div>${arr.map(p => { const d = p.exp ? C.daysBetween(t, p.exp) : null; const cls = d == null ? 'none' : d < 0 ? 'hot' : d <= 3 ? 'warn' : ''; return `<div class="pi" data-act="pantryItem" data-key="${p.key}" style="cursor:pointer"><span class="dot ${cls}"></span><div class="grow"><div style="font-weight:700">${esc(p.name)}</div><div class="tiny muted">${p.item ? C.fmtQty(p.qty, p.unit) : ''}${d != null ? ` · ${d < 0 ? 'past its date' : d === 0 ? 'use today' : d === 1 ? '1 day left' : d > 60 ? 'keeps for ages' : d + ' days left'}` : ''}</div></div><span class="small muted">›</span></div>`; }).join('')}</section>` : '';
-  return h + sec('Use soon', soon) + sec('Fridge & cupboard', rest) + sec('Long-life', longLife);
+  const show = k => filt === 'all' || filt === k;
+  return h + (show('soon') ? sec('Use soon', soon) : '') + (show('recent') ? sec('Recently added', recent) : '') + (filt === 'all' ? sec('Fridge & cupboard', rest) : '') + (show('long') ? sec('Long-life', longLife) : '') + kit();
 }
 function viewMake() {
   const can = C.whatCanIMake(S).slice(0, 30);
@@ -1027,6 +1041,7 @@ const A = {
   rackDone: () => { S.rack = { set: true, have: Object.fromEntries(Object.entries(ui.rackDraft || {}).filter(([, v]) => v)) }; ui.rackDraft = null; ui.loIdeas = {}; save(); closeSheet(); render(); toast('Spice rack saved'); },
   gearOpen: () => openSheet(gearSheet()),
   gearTog: el => { const k = el.dataset.val, g = G.gearOf(S); g[k] = !g[k]; S.gear = g; save(); el.setAttribute('aria-pressed', !!g[k]); render(); },
+  pFilter: el => { ui.pFilter = el.dataset.val; render(); },
   unlockOpen: () => { openSheet(unlockSheet(null)); setTimeout(() => { ui.unlock = G.unlockers(S, 6, { serves: S.settings.household || 2 }); setSheet(unlockSheet(ui.unlock)); }, 30); },
   unlockAdd: el => { const id = el.dataset.val; if (!S.list.extras.some(x => x.item === id)) S.list.extras.push({ item: id, name: ITEM[id].n, qty: ITEM[id].packs[0] }); save(); toast(ITEM[id].n + ' added to your list'); if (ui.unlock) setSheet(unlockSheet(ui.unlock)); },
   scanOpen: () => { openSheet(scanSheet()); scanStart(); },

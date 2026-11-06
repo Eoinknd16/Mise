@@ -414,3 +414,17 @@ ol.steps2 p{margin:0;font-size:15px;line-height:1.45}
 .ilist{display:flex;flex-direction:column;gap:8px;margin-top:6px}
 .ilist>div{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:12px;background:var(--card);border:1px solid var(--line)}
 .ilist b{font-size:15px} .ilist span{font-size:13.5px;color:var(--muted);line-height:1.4}
+/* Pantry & equipment */
+.ask-in .btn.icon{border:0;background:transparent;min-height:44px;width:44px;padding:0;flex:none}
+.kit2{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.kitc{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:12px;border-radius:16px;background:var(--card);border:1px solid var(--line);color:inherit;font:inherit;text-align:left;cursor:pointer;min-height:96px}
+.kitc svg{width:22px;height:22px;color:var(--accent);margin-bottom:4px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.kitc b{font-size:14px}.kitc span{font-size:12px;color:var(--muted);line-height:1.25}
+.eq{display:flex;flex-direction:column;gap:8px}
+.eqi{display:flex;gap:12px;align-items:flex-start;text-align:left;padding:12px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:inherit;font:inherit;cursor:pointer}
+.eqi b{display:block;font-size:15px} .eqi span{display:block;font-size:13px;color:var(--muted);line-height:1.35}
+.eqi .reach{color:var(--accent);font-weight:600;margin-top:2px}
+.sw2{flex:none;width:40px;height:24px;border-radius:999px;background:var(--line);position:relative;margin-top:2px;transition:background .15s}
+.sw2::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .15s}
+.eqi[aria-pressed="true"] .sw2{background:var(--accent)} .eqi[aria-pressed="true"] .sw2::after{transform:translateX(16px)}
+.eqi[aria-pressed="false"] b{color:var(--muted)}
