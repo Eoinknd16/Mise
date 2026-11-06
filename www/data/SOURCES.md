@@ -6,3 +6,7 @@
 - **Mise's own authored data** — aroma families (js/flavour.js), pairing knowledge (js/pairings.js), techniques and food-safety guidance (js/techniques.js), recipe grammar and rules (js/chef.js, js/builder.js).
 
 Rebuild with `python3 tools/build_chefdb.py FNDDS_DIR SR28_DIR CNF_DIR`.
+
+## Fonts
+
+Fraunces and Inter, both under the SIL Open Font Licence 1.1 (licence texts in `www/fonts/`). Free to bundle in a commercial app.

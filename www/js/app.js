@@ -51,15 +51,17 @@ const stars = (n, act, key) => `<div class="stars" role="group" aria-label="Rati
 const shopsOpts = sel => S.settings.shops.concat(SHOPS.filter(s => !S.settings.shops.includes(s))).map(s => `<option${s === sel ? ' selected' : ''}>${esc(s)}</option>`).join('');
 
 /* ================= Router ================= */
-const TITLES = { plan: 'This week', recipes: 'Your meals', list: 'Shopping list', pantry: 'Pantry', more: 'Menu', make: 'What can I make?', builder: 'Make a meal', receipts: 'Receipts', deals: 'Deals', insights: 'Stats', settings: 'Settings', install: 'Install', quiz: 'Taste quiz', add: 'Your recipe', tastes: 'Your tastes', discover: 'Discover', week: 'Plan the week', lab: 'Flavour lab' };
+const TITLES = { plan: 'This week', recipes: 'Saved meals', list: 'Shopping list', pantry: 'Pantry', more: 'Menu', make: 'What can I make?', builder: 'What shall we cook?', receipts: 'Receipts', deals: 'Deals', insights: 'Stats', settings: 'Settings', install: 'Install', quiz: 'Taste quiz', add: 'Your recipe', tastes: 'Your tastes', discover: 'Discover', week: 'Plan the week', lab: 'Flavour lab' };
 const TAB_OF = { make: 'pantry', lab: 'builder' };
-const SUBPAGE = { week: 'plan', discover: 'recipes', tastes: 'more', add: 'recipes', make: 'pantry', receipts: 'more', deals: 'more', insights: 'more', settings: 'more', install: 'more', quiz: 'more', more: 'plan' };
+const SUBPAGE = { week: 'plan', recipes: 'more', tastes: 'more', add: 'recipes', make: 'pantry', receipts: 'more', deals: 'more', insights: 'more', settings: 'more', install: 'more', quiz: 'more', more: 'builder' };
+const OLD_ROUTES = { meals: 'recipes', saved: 'recipes', home: 'builder' };
 function checkShared() { const shared = M.readShareLink(location.hash); if (!shared) return false; ui.importing = shared; history.replaceState(null, '', location.pathname + '#recipes'); ui.route = 'recipes'; render(true); setTimeout(() => openSheet(`<h2>${esc(shared.title)}</h2><p class="small muted">Someone shared this recipe with you. ${shared.ings.length} ingredients, ${shared.steps.length} steps.</p><button class="btn primary block" data-act="importKeep">Save to my recipes</button>`), 200); return true; }
 function route() {
   if (/#import=/.test(location.hash)) { if (!$('#sheet').hidden) closeSheet(true); if (checkShared()) return; }
-  const h = (location.hash || '#plan').slice(1);
+  let h = (location.hash || '#builder').slice(1);
+  if (OLD_ROUTES[h]) { h = OLD_ROUTES[h]; history.replaceState(null, '', '#' + h); }
   if (h === 'tour') { history.replaceState(null, '', '#plan'); ui.route = 'plan'; route(); setTimeout(startTour, 150); return; }
-  ui.route = TITLES[h] ? h : 'plan';
+  ui.route = TITLES[h] ? h : 'builder';
   if (ui.route === 'quiz' && (!ui.quiz || ui.quiz.stage === 'done' || (ui.quiz.stage === 'swipe' && ui.quiz.i >= (ui.quiz.deck || []).length))) ui.quiz = { stage: 'diet', first: ui.quiz && ui.quiz.first };
   const tab = TAB_OF[ui.route] || ui.route;
   document.querySelectorAll('.tabbar a').forEach(a => { if (a.dataset.tab === tab) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
@@ -397,7 +399,7 @@ function viewMake() {
 
 /* ================= More ================= */
 function viewMore() {
-  const tiles = [['#receipts', ICON.receipt, 'Receipts', 'Scan & review'], ['#deals', ICON.tag, 'Deals', 'Offers you spotted'], ['#insights', ICON.chart, 'Stats', 'Savings, streaks, challenges'], ['#discover', ICON.spark, 'Discover', 'Swipe through recipes'], ['#tastes', ICON.pot, 'Your tastes', 'What you like & why'], ['#settings', ICON.gear, 'Settings', 'Household, shops, backup'], ['#tour', ICON.spark, 'App tour', 'How everything works'], ['#install', ICON.phone, 'Install', 'Home screen & Android']];
+  const tiles = [['#receipts', ICON.receipt, 'Receipts', 'Scan & review'], ['#deals', ICON.tag, 'Deals', 'Offers you spotted'], ['#insights', ICON.chart, 'Stats', 'Savings, streaks, challenges'], ['#recipes', ICON.pot, 'Saved meals', 'Regulars, yours, recent'], ['#tastes', ICON.pot, 'Your tastes', 'What you like & why'], ['#settings', ICON.gear, 'Settings', 'Household, shops, backup'], ['#tour', ICON.spark, 'App tour', 'How everything works'], ['#install', ICON.phone, 'Install', 'Home screen & Android']];
   return `<div class="more-grid">${tiles.map(t => `<a href="${t[0]}">${t[1]}<b>${t[2]}</b><span>${t[3]}</span></a>`).join('')}</div>`;
 }
 function viewInstall() {
@@ -766,7 +768,8 @@ function viewSettings() {
     <p class="tiny muted" style="margin:0">Used for "Ask AI", fridge photos and tricky imports. Everything else works without it.</p></div>
   <div class="card" data-tour="sLib"><h2>Recipe library</h2>${(() => { const L = C.libraryInfo(); return `<p class="small" style="margin:0">${ui.libBusy ? `<span class="spinner"></span> Downloading… ${Math.round(ui.libBusy * 100)}%` : L.count ? `<b>${L.count}</b> online recipes on this phone · updated ${new Date(L.at).toLocaleDateString()}` : 'Not downloaded yet (about 1 MB).'}</p><button class="btn" data-act="libSync"${ui.libBusy ? ' disabled' : ''}>${L.count ? 'Update now' : 'Download recipes'}</button>`; })()}
     <details><summary class="tiny muted">TheMealDB key</summary><label class="f"><input data-setting="mealdbKey" value="${esc(st.mealdbKey)}" autocomplete="off"></label></details></div>
-  <div class="card"><h2>Look & feel</h2><div class="seg">${[['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark']].map(([k, n]) => `<button data-act="setTheme" data-val="${k}" aria-pressed="${(st.theme || 'auto') === k}">${n}</button>`).join('')}</div>
+  <div class="card"><h2>Look & feel</h2><div class="themes" role="group" aria-label="Colour theme">${THEMES.map(([k, n, c]) => `<button data-act="setTheme" data-val="${k}" aria-pressed="${(st.theme || 'light') === k}"><span class="sw">${c.map(x => `<i style="background:${x}"></i>`).join('')}</span>${n}</button>`).join('')}</div>
+    <label class="row small" style="gap:10px"><input type="checkbox" data-act="themeAuto"${st.theme === 'auto' ? ' checked' : ''} style="width:22px;height:22px;min-height:0;accent-color:var(--accent)"><span>Match my phone (light or dark)</span></label>
     <div class="small muted" style="font-weight:600" data-tour="sPersona">Receipt reviews</div><div class="seg">${[['gentle', 'Gentle'], ['cheeky', 'Cheeky'], ['savage', 'Savage']].map(([k, n]) => `<button data-act="setTone" data-val="${k}" aria-pressed="${st.tone === k}">${n}</button>`).join('')}</div></div>
   <div class="card" data-tour="sBackup"><h2>Back up & move</h2><p class="small muted" style="margin:0">Everything stays on this phone.</p>
     <div class="row wrap"><button class="btn grow" data-act="exportData">Back up</button><label class="btn grow" for="importFile">Restore</label><input type="file" id="importFile" accept="application/json,.json" hidden data-change="importData"></div>
@@ -1166,6 +1169,7 @@ const A = {
   toggleShop: el => { const s = el.dataset.val, a = S.settings.shops; S.settings.shops = a.includes(s) ? a.filter(x => x !== s) : [...a, s]; if (!S.settings.shops.length) S.settings.shops = [s]; if (!S.settings.shops.includes(S.settings.defaultShop)) S.settings.defaultShop = S.settings.shops[0]; save(); render(); },
   setTone: el => { S.settings.tone = el.dataset.val; save(); render(); },
   setTheme: el => { S.settings.theme = el.dataset.val; applyTheme(); save(); render(); },
+  themeAuto: el => { S.settings.theme = el.checked ? 'auto' : (darkMQ.matches ? 'dark' : 'light'); applyTheme(); save(); render(); },
   exportData: async () => {
     const text = C.exportState(S), name = `mise-backup-${C.today()}.json`;
     try { const file = new File([text], name, { type: 'application/json' }); if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Mise backup' }); return; } } catch (e) { /* fall through */ }
@@ -1310,7 +1314,16 @@ function onboarding() {
     <label class="f" style="margin-top:12px">Weekly food budget (€, optional)<input type="number" inputmode="decimal" data-setting="budget" value="${S.settings.budget || ''}"></label>
     <button class="btn primary block" style="margin-top:16px" data-act="onbDone">Start planning</button>`);
 }
-function applyTheme() { const t = S.settings.theme || 'auto'; if (t === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', t); }
+const THEMES = [['light', 'Light', ['#f7f3ec', '#1f4d3a', '#a8b89a']], ['dark', 'Dark', ['#121814', '#8cc4a0', '#2c3630']], ['sage', 'Sage', ['#f1f4ee', '#4a6646', '#93a98a']], ['terracotta', 'Terracotta', ['#faf1ea', '#9e4429', '#c9a58e']], ['ocean', 'Ocean', ['#eff3f5', '#1f5673', '#8fb0bf']], ['plum', 'Plum', ['#f5f0f3', '#6b2f57', '#b99aae']]];
+const darkMQ = matchMedia('(prefers-color-scheme: dark)');
+function applyTheme() {
+  let t = S.settings.theme || 'light'; if (!THEMES.some(x => x[0] === t) && t !== 'auto') t = 'light';
+  try { localStorage.setItem('mise-theme', JSON.stringify(t)); } catch (e) { /* private mode */ }
+  if (t === 'auto') t = darkMQ.matches ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', t);
+  const m = document.querySelector('meta[name=theme-color]'); if (m) m.setAttribute('content', getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#f7f3ec');
+}
+darkMQ.addEventListener && darkMQ.addEventListener('change', () => { if (S && S.settings && S.settings.theme === 'auto') applyTheme(); });
 
 /* ================= Swipe down to close sheets ================= */
 (function sheetSwipe() {
@@ -1348,8 +1361,8 @@ async function openFirstMealSheet() {
 }
 const TOUR = [
   { route: 'plan', title: 'Welcome to Mise', text: 'A quick look at everything. Tap Next, or Skip to leave. You can restart it from the menu (☰) any time.' },
-  { route: 'plan', scopeDoc: true, sel: '.tabbar', title: 'Getting around', text: 'Plan your week, browse Recipes, Create something, your shopping List and your Pantry.' },
-  { route: 'plan', scopeDoc: true, sel: '#menuBtn', title: 'Menu', text: 'Discover, Your tastes, Stats, Receipts, Deals, Settings and this tour live here.' },
+  { route: 'plan', scopeDoc: true, sel: '.tabbar', title: 'Getting around', text: 'Home is where you ask what to cook. Discover finds new dishes, Plan is your week, then your shopping List and Pantry.' },
+  { route: 'plan', scopeDoc: true, sel: '#menuBtn', title: 'Menu', text: 'Saved meals, Your tastes, Stats, Receipts, Deals, Settings and this tour live here.' },
   { route: 'plan', sel: '[data-tour=tonight]', title: 'Tonight', text: 'Tonight\'s dinner, front and centre. "Start cooking" opens step-by-step cook mode with timers. "Change" lets you pick by mood: comfort food, something light, quick, or use what\'s in the fridge.' },
   { route: 'plan', sel: '[data-tour=weeknav]', title: 'Your week', text: 'Arrows move between weeks. Underneath: what the shopping should cost and where you\'re shopping.' },
   { route: 'plan', sel: '.day2', before: ensureMeals, title: 'Each night', text: 'Tap a dinner to open it, or the tick when it\'s cooked. Leftover nights and freezer meals cost nothing. (We added a few examples for the tour.)' },
@@ -1365,7 +1378,7 @@ const TOUR = [
   { sheet: true, sel: '[data-tour=rating]', title: 'Rate it', text: 'Tap the stars any time. Your ratings and Discover swipes shape the flavours, mains and dishes Mise builds for you.' },
   { sheet: true, sel: 'label[for=recipePhoto]', title: 'Add a photo', text: 'Tap "Add your photo" to use a picture you took of your own dish. Recipes without a photo try to find one online automatically.' },
   { sheet: true, sel: '.sheet-x', title: 'Closing a sheet', text: 'Close any sheet by swiping it down, tapping the ✕, tapping the dark area above it, or pressing your phone\'s back button.' },
-  { route: 'recipes', sel: '[data-tour=recTabs]', title: 'Your meals', text: 'Regulars are built meals you loved. Yours are recipes you added. Easy is oven and freezer meals. Recent is what Mise built lately.' },
+  { route: 'recipes', sel: '[data-tour=recTabs]', title: 'Saved meals', text: 'Regulars are built meals you loved. Yours are recipes you added. Easy is oven and freezer meals. Recent is what Mise built lately.' },
   { route: 'recipes', sel: '[data-tour=buildCta]', title: 'Make a meal', text: 'Say what you fancy and Mise builds three options around your tastes and what you have.' },
   { route: 'recipes', sel: '[data-tour=discoverCta]', title: 'Discover', text: 'Swipe through dishes from around the web: right if you\'d eat it, left if not. Mise doesn\'t plan these recipes; it learns the flavours and kinds of dinner you like. "My way" builds something similar from easy ingredients.' },
   { route: 'recipes', sel: '[data-tour=addRecipe]', title: 'Add your own', text: 'Type in a family favourite or paste a recipe from any website. Ingredients Mise doesn\'t know are kept as you wrote them and go on your list.' },
@@ -1458,7 +1471,7 @@ async function endTour() {
   if ('_tourB' in ui) { ui.builder = ui._tourB; ui.bDesc = ui._tourD; ui.ideas = ui._tourI; delete ui._tourB; delete ui._tourD; delete ui._tourI; }
   if (ui.tourAddedPlan) { S.plan = JSON.parse(ui.tourPlanSnap); ui.tourAddedPlan = false; }
   S.settings.tourSeen = true; save();
-  if (location.hash !== '#plan') location.hash = 'plan'; else render(true);
+  if (location.hash !== '#builder') location.hash = 'builder'; else render(true);
 }
 
 
