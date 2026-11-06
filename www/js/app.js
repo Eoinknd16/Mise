@@ -5,6 +5,7 @@ import * as G from './builder.js';
 import * as F from './flavour.js';
 import * as K from './chef.js';
 import * as TQ from './techniques.js';
+import * as PX from './prep.js';
 import { SHOPS, AISLES, CATALOG, ITEM, B_PROTEIN, B_BASE, B_STYLE, B_VEG } from './data.js';
 
 let S = null;               // persisted state
@@ -51,25 +52,27 @@ const stars = (n, act, key) => `<div class="stars" role="group" aria-label="Rati
 const shopsOpts = sel => S.settings.shops.concat(SHOPS.filter(s => !S.settings.shops.includes(s))).map(s => `<option${s === sel ? ' selected' : ''}>${esc(s)}</option>`).join('');
 
 /* ================= Router ================= */
-const TITLES = { plan: 'This week', recipes: 'Saved meals', list: 'Shopping list', pantry: 'Pantry', more: 'Menu', make: 'What can I make?', builder: 'Mise', receipts: 'Receipts', deals: 'Deals', insights: 'Stats', settings: 'Settings', install: 'Install', quiz: 'Taste quiz', add: 'Your recipe', tastes: 'Your tastes', discover: 'Discover', swipe: 'Teach Mise your taste', week: 'Plan the week', lab: 'Flavour lab' };
+const TITLES = { plan: 'This week', recipes: 'Saved meals', list: 'Shopping list', pantry: 'Pantry', more: 'Menu', make: 'What can I make?', builder: 'Mise', receipts: 'Receipts', deals: 'Deals', insights: 'Stats', settings: 'Settings', install: 'Install', quiz: 'Taste quiz', add: 'Your recipe', tastes: 'Your tastes', discover: 'Discover', swipe: 'Teach Mise your taste', week: 'Plan the week', lab: 'Flavour lab', ing: 'Ingredient' };
 const TAB_OF = { make: 'pantry', lab: 'builder' };
-const SUBPAGE = { swipe: 'discover', week: 'plan', recipes: 'more', tastes: 'more', add: 'recipes', make: 'pantry', receipts: 'more', deals: 'more', insights: 'more', settings: 'more', install: 'more', quiz: 'more', more: 'builder' };
+const SUBPAGE = { ing: 'builder', swipe: 'discover', week: 'plan', recipes: 'more', tastes: 'more', add: 'recipes', make: 'pantry', receipts: 'more', deals: 'more', insights: 'more', settings: 'more', install: 'more', quiz: 'more', more: 'builder' };
 const OLD_ROUTES = { meals: 'recipes', saved: 'recipes', home: 'builder' };
 function checkShared() { const shared = M.readShareLink(location.hash); if (!shared) return false; ui.importing = shared; history.replaceState(null, '', location.pathname + '#recipes'); ui.route = 'recipes'; render(true); setTimeout(() => openSheet(`<h2>${esc(shared.title)}</h2><p class="small muted">Someone shared this recipe with you. ${shared.ings.length} ingredients, ${shared.steps.length} steps.</p><button class="btn primary block" data-act="importKeep">Save to my recipes</button>`), 200); return true; }
 function route() {
   if (/#import=/.test(location.hash)) { if (!$('#sheet').hidden) closeSheet(true); if (checkShared()) return; }
+  ui.prevRoute = ui.route;
   let h = (location.hash || '#builder').slice(1);
   if (OLD_ROUTES[h]) { h = OLD_ROUTES[h]; history.replaceState(null, '', '#' + h); }
+  if (h.startsWith('ing/')) { const id = decodeURIComponent(h.slice(4)); if (ITEM[id]) ui.ingId = id; h = 'ing'; }
   if (h === 'tour') { history.replaceState(null, '', '#plan'); ui.route = 'plan'; route(); setTimeout(startTour, 150); return; }
   ui.route = TITLES[h] ? h : 'builder';
   if (ui.route === 'quiz' && (!ui.quiz || ui.quiz.stage === 'done' || (ui.quiz.stage === 'swipe' && ui.quiz.i >= (ui.quiz.deck || []).length))) ui.quiz = { stage: 'diet', first: ui.quiz && ui.quiz.first };
   const tab = TAB_OF[ui.route] || ui.route;
   document.querySelectorAll('.tabbar a').forEach(a => { if (a.dataset.tab === tab) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
-  const parent = SUBPAGE[ui.route]; $('#backBtn').hidden = !parent; $('#brandMark').style.display = parent ? 'none' : ''; if (parent) $('#backBtn').setAttribute('href', '#' + parent); $('#menuBtn').hidden = ui.route === 'more';
+  const parent = SUBPAGE[ui.route]; $('#backBtn').hidden = !parent; if (ui.route === 'ing') $('#backBtn').dataset.act = 'goBack'; else delete $('#backBtn').dataset.act; $('#brandMark').style.display = parent ? 'none' : ''; if (parent) $('#backBtn').setAttribute('href', '#' + parent); $('#menuBtn').hidden = ui.route === 'more';
   render(true);
 }
 function render(scrollTop) {
-  $('#viewTitle').textContent = ui.route === 'plan' ? (ui.weekOffset === 0 ? 'This week' : ui.weekOffset === 1 ? 'Next week' : ui.weekOffset === -1 ? 'Last week' : 'Week plan') : TITLES[ui.route];
+  $('#viewTitle').textContent = ui.route === 'ing' && ITEM[ui.ingId] ? ITEM[ui.ingId].n : ui.route === 'plan' ? (ui.weekOffset === 0 ? 'This week' : ui.weekOffset === 1 ? 'Next week' : ui.weekOffset === -1 ? 'Last week' : 'Week plan') : TITLES[ui.route];
   const v = VIEWS[ui.route] || VIEWS.plan;
   $('#view').innerHTML = v();
   if (scrollTop) window.scrollTo(0, 0);
@@ -651,6 +654,34 @@ function expCard(r, k) {
     <div class="small">${buy.length ? `Buy: ${esc(buy.map(id => ITEM[id].n.toLowerCase()).join(', '))}` : '<b style="color:var(--accent)">Nothing to buy</b>'}</div>
     <div class="row"><button class="btn primary grow" data-act="makeTonight" data-idx="${k}">Try it tonight</button><button class="btn grow" data-act="makeOpen" data-idx="${k}">See it</button></div></div>`;
 }
+/* ================= Ingredient Explorer ================= */
+const cap = x => String(x).charAt(0).toUpperCase() + String(x).slice(1);
+const TASTE_N = [['sweet', 'Sweet'], ['salty', 'Salty'], ['sharp', 'Sour'], ['bitter', 'Bitter'], ['umami', 'Umami'], ['heat', 'Heat'], ['rich', 'Rich']];
+function ingTaste(id) { try { const t = K.taste([[id, 100]]); const mx = { sweet: 20, salty: 1.2, rich: 30, sharp: 1.5, umami: 1.5, heat: 0.6, bitter: 1.3 }; return TASTE_N.map(([k, n]) => [n, Math.max(0, Math.min(1, (t[k] || 0) / mx[k]))]); } catch (e) { return null; } }
+function viewIng() {
+  const id = ui.ingId, it = ITEM[id];
+  if (!it) return `<div class="empty"><h3>Pick an ingredient</h3><p>Tap any ingredient in a recipe, or search the Flavour lab.</p><a class="btn" href="#lab">Flavour lab</a></div>`;
+  const have = C.pantryQty(S, id), ar = F.aroma(id), notes = ar && ar.n ? Object.entries(ar.n).sort((a, b) => b[1] - a[1]).filter(x => F.NOTES[x[0]]).slice(0, 4).map(x => F.NOTES[x[0]]) : [];
+  const t = ingTaste(id), n = K.ready() ? K.nutritionOf(id) : null, best = TQ.bestTechniques(id), prep = PX.PREP[id], vars = PX.VARIETY[id];
+  let P = null; try { P = ar ? F.partners(S, id, { n: 10 }) : null; } catch (e) { P = null; }
+  let sub = null; try { sub = C.substitutesFor(S, { item: id, name: it.n, q: 1, u: '' }); } catch (e) { sub = null; }
+  const like = C.likeOf(S, { item: id, name: it.n });
+  let h = `<section class="ing-hero">${tile({ spec: { method: { meat: 'roast', fish: 'panfry', veg: 'salad', fruitveg: 'salad', dairy: 'bake', pantry: 'simmer', spices: 'curry' }[it.cat] || 'simmer' } }, 'ing-tile')}<div class="grow"><div class="eyebrow">${esc({ fruitveg: 'Fruit & veg', meat: 'Meat', fish: 'Fish', dairy: 'Dairy', chilled: 'Chilled', frozen: 'Frozen', bakery: 'Bakery', pantry: 'Cupboard', spices: 'Spices & sauces', snacks: 'Snacks', drinks: 'Drinks' }[it.a] || it.a)}</div><h2>${esc(it.n)}</h2>
+    <div class="small ${have > 0 ? '' : 'muted'}">${have > 0 ? `<b style="color:var(--accent)">In your kitchen</b>` : 'Not in your kitchen'}${like > 0 ? ' · you love it' : like <= -9 ? " · can't eat" : like < 0 ? " · you don't like it" : ''}</div></div></section>
+    <button class="btn primary block" data-act="ingMeals" data-val="${id}">Meals with ${esc(it.n.toLowerCase())}</button>`;
+  if (notes.length || (t && t.some(x => x[1] > 0.05))) h += `<section class="r-sec"><h3>Flavour</h3>${notes.length ? `<p class="small" style="margin:4px 0 8px">${esc(notes.join(', '))}</p>` : ''}${t && t.some(x => x[1] > 0.05) ? `<div class="tbars">${t.filter(x => x[1] > 0.04).map(([k, v]) => `<div><span>${k}</span><i><b style="width:${Math.round(v * 100)}%"></b></i></div>`).join('')}</div>` : ''}</section>`;
+  if (best.length) h += `<section class="r-sec"><h3>Best ways to cook it</h3><div class="ilist">${best.slice(0, 5).map(tq => { const nt = TQ.noteOf(id, tq) || {}; return `<div><b>${esc(cap(TQ.TECH_NAMES[tq] || tq))}</b>${nt.time || nt.prep || nt.heat ? `<span>${esc([nt.prep, nt.time, nt.heat].filter(Boolean).join(' · '))}</span>` : ''}${nt.done ? `<span>Done: ${esc(nt.done)}</span>` : ''}</div>`; }).join('')}</div>${TQ.safeOf(id) ? `<p class="tiny muted" style="margin:6px 0 0">Safe to eat: ${esc(TQ.safeOf(id))}</p>` : ''}</section>`;
+  if (prep) h += `<section class="r-sec"><h3>Ways to prepare it</h3><div class="ilist">${prep.map(([w, d]) => `<div><b>${esc(w)}</b><span>${esc(d)}</span></div>`).join('')}</div></section>`;
+  if (vars) h += `<section class="r-sec"><h3>Which kind?</h3><div class="ilist">${vars.map(([w, d]) => `<div><b>${esc(w)}</b><span>${esc(d)}</span></div>`).join('')}</div></section>`;
+  if (P) { const grp = (k, title) => P[k] && P[k].length ? `<div class="small muted" style="font-weight:700;margin:8px 0 4px">${title}</div><div class="chips wrap">${P[k].filter(x => !(['meat', 'fish'].includes(it.a) && ['meat', 'fish'].includes((ITEM[x.id] || {}).a))).slice(0, 8).map(x => `<button class="chip" data-act="ingPick" data-val="${x.id}" title="${esc(x.why || '')}">${esc(ITEM[x.id].n)}${C.pantryQty(S, x.id) > 0 ? ' <span class="dot-have"></span>' : ''}</button>`).join('')}</div>` : '';
+    const body = grp('classic', 'Classic') + grp('surprising', 'Surprising') + grp('wild', 'Wild, but it works');
+    if (body) h += `<section class="r-sec"><div class="r-sec-h"><h3>Goes with</h3><a class="small" href="#lab" data-act="ingLab" data-val="${id}">Flavour lab ›</a></div>${body}</section>`; }
+  if (sub && sub.items && sub.items.length) h += `<section class="r-sec"><h3>Swap it for</h3><div class="chips wrap">${sub.items.slice(0, 6).map(sid => `<button class="chip" data-act="ingPick" data-val="${sid}">${esc(ITEM[sid].n)}</button>`).join('')}</div>${sub.tip ? `<p class="small muted" style="margin:6px 0 0">${esc(sub.tip)}</p>` : ''}</section>`;
+  const store = PX.STORE[id] || PX.STORE_AISLE[it.a];
+  if (store || it.life) h += `<section class="r-sec"><h3>Storing it</h3><p class="small" style="margin:4px 0 0">${esc(store || '')}${it.life ? ` ${it.life >= 365 ? 'Keeps a year or more.' : it.life >= 60 ? `Keeps about ${Math.round(it.life / 30)} months.` : it.life >= 14 ? `Keeps about ${Math.round(it.life / 7)} weeks.` : `Keeps about ${it.life} day${it.life > 1 ? 's' : ''}.`}` : ''}</p></section>`;
+  if (n && n.kcal != null) h += `<section class="r-sec"><h3>Nutrition <span class="small muted" style="font-family:var(--body);font-weight:400">per 100 g</span></h3><div class="nut">${[['Energy', Math.round(n.kcal) + ' kcal'], ['Protein', n.protein != null ? (+n.protein).toFixed(1) + ' g' : null], ['Carbs', n.carb != null ? (+n.carb).toFixed(1) + ' g' : null], ['Fat', n.fat != null ? (+n.fat).toFixed(1) + ' g' : null], ['Fibre', n.fiber != null ? (+n.fiber).toFixed(1) + ' g' : null], ['Salt', n.sodium != null ? (n.sodium * 2.5 / 1000).toFixed(2) + ' g' : null]].filter(x => x[1]).map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join('')}</div><p class="tiny muted" style="margin:6px 0 0">${esc(n.name || '')} · USDA / Canadian Nutrient File</p></section>`;
+  return h;
+}
 /* ================= Flavour lab ================= */
 function viewLab() {
   const L = ui.lab || (ui.lab = { sel: [] }), hero = L.sel[0];
@@ -670,6 +701,7 @@ function viewLab() {
     }
     const P = F.partners(S, hero, { n: 12 });
     const grp = (k, title, sub) => P[k].length ? `<section class="card flat"><div class="shop-h"><b>${title}</b><span class="tiny muted">${sub}</span></div><div class="chips wrap">${P[k].filter(x => !L.sel.includes(x.id)).map(x => `<button class="chip" data-act="labPick" data-val="${x.id}" title="${esc(x.why)}">${esc(ITEM[x.id].n)}</button>`).join('')}</div>${L.why && P[k].some(x => x.id === L.why) ? `<p class="tiny muted" style="margin:6px 0 0">${esc(P[k].find(x => x.id === L.why).why)}</p>` : ''}</section>` : '';
+    h += `<a class="btn block" href="#ing/${hero}">All about ${esc(ITEM[hero].n.toLowerCase())}: prep, storage, nutrition ›</a>`;
     const best = TQ.bestTechniques(hero);
     if (best.length) h += `<section class="card flat"><div class="shop-h"><b>Best ways to cook ${esc(ITEM[hero].n.toLowerCase())}</b></div>${best.slice(0, 5).map(t => { const nt = TQ.noteOf(hero, t) || {}; return `<div class="small" style="margin-top:6px"><b>${esc(TQ.TECH_NAMES[t] || t)}</b>${nt.time || nt.prep ? ` <span class="tiny muted">${esc([nt.prep, nt.time, nt.heat].filter(Boolean).join(' · '))}</span>` : ''}</div>`; }).join('')}${TQ.safeOf(hero) ? `<div class="tiny muted" style="margin-top:6px">Done: ${esc(TQ.safeOf(hero))}</div>` : ''}</section>`;
     h += `<h3 style="margin:10px 2px 4px">Goes with ${esc(ITEM[hero].n.toLowerCase())}</h3>` + grp('classic', 'Classic', 'everyone does these') + grp('surprising', 'Surprising', 'shared flavours') + grp('wild', 'Wild', 'odd on paper, works in the pan');
@@ -1040,7 +1072,7 @@ const A = {
   pantryItem: el => {
     const p = S.pantry.find(x => x.key === el.dataset.key); if (!p) return; ui.pItem = p;
     openSheet(`<h2>${esc(p.name)}</h2>${p.item ? `<label class="f" style="margin-top:10px">Amount left (${p.unit === 'pc' ? 'count' : p.unit})<input type="number" inputmode="decimal" id="pQty" value="${Math.round(p.qty * 10) / 10}"></label>` : ''}<label class="f" style="margin-top:8px">Use by<input type="date" id="pExp" value="${p.exp || ''}"></label>
-      <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px"><button class="btn primary" data-act="pSave">Save</button><button class="btn" data-act="pUsed">Used it all</button><button class="btn" data-act="pBinned" style="color:var(--hot)">Binned it</button></div><p class="tiny muted">"Binned it" helps Mise suggest smaller packs or meals that use things up.</p>`);
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px"><button class="btn primary" data-act="pSave">Save</button><button class="btn" data-act="pUsed">Used it all</button><button class="btn" data-act="pBinned" style="color:var(--hot)">Binned it</button>${p.item && ITEM[p.item] ? `<a class="btn ghost" href="#ing/${p.item}" data-act="exploreIng" data-val="${p.item}">About ${esc(ITEM[p.item].n.toLowerCase())} ›</a>` : ''}</div><p class="tiny muted">"Binned it" helps Mise suggest smaller packs or meals that use things up.</p>`);
   },
   pSave: () => { const p = ui.pItem; const q = $('#pQty'); if (q) p.qty = Math.max(0, parseFloat(q.value) || 0); p.exp = $('#pExp').value || null; if (p.item && p.qty <= 0) S.pantry = S.pantry.filter(x => x !== p); save(); closeSheet(); render(); },
   pUsed: () => { S.pantry = S.pantry.filter(x => x !== ui.pItem); save(); closeSheet(); render(); },
@@ -1116,8 +1148,14 @@ const A = {
       ${i.prep ? `<div class="small muted" style="font-weight:700">Just ${esc(pn)}, like in this recipe</div><div class="row"><button class="btn grow" style="${pv < 0 ? 'border-color:var(--accent);background:var(--accent-soft)' : ''}" data-act="setLike" data-scope="prep" data-val="${pv < 0 ? 0 : -1}">Not ${esc(pn)}</button><button class="btn grow" style="${pv > 0 ? 'border-color:var(--accent);background:var(--accent-soft)' : ''}" data-act="setLike" data-scope="prep" data-val="${pv > 0 ? 0 : 1}">Love it ${esc(pn)}</button></div>${alt ? `<p class="tiny muted" style="margin:0">Recipes adapt: ${esc(alt[1])}</p>` : ''}<div class="small muted" style="font-weight:700;margin-top:8px">${esc(i.name)} in general</div>` : '<p class="small muted">Used for suggestions and built meals, in every recipe with it.</p>'}
       <div style="display:flex;flex-direction:column;gap:8px">${[[1, 'Love it', 'More meals with this'], [0, 'No opinion', 'Treat it normally'], [-1, "Don't like it", 'Suggest it less and leave it out of built meals'], [-9, "Can't eat it", 'Allergy or diet: never suggest meals with it']].map(([v, n, d]) => `<button class="btn" style="justify-content:flex-start;text-align:left;min-height:56px;${cur === v ? 'border-color:var(--accent);background:var(--accent-soft)' : ''}" data-act="setLike" data-val="${v}"><div><b>${n}</b><div class="tiny muted" style="font-weight:500">${d}</div></div></button>`).join('')}
       <button class="btn" data-act="cantGet" style="margin-top:6px">${C.subOf(S, i) ? 'Change swap' : `Can't get it at ${esc(S.settings.defaultShop)}?`}</button>
+      ${i.item && ITEM[i.item] ? `<a class="btn" href="#ing/${i.item}" data-act="exploreIng" data-val="${i.item}">Explore ${esc(ITEM[i.item].n.toLowerCase())}: pairings, prep, storage</a>` : ''}
       <button class="btn ghost" data-act="backToRecipe">Back to recipe</button></div>`);
   },
+  exploreIng: el => { const id = el.dataset.val; closeSheet(false, () => { location.hash = 'ing/' + id; }); },
+  goBack: () => { if (history.length > 1 && ui.prevRoute) history.back(); else location.hash = 'builder'; },
+  ingMeals: el => { const id = el.dataset.val, B = ui.make || (ui.make = { text: '', chips: [], res: null }); B.text = ITEM[id].n; B.ask = null; B.chips = B.chips.filter(x => x !== 'exp'); location.hash = 'builder'; setTimeout(() => { makeRun(false); render(); }, 0); },
+  ingPick: el => { location.hash = 'ing/' + el.dataset.val; },
+  ingLab: el => { ui.lab = { sel: [el.dataset.val] }; location.hash = 'lab'; },
   cantGet: () => { ui.subFromList = false; cantGetSheet(); },
   cantGetList: () => { const r = ui.menuRow; ui.ingSel = { item: r.item, name: r.name, q: 1, u: '' }; ui.sheetRecipe = null; ui.subFromList = true; cantGetSheet(); },
   pickSub: el => {
@@ -1988,7 +2026,7 @@ function viewAdd() {
 function fillDraftFrom(r) { const e = ui.editDraft; e.title = r.title; e.serves = r.serves; e.time = r.time; e.ing = r.ings.map(i => i.raw || `${i.q} ${i.u} ${i.name}`).join('\n'); e.steps = r.steps.join('\n'); if (r.img) e.img = r.img; e.url = r.url; }
 function readAddForm() { const e = ui.editDraft; e.title = $('#arTitle').value.trim(); e.serves = +$('#arServes').value || 2; e.time = +$('#arTime').value || 30; e.ing = $('#arIng').value; e.steps = $('#arSteps').value; e.batch = $('#arBatch').checked; return e; }
 
-const VIEWS = { make: () => { ui.make = { text: '', chips: ['have'], res: null }; makeRun(false); history.replaceState(null, '', '#builder'); ui.route = 'builder'; return viewBuilder(); }, week: viewWeek, discover: viewDisco, swipe: viewDiscover, tastes: viewTastes, add: viewAdd, quiz: viewQuiz, plan: viewPlan, recipes: viewRecipes, list: viewList, pantry: viewPantry, more: viewMore, receipts: viewReceipts, builder: viewBuilder, lab: viewLab, deals: viewDeals, insights: viewInsights, settings: viewSettings, install: viewInstall };
+const VIEWS = { make: () => { ui.make = { text: '', chips: ['have'], res: null }; makeRun(false); history.replaceState(null, '', '#builder'); ui.route = 'builder'; return viewBuilder(); }, week: viewWeek, discover: viewDisco, swipe: viewDiscover, tastes: viewTastes, add: viewAdd, quiz: viewQuiz, plan: viewPlan, recipes: viewRecipes, list: viewList, pantry: viewPantry, more: viewMore, receipts: viewReceipts, builder: viewBuilder, lab: viewLab, ing: viewIng, deals: viewDeals, insights: viewInsights, settings: viewSettings, install: viewInstall };
 async function syncLib(manual) {
   if (ui.libBusy) return; ui.libBusy = 0.01; if (ui.route === 'settings') render();
   try { const before = C.libraryInfo().count; const n = await C.syncLibrary(S, f => { ui.libBusy = Math.max(0.01, f); if (ui.route === 'settings') { const y = scrollY; render(); scrollTo(0, y); } }); ui.libBusy = 0; refreshRecipes(); if (manual || !before) toast(`${n} recipes ready, even offline`); }
