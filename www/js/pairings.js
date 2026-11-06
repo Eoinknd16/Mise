@@ -46,6 +46,7 @@ cucumber: dill yogurt mint lemon garlic vinegar chilli sesame ~strawberries ~gin
 beetroot: goats-cheese feta orange dill horseradish walnuts apple balsamic ~chocolate ~cumin
 butternut: sage chilli feta nutmeg cinnamon ginger coconut curry ~maple ~blue-cheese
 asparagus: lemon butter parmesan egg salmon ham mint ~orange
+tenderstem: garlic chilli lemon soy_sauce sesame ginger parmesan butter almonds anchovies salmon steak chicken-thigh ~miso ~blue-cheese
 apple: pork cinnamon cheddar sage blue-cheese walnuts honey celery ~fennel ~black-pudding
 pears: blue-cheese walnuts ginger cinnamon chocolate honey ~rocket ~vanilla
 orange: duck chocolate fennel beetroot carrot ginger cinnamon olives ~chilli ~rosemary

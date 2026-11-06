@@ -88,7 +88,7 @@ export const VEG = {
   onion: V(75, 'firm', { base: true }), 'red-onion': V(75, 'firm'), pepper: V(0.5, 'firm'), courgette: V(0.5, 'firm'), mushroom: V(80, 'firm'), aubergine: V(0.4, 'firm'), leek: V(80, 'firm'), cabbage: V(0.15, 'firm'),
   broccoli: V(80, 'hard'), cauliflower: V(0.25, 'hard'), carrot: V(80, 'hard'), butternut: V(0.25, 'hard'), 'sweet-potato': V(150, 'hard'),
   'frozen-veg': V(100, 'quick'), peas: V(70, 'quick'), sweetcorn: V(60, 'quick'), 'cherry-tomato': V(80, 'quick'), tomato: V(1, 'quick'), 'green-beans': V(70, 'quick'), 'sugar-snap': V(50, 'quick'),
-  celery: V(40, 'firm'), beetroot: V(80, 'side'), parsnip: V(80, 'hard'), asparagus: V(60, 'quick'), 'corn-cob': V(1, 'side'), radish: V(40, 'side'), 'salad-veg': V(90, 'quick'),
+  celery: V(40, 'firm'), beetroot: V(80, 'side'), parsnip: V(80, 'hard'), asparagus: V(60, 'quick'), tenderstem: V(70, 'quick'), 'corn-cob': V(1, 'side'), radish: V(40, 'side'), 'salad-veg': V(90, 'quick'),
   spinach: V(40, 'leafy'), kale: V(40, 'leafy'),
   salad: V(40, 'side'), cucumber: V(0.25, 'side'), avocado: V(0.5, 'side'), coleslaw: V(75, 'side')
 };
@@ -382,7 +382,7 @@ export function buildMeal(state, sp, serves, stock) {
   // Loose steps
   const mN = main.n, hard = veg.filter(v => VEG[v].kind === 'hard'), firm = veg.filter(v => VEG[v].kind === 'firm'), quick = veg.filter(v => VEG[v].kind === 'quick'), leafy = veg.filter(v => VEG[v].kind === 'leafy'), side = veg.filter(v => VEG[v].kind === 'side');
   // wet dishes: delicate veg go in for the last few minutes (technique database), not for the whole simmer
-  if (['simmer', 'curry', 'soup', 'pasta', 'noodlesoup', 'risotto'].includes(sp.method)) { const LATE = new Set(['broccoli', 'green-beans', 'peas', 'courgette', 'sugar-snap', 'asparagus', 'frozen-veg', 'cauliflower']); for (const g of [hard, firm]) for (const v of g.filter(x => LATE.has(x))) { g.splice(g.indexOf(v), 1); if (!quick.includes(v)) quick.push(v); } }
+  if (['simmer', 'curry', 'soup', 'pasta', 'noodlesoup', 'risotto'].includes(sp.method)) { const LATE = new Set(['broccoli', 'tenderstem', 'green-beans', 'peas', 'courgette', 'sugar-snap', 'asparagus', 'frozen-veg', 'cauliflower']); for (const g of [hard, firm]) for (const v of g.filter(x => LATE.has(x))) { g.splice(g.indexOf(v), 1); if (!quick.includes(v)) quick.push(v); } }
   const vn = arr => join(arr.map(vegName));
   const flavour = kit.sauce || kit.rub, rub = kit.rub || kit.sauce;
   const potato = form === 'mash' ? `Boil the ${base.n} until soft, then mash with butter and a splash of milk.` : form === 'wedges' ? `Cut the ${base.n} into wedges, toss with oil and salt and roast at 200°C for 35 minutes.` : null;
@@ -604,7 +604,7 @@ export function buildMeal(state, sp, serves, stock) {
       break;
     }
     case 'braise': {
-      const late = v => ['broccoli', 'cauliflower', 'green-beans', 'peas', 'asparagus', 'sugar-snap', 'frozen-veg'].includes(v); hard.splice(0, hard.length, ...hard.filter(v => !late(v))); quick.push(...veg.filter(v => late(v) && !quick.includes(v)));
+      const late = v => ['broccoli', 'tenderstem', 'cauliflower', 'green-beans', 'peas', 'asparagus', 'sugar-snap', 'frozen-veg'].includes(v); hard.splice(0, hard.length, ...hard.filter(v => !late(v))); quick.push(...veg.filter(v => late(v) && !quick.includes(v)));
       const hrs = J ? 3 : 2; roastMins = hrs * 60 + 30;
       steps.push(`Heat the oven to 160°C. ${J ? `Season the ${mN} and brown it all over in a big ovenproof pot` : main.cook.replace('Fry', 'Brown')}.`);
       steps.push(`Add an onion${hard.length ? ` and chunky ${vn(hard)}` : ''}${firm.filter(v => v !== 'onion').length ? `, ${vn(firm.filter(v => v !== 'onion'))}` : ''}, then ${flavour || 'a tin of tomatoes'} and stock to come halfway up.`);
@@ -963,6 +963,8 @@ export function candidates(state, opts = {}) {
         { const cur = CURED.has(mid) ? 1 : 0; let n = cur; for (let i = adds.length - 1; i >= 0; i--) { const x = adds[i]; if (!CURED.has(x)) continue; if (n >= 1 || (x === 'ham' && ['beef', 'lamb', 'fish', 'pork'].includes(m.grp)) || (m.grp === 'fish')) adds.splice(i, 1); else n++; } }
         // a classic dish keeps to its classic ingredients: no ham in a bolognese
         const nm0 = NAMED.find(x => x.main.includes(mid) && x.kit.split(' ').includes(kid) && x.method.split(' ').includes(meth) && (!x.base || x.base.includes(base)));
+        // you asked for green beans: don't push them into a bolognese, cook something they belong in
+        if (nm0 && !want.named && want.veg && want.veg.length) { const cn = CANON[nm0.n] || {}; if (cn.veg && want.veg.some(v => !cn.veg.includes(v))) continue; }
         if (nm0) { const cn = CANON[nm0.n] || CANON_DEF[meth] || {}, okA = cn.add || [];
           for (let i = adds.length - 1; i >= 0; i--) if (!okA.includes(adds[i]) && !(opts.mustUse && opts.mustUse.has && opts.mustUse.has(adds[i]))) adds.splice(i, 1);
           if (cn.veg) { const keep = veg.filter(v => cn.veg.includes(v) || (want.veg && want.veg.includes(v))); veg.splice(0, veg.length, ...keep); const target = Math.min(cn.n ?? 2, cn.veg.length);
@@ -1188,6 +1190,20 @@ export function parseWant(state, text) {
   const qm = /(\d+(?:[.,]\d+)?)\s*(kg|kilo|kilos|g|grams?)\b/.exec(text.toLowerCase());
   if (qm) { const v = parseFloat(qm[1].replace(',', '.')); want.qty = /^k/.test(qm[2]) ? v * 1000 : v; }
   clean = clean.replace(/\b\d+(?:[.,]\d+)?\s*(?:kg|kilos?|g|grams?)\b/g, ' ').replace(/\b\d+(?:[.,]\d+)?\b/g, ' ');
+  // 0) Vegetables you name ("fresh green beans", "tenderstem broccoli") are claimed first, longest phrase first,
+  //    so "beans" in "green beans" never turns into kidney beans and "fresh" there isn't a flavour request
+  { const DESC = new Set(['fresh', 'frozen', 'some', 'my', 'the', 'a', 'few', 'bit', 'of', 'leftover', 'baby', 'fine']);
+    const ws = clean.trim().split(/\s+/), used = new Array(ws.length).fill(false);
+    for (const len of [3, 2, 1]) for (let i = 0; i + len <= ws.length; i++) {
+      if (used.slice(i, i + len).some(Boolean) || DESC.has(ws[i])) continue;
+      const ph = ws.slice(i, i + len).join(' '); if (len === 1 && ph.length < 4) continue;
+      const id = C.matchIngredient(ph); if (!id || !VEG[id] || MAINS[id] || exclude.has(id)) continue;
+      { const it = ITEM[id], hay = new Set(norm([it.n, ...(it.al || [])].join(' ')).split(/\s+/).map(w => w.replace(/s$/, ''))); if (!ph.split(' ').every(w => hay.has(w.replace(/s$/, '')))) continue; }
+      if (len === 1 && (['pork', 'beef', 'chicken', 'lamb', 'fish', 'turkey'].includes(ph) || ['beans', 'bean', 'rice', 'pasta', 'potato', 'potatoes'].includes(ph))) continue;
+      if (!want.veg.includes(id)) want.veg.push(id);
+      for (let k = i; k < i + len; k++) used[k] = true; for (let k = i - 1; k >= 0 && DESC.has(ws[k]); k--) used[k] = true;
+    }
+    if (used.some(Boolean)) clean = ' ' + ws.filter((_, k) => !used[k]).join(' ') + ' '; }
   // 1) The exact thing you typed comes first: "pork roast", "leg of lamb", "chicken wings", "brisket"
   const stock = pantryStock(state), sg = w => w.replace(/ies$/, 'y').replace(/(?<=[^s])s$/, '');
   const GROUPW = { pork: 'pork', beef: 'beef', chicken: 'chicken', lamb: 'lamb', fish: 'fish', turkey: 'chicken' };
@@ -1220,7 +1236,7 @@ export function parseWant(state, text) {
   const rest = words.filter(w => !SKIPW.has(w) && !SYN_MAIN[w] && !SYN_BASE[w] && w.length > 2);
   for (let i = 0; i < rest.length; i++) for (const len of [2, 1]) { const ph = rest.slice(i, i + len).join(' '); const id = C.matchIngredient(ph); if (!id || exclude.has(id)) continue; if (MAINS[id] && !want.main) want.main = id; else if (BASES[id] && !want.base) want.base = id; else if (VEG[id] && !want.veg.includes(id)) want.veg.push(id); break; }
   const TAGW = { creamy: 'fl:creamy', cheesy: 'fl:cheesy', spicy: 'fl:spicy', smoky: 'fl:smoky', sticky: 'fl:sweet', sweet: 'fl:sweet', zesty: 'fl:zesty', lemony: 'fl:zesty', herby: 'fl:herby', fresh: 'fl:herby' };
-  for (const [w, tg] of Object.entries(TAGW)) if (clean.includes(' ' + w + ' ')) { want.tag = tg; break; }
+  for (const [w, tg] of Object.entries(TAGW)) if (clean.includes(' ' + w + ' ') && !(w === 'fresh' && !/ fresh (and |or |please |tasting |\s*$)/.test(clean + ' '))) { want.tag = tg; break; }
   if (/\bquick|fast|easy|20 min/.test(clean)) mods.quick = true; if (/\bcheap|budget|thrifty/.test(clean)) mods.cheap = true; if (/\bhealthy|light|lighter|healthier/.test(clean)) mods.healthy = true;
   if (/\bspicy|hot|kick/.test(clean)) mods.spicy = true; if (/\bveggie|vegetarian|meat free|meatless/.test(clean)) mods.veggie = true; if (/\bcomfort|cosy|cozy/.test(clean)) mods.mood = 'comfort';
   // A dish you named ("chilli con carne", "bolognese", "tikka masala") sets the flavour and the way it's cooked

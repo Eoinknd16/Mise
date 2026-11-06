@@ -113,6 +113,7 @@ export const VEGTECH = {
   peas: { fit: { simmer: 2, boil: 2, stirfry: 2, sear: 1, raw: 1 }, prep: 'from frozen', boil: '2–3 min', simmer: 'last 3 min' },
   'green-beans': { fit: { boil: 2, steam: 2, stirfry: 2, sear: 2, roast: 2, simmer: 1 }, prep: 'tops trimmed', boil: '4–5 min', stirfry: '4–5 min', roast: '15 min at 200°C' },
   'sugar-snap': { fit: { stirfry: 2, steam: 2, raw: 2, boil: 2 }, prep: 'as they are', stirfry: '2 min' },
+  tenderstem: { fit: { roast: 2, sear: 2, grill: 2, steam: 2, boil: 2, stirfry: 2, airfry: 2, simmer: 1, braise: 0, slowcook: 0 }, prep: 'trim the ends; halve thick stems lengthways', roast: '12–15 min at 200°C until the tips char', sear: '4–5 min in a hot pan, then a splash of water and a lid for 1 min', steam: '3–4 min', boil: '2–3 min', stirfry: '3–4 min', done: 'bright green, stems tender to a knife but still snappy' },
   asparagus: { fit: { roast: 2, sear: 2, grill: 2, steam: 2, boil: 2, airfry: 2 }, prep: 'woody ends snapped off', roast: '10–12 min at 200°C', sear: '4–5 min', steam: '3–4 min' },
   butternut: { fit: { roast: 2, simmer: 2, braise: 2, airfry: 2, steam: 1 }, prep: 'peeled, seeds out, 2–3 cm chunks', roast: '30–35 min at 200°C', simmer: '15–20 min' },
   parsnip: { fit: { roast: 2, boil: 2, simmer: 2, airfry: 2 }, prep: 'quartered lengthways, woody core out', roast: '30–35 min at 200°C, drizzle honey for the last 10' },

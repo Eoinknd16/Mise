@@ -19,7 +19,8 @@ carrot|Carrots|fruitveg|g|1000|0.89|21|veg|carrots||carrot:80;large:120
 celery|Celery|fruitveg|g|500|1.19|14|veg|celery sticks;celery stalk||stick:40;stalk:40
 pepper|Peppers|fruitveg|pc|3|1.69|10|veg|bell pepper;red pepper;green pepper;yellow pepper;peppers mixed;sweet pepper|
 courgette|Courgettes|fruitveg|pc|2|1.29|10|veg|zucchini;courgettes|
-broccoli|Broccoli|fruitveg|g|350|0.89|7|veg|broccoli head;tenderstem||head:350;floret:20
+broccoli|Broccoli|fruitveg|g|350|0.89|7|veg|broccoli head||head:350;floret:20
+tenderstem|Tenderstem broccoli|fruitveg|g|200|1.49|6|veg|tenderstem;broccolini;brocollini;brocolini;broccollini;baby broccoli;long stem broccoli||bunch:200
 cauliflower|Cauliflower|fruitveg|pc|1|1.29|7|veg|cauli|
 spinach|Spinach|fruitveg|g|240|1.49|4|veg|baby spinach;spinach leaves||handful:30;bag:240
 salad|Salad leaves|fruitveg|g|120|1.19|4|veg|mixed leaves;rocket;lettuce;iceberg;little gem;salad bag||head:250;handful:20
@@ -225,7 +226,7 @@ parsnip|Parsnips|fruitveg|g|500|0.89|21|veg|parsnip;turnip;swede|
 butternut|Butternut squash|fruitveg|pc|1|1.29|30|veg|squash;pumpkin|
 kale|Kale|fruitveg|g|200|1.29|5|veg|cavolo nero;pak choi;bok choy;spring greens|
 asparagus|Asparagus|fruitveg|g|250|2.49|4|veg||
-sugar-snap|Mangetout & sugar snaps|fruitveg|g|150|1.29|5|veg|mange tout;sugar snap peas;baby corn;tenderstem|
+sugar-snap|Mangetout & sugar snaps|fruitveg|g|150|1.29|5|veg|mange tout;sugar snap peas;baby corn|
 corn-cob|Corn on the cob|fruitveg|pc|2|1.29|5|veg|corn cobs;sweetcorn cobs|
 radish|Radishes|fruitveg|g|200|0.79|7|veg|radish;spring onions bunch|
 mint|Fresh mint|fruitveg|g|20|0.99|6|veg|mint;chives;fresh herbs|

@@ -35,7 +35,7 @@ def('apple', 'Fr3 Gr2 Fl1', 'sa'); def('pears', 'Fr3 Gr1 Fl1', 's'); def('banana
 def('orange', 'Ci3 Fr1 Fl1', 'sa'); def('lemon', 'Ci3 Pi1', 'a'); def('lime', 'Ci3 Pi1', 'a'); def('kiwi', 'Gr2 Fr2', 'a'); def('melon', 'Gr2 Fr2', 's'); def('grapes', 'Fr2 Fl1', 's');
 def('pomegranate', 'Fr2', 'sa'); def('rhubarb', 'Gr2 Fr1', 'a'); def('dates', 'Ca3', 's'); def('plums tinned-fruit', 'Fr2 Ca1', 'sa'); def('avocado', 'Gr1 Cr2', 'f');
 // veg
-def('onion red-onion', 'Sv3 Ca1', 's'); def('garlic', 'Sv3', ''); def('spring-onion leek', 'Sv2 Gr1', ''); def('cabbage broccoli cauliflower', 'Sv2 Gr1 Ea1', 'b'); def('asparagus', 'Sv2 Gr1', '');
+def('onion red-onion', 'Sv3 Ca1', 's'); def('garlic', 'Sv3', ''); def('spring-onion leek', 'Sv2 Gr1', ''); def('cabbage broccoli cauliflower', 'Sv2 Gr1 Ea1', 'b'); def('asparagus', 'Sv2 Gr1', ''); def('tenderstem', 'Sv2 Gr2 Ea1', 'b');
 def('potato', 'Ea2 Sv1 R1', ''); def('sweet-potato butternut', 'Ca2 Ea1 Fl1', 's'); def('carrot', 'Fl2 Pi1 Ea1', 's'); def('parsnip', 'Ca1 Ea1 Sp1', 's'); def('beetroot', 'Ea3 Ca1', 's');
 def('mushroom', 'Ea3 Um2 Sv1', ''); def('pepper', 'Ea2 Gr2 Fr1', 's'); def('tomato cherry-tomato chopped-tomatoes passata tomato-puree', 'Gr2 Ca2 Fr1 Um2', 'sa');
 def('cucumber', 'Gr3', ''); def('peas', 'Gr2', 's'); def('sweetcorn', 'Sv1 Ca1', 's'); def('courgette green-beans', 'Gr2', ''); def('spinach kale', 'Ea1 Gr1', 'b'); def('aubergine', 'Ea1', 'b'); def('fennel', 'An3 Gr1', 's');

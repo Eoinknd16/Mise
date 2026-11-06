@@ -792,7 +792,7 @@ const SUB_RAW = {
   spaghetti: 'pasta', 'fresh-pasta': 'pasta', basmati: 'rice', noodles: 'spaghetti rice', couscous: 'rice grains', grains: 'rice couscous', gnocchi: 'potato pasta', lasagne: 'pasta',
   naan: 'pitta wraps', pitta: 'wraps naan', wraps: 'pitta naan', buns: 'bread baguette', baguette: 'bread', 'pizza-dough': 'wraps', breadcrumbs: 'crackers oats',
   courgette: 'aubergine pepper', aubergine: 'courgette mushroom', kale: 'spinach cabbage', spinach: 'kale frozen-veg', leek: 'onion', 'red-onion': 'onion', 'spring-onion': 'onion red-onion', celery: 'onion carrot',
-  butternut: 'sweet-potato carrot', 'sweet-potato': 'butternut potato', parsnip: 'carrot', 'green-beans': 'peas broccoli', 'sugar-snap': 'peas green-beans', asparagus: 'green-beans broccoli', beetroot: 'carrot',
+  butternut: 'sweet-potato carrot', 'sweet-potato': 'butternut potato', parsnip: 'carrot', 'green-beans': 'peas broccoli tenderstem', tenderstem: 'broccoli green-beans asparagus', 'sugar-snap': 'peas green-beans', asparagus: 'green-beans broccoli', beetroot: 'carrot',
   'cherry-tomato': 'tomato', tomato: 'cherry-tomato chopped-tomatoes', avocado: 'cucumber', 'corn-cob': 'sweetcorn', sweetcorn: 'peas', cauliflower: 'broccoli', broccoli: 'cauliflower green-beans', mushroom: 'courgette',
   lime: 'lemon vinegar', lemon: 'lime vinegar', coriander: 'parsley basil', basil: 'parsley oregano', parsley: 'coriander', thyme: 'oregano rosemary', rosemary: 'thyme oregano', mint: 'parsley',
   chilli: 'chilli-powder hot-sauce', 'oyster-sauce': 'soy-sauce', worcestershire: 'soy-sauce', 'bbq-sauce': 'ketchup', 'sweet-chilli': 'hot-sauce honey', 'hot-sauce': 'chilli-powder', honey: 'syrup sugar', syrup: 'honey',

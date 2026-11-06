@@ -10,7 +10,7 @@ const G = {
   breadcrumbs: 'breadcrumbs', tortilla: 'wraps', bread: 'bread buns naan pitta baguette garlic-bread', potato: 'potato chips hash-browns', sweet_potato: 'sweet-potato butternut',
   onion: 'onion red-onion spring-onion leek', garlic: 'garlic garlic-granules', tomato: 'tomato cherry-tomato chopped-tomatoes passata', tomato_paste: 'tomato-puree',
   pepper: 'pepper', chilli: 'chilli jalapenos sriracha hot-sauce', carrot: 'carrot parsnip', celery: 'celery fennel', mushroom: 'mushroom', spinach: 'spinach kale',
-  broccoli: 'broccoli', cauliflower: 'cauliflower', cabbage: 'cabbage coleslaw kimchi', lettuce: 'salad salad-veg', cucumber: 'cucumber pickles gherkins', courgette: 'courgette',
+  broccoli: 'broccoli tenderstem', cauliflower: 'cauliflower', cabbage: 'cabbage coleslaw kimchi', lettuce: 'salad salad-veg', cucumber: 'cucumber pickles gherkins', courgette: 'courgette',
   aubergine: 'aubergine', green_beans: 'green-beans sugar-snap asparagus', peas: 'peas frozen-veg', sweetcorn: 'sweetcorn corn-cob', chickpeas: 'chickpeas hummus',
   beans: 'kidney-beans baked-beans butter-beans', lentils: 'lentils', avocado: 'avocado', lemon: 'lemon', lime: 'lime', orange: 'orange', apple: 'apple pears',
   pineapple: 'pineapple', mango: 'mango', raisin: 'dried-fruit dates', coconut: 'coconut-milk', soy_sauce: 'soy-sauce oyster-sauce fish-sauce miso', worcestershire: 'worcestershire brown-sauce',
