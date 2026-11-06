@@ -428,3 +428,8 @@ ol.steps2 p{margin:0;font-size:15px;line-height:1.45}
 .sw2::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .15s}
 .eqi[aria-pressed="true"] .sw2{background:var(--accent)} .eqi[aria-pressed="true"] .sw2::after{transform:translateX(16px)}
 .eqi[aria-pressed="false"] b{color:var(--muted)}
+/* Ask Mise */
+.qa{gap:8px;border-color:color-mix(in srgb,var(--accent) 30%,var(--line))}
+.qa h3{font-size:19px;margin-top:4px}
+.qa-list{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:15px;line-height:1.45}
+.qa-p{margin:0;font-size:15px;line-height:1.45}

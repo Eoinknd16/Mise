@@ -6,6 +6,8 @@ import * as F from './flavour.js';
 import * as K from './chef.js';
 import * as TQ from './techniques.js';
 import * as PX from './prep.js';
+import * as AL from './allergens.js';
+import * as AQ from './ask.js';
 import { SHOPS, AISLES, CATALOG, ITEM, B_PROTEIN, B_BASE, B_STYLE, B_VEG } from './data.js';
 
 let S = null;               // persisted state
@@ -172,6 +174,38 @@ async function openRecipe(id, ctx) {
   ui.sheetServesFor = id;
   renderRecipeSheet();
 }
+function convertRecipe(r, diet) {
+  const P = AL.planConvert(r, diet); if (P.blocked) return { blocked: P.blocked };
+  if (!P.swaps.length) return { none: true };
+  const ings = r.ings.map(i => { const sw = P.swaps.find(x => x.from === i); if (!sw) return i; if (sw.skip) return null;
+    const id = sw.id && ITEM[sw.id] ? sw.id : null, k = id === 'lentils' && i.u === 'g' ? 1.6 : id === 'chickpeas' && i.u === 'g' ? 1.2 : 1;
+    if (i.item === 'eggs' && /cream/.test(sw.to)) return { ...i, item: id, name: sw.to, q: Math.round(i.q * 50), u: 'ml', raw: undefined, prep: undefined, whole: undefined, portion: undefined };
+    return { ...i, item: id, name: sw.to, q: Math.round(i.q * k * 10) / 10, raw: undefined, prep: undefined, whole: undefined, portion: undefined }; }).filter(Boolean);
+  let title = r.title, steps = r.steps.slice();
+  for (const sw of P.swaps) { const i = sw.from, mn = G.MAINS[i.item], names = [...new Set([i.name, ITEM[i.item] && ITEM[i.item].n, mn && mn.n, mn && mn.short].filter(Boolean).map(x => x.toLowerCase()))].sort((a, b) => b.length - a.length);
+    const to = sw.skip ? '' : sw.to.replace(/^(firm|green or brown) /, ''), short = to.split(' or ')[0];
+    if (sw.id === 'lentils') names.push('mince');
+    for (const nm of names) { const re = new RegExp('\\b' + nm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'gi'); if (!sw.skip) steps = steps.map(st => st.replace(re, short)); if (r.spec && i.item === r.spec.main) title = title.replace(re, sw.skip ? '' : short.replace(/s$/, '').replace(/^\w/, c => c.toUpperCase())); } }
+  // lentils and chickpeas aren't browned like meat
+  const swIds = P.swaps.map(x => x.id);
+  if (swIds.includes('lentils')) { steps = steps.map(st => { const t = st.replace(/\b(Brown|Fry|Cook) the (lentils|mince)\b[^.]*\.\s*/i, ''); return t !== st ? t.replace(/^Add the ([^.]*?) and cook/, 'Soften the $1 in a little oil') : t; }).filter(st => st.trim()); const k = steps.findIndex(st => /tomato/i.test(st)); if (k >= 0) steps[k] = steps[k].replace(/\.?\s*$/, '. Stir in the drained lentils.'); else steps.splice(Math.max(0, steps.length - 1), 0, 'Stir in the drained lentils and heat through.'); }
+  steps = steps.map(st => st.replace(/beaten ((oat )?cream)/i, '$1'));
+  if (swIds.includes('chickpeas')) steps = steps.map(st => st.replace(/(chickpeas[^.]*?)until golden and cooked through/i, '$1until lightly golden').replace(/(chickpeas[^.]*?)cooked through/i, '$1hot through'));
+  title = (AL.CONVERT_DIETS.find(d => d[0] === diet) ? { vegan: 'Vegan ', vegetarian: 'Veggie ', gluten: 'Gluten-free ', dairy: 'Dairy-free ', egg: 'Egg-free ' }[diet] : '') + title.replace(/\s+/g, ' ').trim().replace(/^\w/, c => c.toLowerCase());
+  const r2 = { ...r, id: 'cv:' + diet + ':' + String(r.id).replace(/^cv:[a-z]+:/, ''), title: title.replace(/^\w/, c => c.toUpperCase()), ings, steps, conv: { diet, swaps: P.swaps.map(x => ({ from: x.from.name, to: x.to, note: x.note })), from: r.title }, regular: false, src: r.src === 'built' ? 'built' : r.src };
+  if (r2.spec) r2.spec = { ...r2.spec, conv: diet };
+  return { recipe: r2 };
+}
+function dietBox(r) {
+  if (r.stub) return '';
+  const al = AL.allergensOf(r), mine = new Set((S.settings.diet || []).flatMap(d => AL.DIET_ALG[d] || [])), hit = al.filter(a => mine.has(a));
+  const opts = AL.CONVERT_DIETS.filter(([k]) => { const P = AL.planConvert(r, k); return P.swaps.length || P.blocked; });
+  if (!al.length && !opts.length && !r.conv) return '';
+  return `<details class="r-sec"${hit.length || r.conv ? ' open' : ''}><summary><h3>Allergens & diets</h3>${hit.length ? `<span class="tag deal">contains ${esc(hit.map(a => AL.ALG_NAME[a].toLowerCase()).join(', '))}</span>` : ''}</summary>
+    ${r.conv ? `<div class="note yours"><b>Changed from ${esc(r.conv.from)}.</b>${r.conv.swaps.map(x => `<div style="margin-top:4px">${esc(x.from)} → <b>${esc(x.to)}</b>${x.note ? `. <span class="muted">${esc(x.note)}</span>` : ''}</div>`).join('')}</div>` : ''}
+    ${al.length ? `<div class="small" style="margin:4px 0 6px">Usually contains: ${al.map(a => `<span class="tag${mine.has(a) ? ' deal' : ''}">${esc(AL.ALG_NAME[a])}</span>`).join(' ')}</div><p class="tiny muted" style="margin:0 0 8px">Brands differ, so always check the label.</p>` : '<p class="small muted" style="margin:4px 0 8px">None of the 14 main allergens, going by usual ingredients. Check labels.</p>'}
+    ${opts.length && !r.conv ? `<div class="small muted" style="font-weight:700;margin-bottom:6px">Make it…</div><div class="chips wrap">${opts.map(([k, n]) => `<button class="chip" data-act="convertTo" data-val="${k}">${n}</button>`).join('')}</div>` : ''}</details>`;
+}
 function stepTime(st) { const m = String(st).match(/(\d+)(?:\s*[-–]\s*(\d+))?\s*(min|minute|hour|hr)s?\b/i); if (!m) return null; const v = +(m[2] || m[1]); return /h/i.test(m[3]) ? v * 60 : v; }
 function stepHeat(st) { const m = String(st).match(/(\d{3})\s*°?\s*C\b|(\d{3})°/); if (m) return (m[1] || m[2]) + '°C'; const h = String(st).toLowerCase().match(/\b(high|medium-high|medium|low) heat\b/); return h ? h[1] + ' heat' : null; }
 function renderRecipeSheet() {
@@ -212,6 +246,7 @@ function renderRecipeSheet() {
       return `<li><span class="sn">${k + 1}</span><div class="grow"><p>${esc(st)}</p>${tm || ht ? `<div class="st-meta">${tm ? `<span>${tm >= 60 ? hm(tm) : tm + ' min'}</span>` : ''}${ht ? `<span>${esc(ht)}</span>` : ''}</div>` : ''}${n ? `<div class="note yours" style="margin-top:6px">Swap: ${esc(C.prepAlt(n)[1])}</div>` : ''}</div></li>`; }).join('')}</ol></section>`;
   if (r.src === 'built' && r.spec) h += `<section class="r-sec"><h3 style="margin-bottom:8px">Make it your way</h3>${builtExtras(r, ctx)}</section>`;
   if (nut) h += `<details class="r-sec"><summary><h3>Nutrition</h3><span class="small muted">per serving, roughly</span></summary><div class="nut">${[['Energy', nut.kcal + ' kcal'], ['Protein', nut.protein + ' g'], ['Carbs', nut.carb != null ? nut.carb + ' g' : null], ['Fat', nut.fat != null ? nut.fat + ' g' : null], ['Fibre', nut.fibre != null ? nut.fibre + ' g' : null], ['Salt', nut.salt != null ? nut.salt + ' g' : null]].filter(x => x[1]).map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join('')}</div></details>`;
+  h += dietBox(r);
   h += `<section class="r-sec"><h3 style="margin-bottom:4px">Your rating</h3><div data-tour="rating">${stars(rt.r || 0, 'rateSheet', r.id)}</div>
   <div class="row wrap" style="margin-top:14px"><label class="btn" for="recipePhoto">${S.photos[r.id] ? 'Change photo' : 'Add your photo'}</label><input type="file" id="recipePhoto" accept="image/*" hidden data-change="recipePhoto">${S.photos[r.id] ? '<button class="btn" data-act="removePhoto">Remove photo</button>' : ''}${!saved ? `<button class="btn" data-act="saveRecipe">Save to my recipes</button>` : ''}${saved && !String(r.id).startsWith('b:') && r.src !== 'mealdb' ? `<button class="btn" data-act="editRecipe" data-key="${esc(r.id)}">Edit</button>` : ''}${String(r.id).startsWith('b:') ? `<button class="btn" data-act="editRecipe" data-key="${esc(r.id)}">Edit a copy</button>` : ''}${r.src !== 'builtin' && saved && !String(r.id).startsWith('b:') ? `<button class="btn" data-act="deleteRecipe" data-key="${esc(r.id)}">Delete</button>` : ''}${r.stub ? '' : '<button class="btn" data-act="cookFromSheet">Cook mode</button><button class="btn" data-act="shareRecipe">Share</button>'}${r.src === 'built' ? `<button class="btn" data-act="makeRegular">${r.regular ? 'One of your regulars ✓' : 'Save as a regular'}</button>` : ''}${r.url ? `<a class="btn ghost" href="${esc(r.url)}" target="_blank" rel="noopener">Original source</a>` : ''}${r.video ? `<a class="btn ghost" href="${esc(r.video)}" target="_blank" rel="noopener">Video</a>` : ''}</div></section>`;
   setSheet(h);
@@ -581,11 +616,16 @@ function viewBuilder() {
   const B = ui.make || (ui.make = { text: '', chips: S.pantry.filter(p => p.item && ITEM[p.item] && !ITEM[p.item].staple).length >= 6 ? ['have'] : [], res: null });
   const night = new Date().getHours() >= 15 ? 'tonight' : 'today';
   let h = `<section class="hero-ask" data-tour="bDesc"><div class="hello">${greeting()}</div><h2 class="ask-h">What shall we cook ${night}?</h2>
-    <div class="ask-in"><input id="makeText" type="search" enterkeyhint="go" autocomplete="off" aria-label="What do you fancy?" placeholder="Pork roast, something creamy, use the beef…" value="${esc(B.text)}"><button class="go" data-act="makeGo" aria-label="Show me ideas"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
+    <div class="ask-in"><input id="makeText" type="search" enterkeyhint="go" autocomplete="off" aria-label="What do you fancy?" placeholder="Pork roast, something creamy, or ask a question…" value="${esc(B.text)}"><button class="go" data-act="makeGo" aria-label="Show me ideas"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
     <div class="chips">${MAKE_CHIPS.map(([k, n]) => `<button class="chip" data-act="makeChip" data-val="${k}" aria-pressed="${B.chips.includes(k)}">${n}</button>`).join('')}</div>
     <div class="row" data-tour="bGo"><button class="btn sm grow" data-act="askOpen" data-tour="ask">Help me choose</button><button class="btn sm grow" data-act="makeSurprise">Surprise me</button></div></section>
     ${B.ask && B.res ? `<div class="row between small" style="margin:0 2px"><span class="muted">From your picks: ${esc(B.ask.sum)}</span><button class="btn sm ghost" data-act="askOpen">Change</button></div>` : ''}`;
   if (B.chips.includes('exp')) h = h.replace('<div class="row" data-tour="bGo">', `<div class="exp-bar"><span class="small"><b>How adventurous?</b></span><div class="chips">${[[1, 'A twist'], [2, 'Properly wild']].map(([v, n]) => `<button class="chip" data-act="makeWild" data-val="${v}" aria-pressed="${(B.wild || 1) === v}">${n}</button>`).join('')}</div><a class="small" href="#lab" style="margin-left:auto">Flavour lab ›</a></div><div class="row" data-tour="bGo">`);
+  if (B.qa) { const Q = B.qa, A2 = Q.a;
+    h += `<section class="card qa"><div class="row between"><div class="eyebrow">You asked</div><button class="btn sm ghost" data-act="makeClear">Clear</button></div><p class="small muted" style="margin:-6px 0 0">${esc(Q.q)}</p>
+      ${A2 ? `<h3>${esc(A2.title)}</h3>${A2.list ? `<ol class="qa-list">${A2.list.map(x => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}${(A2.lines || []).map(x => `<p class="qa-p">${x}</p>`).join('')}` : `<p style="margin:0">Mise doesn't know that one yet. It can answer swaps, storage, cooking times, doneness, what goes with what, unit conversions and kitchen rescues.</p>`}
+      ${Q.ai ? `<div class="note yours"><b>AI says:</b> ${esc(Q.ai).replace(/\n+/g, '<br>')}</div>` : ''}
+      <div class="row wrap">${A2 && A2.explore ? `<a class="btn sm" href="#ing/${A2.explore}">About ${esc(ITEM[A2.explore].n.toLowerCase())} ›</a>` : ''}${Q.ai ? '' : `<button class="btn sm${A2 ? ' ghost' : ' primary'}" data-act="qaAI"${Q.busy ? ' disabled' : ''}>${Q.busy ? '<span class="spinner"></span> Asking…' : 'Ask AI instead'}</button>`}</div></section>`; }
   if (B.res) h += `<div class="row between" style="margin:2px 2px -4px"><h3>${B.text ? `Ideas for \u201c${esc(B.text)}\u201d` : 'Ideas for you'}</h3><button class="btn sm ghost" data-act="makeClear">Clear</button></div>`;
   else h += homeBody(B);
   if (B.jp && B.jp.length) h += B.jp.map(J => { const nm = ITEM[J.id].n.toLowerCase(), idx = r => B.jpR.indexOf(r);
@@ -1226,6 +1266,7 @@ const A = {
   prepPlan: () => { const p = M.prepPlan(S, C.weekDates(ui.weekOffset)); setSheet(`<h2>Prep plan</h2>${p.length ? `<p class="small muted">Do these on a quiet evening and weeknights get a lot easier.</p><ol class="steps">${p.map(x => `<li>${esc(x)}</li>`).join('')}</ol>` : '<p class="muted">Nothing worth prepping ahead this week. Each meal is quick enough on the night.</p>'}`); },
   shareWeek: async () => { const text = M.planText(S, C.weekDates(ui.weekOffset)); try { if (navigator.share) { await navigator.share({ title: 'Our dinners', text }); return; } await navigator.clipboard.writeText(text); toast('Copied. Paste it anywhere.'); } catch (e) { /* cancelled */ } },
   cookMode: el => { const d = el.dataset.date, i = +el.dataset.idx, e = (S.plan[d] || [])[i]; if (!e) return; closeSheet(false); cookModeOpen(R[e.rid], e.serves, { date: d, idx: i }); },
+  convertTo: el => { const r = ui.sheetRecipe, res = convertRecipe(r, el.dataset.val); if (res.blocked) { toast(res.blocked); return; } if (res.none) { toast('Nothing to change: it already fits.'); return; } ui.sheetServes = ui.sheetServes || r.serves; S.recipes[res.recipe.id] = res.recipe; refreshRecipes(); save(); ui.sheetRecipe = res.recipe; ui.sheetCtx = null; renderRecipeSheet(); const sh = document.querySelector('.sheet'); if (sh) sh.scrollTop = 0; },
   addMissing: () => { const r = ui.sheetRecipe; let n = 0; for (const i of r.ings) { const it = i.item && ITEM[i.item]; if (!it || it.staple || C.pantryQty(S, it.id) > 0 || C.subOf(S, i) || S.list.extras.some(x => x.item === it.id)) continue; S.list.extras.push({ item: it.id, name: it.n, qty: it.packs[0] }); n++; } save(); updateBadge(); toast(n ? `${n} added to your list` : 'Already on your list'); },
   cookFromSheet: () => { const r = ui.sheetRecipe, ctx = ui.sheetCtx; closeSheet(false, () => cookModeOpen(r, ui.sheetServes || r.serves, ctx)); },
   cookClose: () => cookModeClose(),
@@ -1285,13 +1326,22 @@ const A = {
   labNoteSave: () => { const r = ui.sheetRecipe; if (!r || !r.exp) return; S.lab = S.lab || { pairs: {}, notes: {} }; S.lab.notes = S.lab.notes || {}; S.lab.notes[r.id] = { ...(S.lab.notes[r.id] || {}), note: ($('#labNote') || {}).value || '', date: C.today() }; S.recipes[r.id] = r; refreshRecipes(); save(); toast('Saved to your notebook'); },
   makeChip: el => { const B = ui.make, k = el.dataset.val, tx = $('#makeText'); if (tx) B.text = tx.value; B.chips = B.chips.includes(k) ? B.chips.filter(x => x !== k) : [...B.chips, k]; render(); },
   makeMore: () => { const y = scrollY; if (ui.make.ask) askRun(true); else makeRun(false, true); render(); scrollTo(0, y); },
-  makeGo: () => { const t = $('#makeText'); if (t) ui.make.text = t.value; ui.make.ask = null; makeRun(false); render(); setTimeout(() => { const c = $('.card.fs'); if (c) c.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 30); },
+  makeGo: () => { const t = $('#makeText'); if (t) ui.make.text = t.value; ui.make.ask = null; ui.make.qa = null;
+    const q = (ui.make.text || '').trim();
+    if (q && AQ.isQuestion(q)) { let a = null; try { a = AQ.answer(S, q); } catch (e) { console.warn(e); }
+      ui.make.qa = { q, a }; ui.make.res = null;
+      if (a && a.make) { ui.make.text = ITEM[a.make].n; makeRun(false); }
+      render(); setTimeout(() => { const c = $('.qa'); if (c) c.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 30); return; }
+    makeRun(false); render(); setTimeout(() => { const c = $('.card.fs'); if (c) c.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 30); },
   makeSurprise: () => { ui.make.ask = null; ui.make.text = ''; ui.make.chips = ui.make.chips.filter(x => x === 'have'); makeRun(true); render(); },
   makeOpen: el => openRecipeObj(ui.make.res[+el.dataset.idx]),
   discoOpen: el => { const D = ui.disco, l = el.dataset.key === 'res' ? D.res : D.rows[el.dataset.key]; openRecipeObj(l[+el.dataset.idx]); },
   discoF: el => { const F = ui.discoF, k = el.dataset.key; if (k === 'veg' || k === 'have') F[k] = !F[k]; else F[k] = +el.dataset.val; if (ui.disco && ui.disco.q) discoSearch(ui.disco.q); render(); },
   discoClear: () => { ui.disco.res = null; ui.disco.q = ''; render(); },
-  makeClear: () => { Object.assign(ui.make, { res: null, text: '', ask: null }); render(true); },
+  makeClear: () => { Object.assign(ui.make, { res: null, text: '', ask: null, qa: null }); render(true); },
+  qaAI: async () => { const Q = ui.make.qa; if (!Q) return; if (S.settings.ai === 'off' || !S.settings.ai) { location.hash = 'settings'; toast('Turn on an AI option in Settings first.'); return; } Q.busy = true; render();
+    try { Q.ai = await C.aiAsk(S.settings.ai, `You are a friendly, expert home-cooking assistant for someone in Ireland who cooks weeknight dinners. Answer in under 120 words, practical and specific, metric units and °C. Question: ${Q.q}`); } catch (e) { Q.ai = null; toast(e.message || 'AI is not available right now.'); }
+    Q.busy = false; render(); },
   useFirst: el => { const B = ui.make; B.text = ITEM[el.dataset.val].n; B.ask = null; if (!B.chips.includes('have')) B.chips.push('have'); makeRun(false); render(); setTimeout(() => { const c = $('.card.fs'); if (c) c.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 30); },
   homeOpen: el => openRecipeObj(ui.home.list[+el.dataset.idx].r),
   homeTonight: el => { const r = saveBuilt(ui.home.list[+el.dataset.idx].r); setTonight(r.id, r); toast('Tonight: ' + r.title); ui.home.list = null; location.hash = 'plan'; },

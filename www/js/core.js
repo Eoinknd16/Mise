@@ -1,4 +1,5 @@
 // Mise — core logic: storage, parsing, matching, planning, list, pricing, pantry, receipts, roast, builder, AI.
+import { ALG, DIET_ALG } from './allergens.js';
 import { CATALOG, ITEM, AISLES, BUILTIN, B_PROTEIN, B_BASE, B_STYLE, B_VEG } from './data.js';
 
 /* ================= Storage (IndexedDB with localStorage fallback) ================= */
@@ -569,7 +570,8 @@ export const likeKey = i => i.item || 'x:' + norm(i.name);
 export const DIETS = [
   ['vegetarian', 'Vegetarian', 'No meat or fish'], ['vegan', 'Vegan', 'No animal products'], ['pescatarian', 'Pescatarian', 'Fish but no meat'],
   ['nopork', 'No pork', ''], ['nobeef', 'No beef', ''], ['gluten', 'Gluten-free', 'Coeliac or avoiding gluten'], ['dairy', 'Dairy-free', 'Lactose or milk allergy'],
-  ['nuts', 'Nut allergy', 'Peanuts and tree nuts'], ['shellfish', 'Shellfish allergy', ''], ['egg', 'Egg-free', '']
+  ['nuts', 'Nut allergy', 'Peanuts and tree nuts'], ['shellfish', 'Shellfish allergy', ''], ['egg', 'Egg-free', ''],
+  ['fish', 'Fish allergy', ''], ['sesame', 'Sesame allergy', ''], ['soy', 'Soy allergy', ''], ['mustard', 'Mustard allergy', ''], ['celery', 'Celery allergy', ''], ['sulphites', 'Sulphite sensitivity', 'Wine, dried fruit, some vinegar']
 ];
 const GLUTEN = ['bread', 'wraps', 'buns', 'naan', 'pitta', 'baguette', 'pasta', 'spaghetti', 'noodles', 'couscous', 'flour', 'fresh-pasta', 'croissants', 'scones', 'soda-bread', 'cake', 'crumpets', 'breadcrumbs', 'lasagne', 'gnocchi', 'biscuits', 'crackers', 'cereal', 'oats', 'beer', 'pizza', 'garlic-bread', 'pizza-dough', 'pot-noodle', 'fish-fingers', 'nuggets', 'soy-sauce', 'grains', 'quiche', 'cereal-bars', 'frozen-fish'];
 let dietCache = { key: null, set: new Set() };
@@ -591,6 +593,7 @@ export function dietBlocks(state) {
     if (diet.includes('nuts') && ['nuts', 'peanut-butter', 'pesto', 'dried-fruit', 'choc-spread'].includes(it.id)) out.add(it.id);
     if (diet.includes('shellfish') && it.id === 'prawns') out.add(it.id);
     if (diet.includes('egg') && ['eggs', 'mayo', 'salad-cream', 'cake', 'fresh-pasta', 'noodles'].includes(it.id)) out.add(it.id);
+    for (const d of diet) if (['fish', 'sesame', 'soy', 'mustard', 'celery', 'sulphites'].includes(d)) for (const al of DIET_ALG[d] || []) if ((ALG[it.id] || []).includes(al)) out.add(it.id);
   }
   dietCache = { key, set: out };
   return out;
