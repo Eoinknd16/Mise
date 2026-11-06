@@ -242,9 +242,10 @@ function renderRecipeSheet() {
   h += `<ul class="ings" data-tour="ings">${r.ings.map((i, idx) => { const it = ITEM[i.item]; const b = it ? C.toBase(i.q * f, i.u, it) : null; const have = it && C.pantryQty(S, it.id) >= (b || 1) * 0.75; const lk = C.likeOf(S, i), pk = i.prep && S.likes[C.prepKey(i)] != null; return `<li class="${have ? 'have' : ''}" data-act="ingMenu" data-idx="${idx}" style="cursor:pointer"><span class="q">${esc((i.whole ? i.q + ' ' + i.u : fmtIng(i.q * f, i.u)))}</span><span class="grow">${(() => { const sb = C.subOf(S, i); return sb ? (sb.skip ? `<s class="muted">${esc(i.name)}</s> <span class="tiny muted">left out</span>` : `${esc(sb.name)} <span class="tiny muted">instead of ${esc(i.name)}</span>`) : esc(i.name); })()}${it && it.staple ? ' <span class="tiny muted">(cupboard)</span>' : ''}${C.notAt(S, i) && !C.subOf(S, i) ? ` <span class="tiny" style="color:var(--hot)">not at ${esc(S.settings.defaultShop)}</span>` : ''}</span>${lk <= -9 ? '<span class="tag deal">can\'t eat</span>' : lk < 0 ? `<span class="tag ${pk && C.prepAlt(i) ? 'yours' : 'warn'}">${pk ? (C.prepAlt(i) ? 'swapped' : 'not ' + C.PREP_NAMES[i.prep]) : 'don\'t like'}</span>` : lk > 0 ? `<span class="tag yours">love${pk ? ' ' + C.PREP_NAMES[i.prep] : ''}</span>` : ''}</li>`; }).join('')}</ul><p class="tiny muted" style="margin:4px 0 0">Tap an ingredient to like, dislike or swap it. <span class="dot-have"></span> in your kitchen</p>
     ${miss.length && !entry ? `<button class="btn sm" data-act="addMissing" style="margin-top:8px">Add ${miss.length} missing to my list</button>` : ''}</section>`;
   // method
-  h += `<section class="r-sec"><div class="r-sec-h"><h3>Method</h3>${r.stub ? '' : '<button class="btn sm ghost" data-act="cookFromSheet">Cook mode ›</button>'}</div><ol class="steps2">${r.steps.map((st, k) => { const n = sw.find(i => { const re = (C.PREPS.find(p => p[0] === i.prep) || [])[1]; return re && re.test(st.toLowerCase()); }); const tm = stepTime(st), ht = stepHeat(st);
+  h += `<section class="r-sec"><div class="r-sec-h"><h3>Method</h3>${r.stub ? '' : '<button class="btn sm ghost" data-act="cookFromSheet">Cook mode ›</button>'}</div><ol class="steps2">${r.steps.map((st, k) => { const n = sw.find(i => { const re = (C.PREPS.find(p => p[0] === i.prep) || [])[1]; return re && re.test(st.toLowerCase()); }); const tk = r.timeline && r.timeline[k], tm = tk ? (tk.t > 1 ? tk.t : null) : stepTime(st), ht = tk && tk.oven ? tk.oven + '°C' : stepHeat(st);
       return `<li><span class="sn">${k + 1}</span><div class="grow"><p>${esc(st)}</p>${tm || ht ? `<div class="st-meta">${tm ? `<span>${tm >= 60 ? hm(tm) : tm + ' min'}</span>` : ''}${ht ? `<span>${esc(ht)}</span>` : ''}</div>` : ''}${n ? `<div class="note yours" style="margin-top:6px">Swap: ${esc(C.prepAlt(n)[1])}</div>` : ''}</div></li>`; }).join('')}</ol></section>`;
-  if (r.src === 'built' && r.spec) h += `<section class="r-sec"><h3 style="margin-bottom:8px">Make it your way</h3>${builtExtras(r, ctx)}</section>`;
+  if (r.src === 'built' && r.spec && !r.spec.proc) h += `<section class="r-sec"><h3 style="margin-bottom:8px">Make it your way</h3>${builtExtras(r, ctx)}</section>`;
+  if (r.spec && r.spec.proc && r.comps) h += `<p class="small muted" style="margin:10px 0 0">${r.comps.length > 1 ? `Made in ${r.comps.length} parts (${esc(r.comps.join(', '))}), timed so everything is ready together.` : ''}${r.active ? ` About ${r.active} min hands-on.` : ''}</p>`;
   if (nut) h += `<details class="r-sec"><summary><h3>Nutrition</h3><span class="small muted">per serving, roughly</span></summary><div class="nut">${[['Energy', nut.kcal + ' kcal'], ['Protein', nut.protein + ' g'], ['Carbs', nut.carb != null ? nut.carb + ' g' : null], ['Fat', nut.fat != null ? nut.fat + ' g' : null], ['Fibre', nut.fibre != null ? nut.fibre + ' g' : null], ['Salt', nut.salt != null ? nut.salt + ' g' : null]].filter(x => x[1]).map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join('')}</div></details>`;
   h += dietBox(r);
   h += `<section class="r-sec"><h3 style="margin-bottom:4px">Your rating</h3><div data-tour="rating">${stars(rt.r || 0, 'rateSheet', r.id)}</div>
@@ -549,7 +550,8 @@ const TILE_OF = { roast: ['oven', '#7d4527'], traybake: ['oven', '#8a5a2b'], bak
   pasta: ['bowl', '#5f6e2c'], risotto: ['bowl', '#6f6a3a'], bowl: ['bowl', '#3d5f7a'], salad: ['leaf', '#46703f'],
   simmer: ['pot', '#8f3f2c'], curry: ['pot', '#9a3d22'], soup: ['pot', '#7a3b4a'], noodlesoup: ['bowl', '#2e5a6b'], pulled: ['pot', '#6b3b26'],
   wraps: ['wrap', '#7d5631'], quesadilla: ['wrap', '#a0661f'], burgers: ['wrap', '#6f4a2e'], flatbread: ['wrap', '#93542a'],
-  frittata: ['egg', '#a0711c'], shakshuka: ['egg', '#9b3f26'], loaded: ['oven', '#4f5f3a'] };
+  frittata: ['egg', '#a0711c'], shakshuka: ['egg', '#9b3f26'], loaded: ['oven', '#4f5f3a'],
+  'p-bake': ['oven', '#8a3f2f'], 'p-pie': ['oven', '#7a5a2e'], 'p-curry': ['pot', '#a2481f'], 'p-risotto': ['bowl', '#6c6a3b'], 'p-soup': ['pot', '#5e7a3a'], 'p-roast': ['oven', '#6b3a25'] };
 function tile(r, cls) {
   const m = r && r.spec && r.spec.method, [ic, col] = r && r.exp ? ['spark', '#6b2f57'] : TILE_OF[m] || ['pot', 'var(--accent)'];
   return `<div class="tile ${cls || ''}" style="--tc:${col}" aria-hidden="true">${TILE_ICON[ic]}</div>`;
@@ -2035,6 +2037,10 @@ const DISCO_ROWS = [
   ['slow', 'Roasts & slow cooks', 'Worth the wait', { methods: ['roast', 'pulled', 'braise', 'sticky'], allowSlow: true }],
   ['pot', 'One pot & curries', 'Less washing up', { methods: ['simmer', 'curry', 'soup', 'noodlesoup', 'risotto'] }],
   ['oven', 'Throw it in the oven', 'Traybakes & bakes', { methods: ['traybake', 'bake', 'loaded', 'pie'] }],
+  ['bakes', 'Bakes & pies', 'Lasagne, moussaka, cottage pie', { proc: ['bake', 'pie'] }],
+  ['curries', 'Curries, built properly', 'Spices bloomed, onions taken golden', { proc: ['curry'] }],
+  ['soups', 'Soups & risotto', '', { proc: ['soup', 'risotto'] }],
+  ['roasts', 'Roast dinners', 'Everything timed to land together', { proc: ['roast'] }],
   ['italian', 'Italian', '', { feel: ['Italian'] }],
   ['mexican', 'Mexican & Tex-Mex', '', { feel: ['Mexican', 'American'] }],
   ['asian', 'Chinese, Thai & Japanese', '', { feel: ['Chinese', 'Thai', 'Japanese'] }],
@@ -2057,7 +2063,8 @@ function discoBuild() {
       curNo = o.noMeth;
       let got = [];
       const opts = { ...base, ...o, useStock: o.useStock || F.have, onlyStockMains: (o.useStock || F.have) && [...stock.keys()].some(id => G.MAINS[id]) };
-      if (o.methods) for (const m of o.methods) { got = got.concat(G.options(S, { ...opts, want: { method: m } }, 2)); }
+      if (o.proc) got = G.processDishes(S, { ...opts, allowSlow: true }, o.proc, 8);
+      else if (o.methods) for (const m of o.methods) { got = got.concat(G.options(S, { ...opts, want: { method: m } }, 2)); }
       else if (o.feel) { const kids = Object.entries(G.KITS).filter(([, k]) => o.feel.includes(k.feel)).map(([id]) => id).sort(() => Math.random() - 0.5).slice(0, 4); for (const kid of kids) got = got.concat(G.options(S, { ...opts, want: { kit: kid } }, o.noMeth ? 3 : 2)); }
       else got = G.options(S, opts, 7);
       D.rows[key] = got.filter(fits).slice(0, 8);

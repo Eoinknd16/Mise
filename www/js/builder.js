@@ -4,6 +4,7 @@ import * as C from './core.js';
 import * as F from './flavour.js';
 import * as Chef from './chef.js';
 import * as Tech from './techniques.js';
+import * as P from './process.js';
 const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
 
 /* ================= Parts ================= */
@@ -334,6 +335,8 @@ export function partTaste(state) {
   for (const [tag, v] of Object.entries(state.tagPref || {})) { if (tag.startsWith('p:')) add('grp', tag.slice(2), v * 0.4); if (tag.startsWith('type:')) for (const m of TYPE_TO_METHODS[tag.slice(5)] || []) add('method', m, v * 0.3); }
   tasteCache = { key, t }; return t;
 }
+// process dishes (process.js) have their own techniques; these entries only name them
+Object.assign(METHODS, { 'p-bake': { n: 'oven bake', t: 90, slow: true, batch: true }, 'p-pie': { n: 'pie', t: 70, batch: true }, 'p-curry': { n: 'curry', t: 45, batch: true }, 'p-risotto': { n: 'risotto', t: 35 }, 'p-soup': { n: 'soup', t: 35, batch: true }, 'p-roast': { n: 'roast dinner', t: 120, slow: true, joint: true } });
 const sq = v => Math.tanh((v || 0) / 3) * 3;
 
 /* ================= Is a part allowed for you? ================= */
@@ -374,6 +377,7 @@ function worldSwap(state, r) {
   return r;
 }
 export function buildMeal(state, sp, serves, stock) {
+  if (sp.proc) { const pr = P.build(state, sp, serves); return pr ? worldSwap(state, pr) : null; }
   stock = stock || pantryStock(state);
   let main = MAINS[sp.main]; const base = sp.base ? BASES[sp.base] : null, kit = kitOf(sp.kit), meth = METHODS[sp.method];
   serves = serves || 2;
@@ -1042,6 +1046,9 @@ export function options(state, opts = {}, n = 3) {
   const lock = w.lock && w.main, vegLock = (w.veg || []).length > 0;
   for (const drop of ['tag', 'base', 'veg', 'method', 'kit', 'main']) { if ((drop === 'main' && lock) || (drop === 'veg' && vegLock)) continue; if (pool.filter(x => !seen.has(specKey(x.sp))).length >= n * 2) break; if (opts.vegOnly && drop === 'main' && w.main && MAINS[w.main] && MAINS[w.main].grp !== 'veg') { delete w.main; } if (!w[drop] || (Array.isArray(w[drop]) && !w[drop].length)) continue; delete w[drop]; pool = pool.concat(candidates(state, { ...opts, want: w })); }
   if (pool.filter(x => !seen.has(specKey(x.sp))).length < n) pool = pool.concat(candidates(state, { ...opts, want: lock || vegLock ? { main: lock ? w.main : undefined, qty: w.qty, veg: w.veg, lock: w.lock } : {}, allowSlow: lock ? true : opts.allowSlow, quick: false, spicy: false, mood: null, onlyStockMains: false, maxTime: opts.maxTime ? opts.maxTime + 20 : null }));
+  { const sc = pool.map(x => x.s).sort((a, b) => b - a), ref = sc.length ? sc[0] - 4 : 4;
+    let pc = []; try { if (!opts.noProc && (w.proc || (!w.kit && !w.method && !w.tag && !opts.methods))) pc = P.candidates(state, { ...opts, want: w }, ref); } catch (e) { console.warn('process', e); }
+    if (pc.length) pool = pool.concat(pc).sort((a, b) => b.s - a.s); }
   pool = pool.filter(x => !seen.has(specKey(x.sp)));
   const titles = opts.seenTitles || new Set();
   while (picked.length < n && pool.length) {
@@ -1051,11 +1058,20 @@ export function options(state, opts = {}, n = 3) {
       if (opts.useStock && opts.stock) for (const id of spItems(x.sp)) { if (!(opts.stock.get(id) > 0) || ['garlic', 'onion'].includes(id) || (ITEM[id] && ITEM[id].staple)) continue; const n = usedNow.get(id) || 0; v += n ? -0.9 * n : 0.7 / (1 + (opts.recent ? recentUse(state, id) * 0.7 : 0)); }
       if (v > bv) { bv = v; best = x; } }
     pool = pool.filter(x => x !== best);
+    // the same dish from both engines (a roast beef dinner twice): keep the first
+    { const famOf = sp => sp.proc ? sp.method.slice(2) : ({ roast: 'roast', curry: 'curry', soup: 'soup', risotto: 'risotto', pie: 'pie', bake: 'bake' })[sp.method];
+      const f = famOf(best.sp); if (f && picked.some(p => famOf(p.sp) === f && p.sp.main === best.sp.main && !!p.sp.proc !== !!best.sp.proc)) continue; }
     const r = buildMeal(state, best.sp, opts.serves, opts.stock);
+    if (!r) continue;
     if (titles.has(r.title)) continue; titles.add(r.title); seen.add(specKey(best.sp)); best.r = r; picked.push(best);
   }
   AS = null;
   return picked.map(x => x.r);
+}
+// Process dishes (bakes, pies, curries, risotto, soups, roasts) for a collection
+export function processDishes(state, opts, fams, n = 6) {
+  const got = P.candidates(state, { ...opts, allowSlow: opts.allowSlow !== false }, 4).filter(x => fams.includes(P.families().find(f => f.id === x.sp.proc).fam));
+  const out = [], seenT = new Set(); for (const x of got) { if (out.length >= n) break; const r = worldSwap(state, x.r); if (seenT.has(r.title)) continue; seenT.add(r.title); out.push(r); } return out;
 }
 // Alternatives for one part (used by the swap buttons)
 export function alternatives(state, sp, part, opts = {}) {
@@ -1153,6 +1169,9 @@ export function planWeek(state, dates, basket, opts = {}) {
     const urgent = new Map([...expOf].filter(([id]) => night.has(id)).map(([id, e]) => [id, C.daysBetween(d, e)]));
     const haveMain = Object.keys(MAINS).some(id => (night.get(id) || 0) >= MAINS[id].pp * serves * 0.6 && !(MAINS[id].slow && !ctx.allowSlow && !gearOf(state).slowcooker));
     const c = candidates(state, { stock: night, urgent, date: d, serves, used, priority: pr, useStock: pr === 'save' || haveMain, maxTime: ctx.maxTime, kids: ctx.kids, protein: ctx.protein, quick: ctx.quick, allowSlow: ctx.allowSlow, onlyStockMains: haveMain && pr !== 'variety', exclude: opts.exclude, healthy: opts.healthy, cheap: opts.cheap, noise: 1.4 });
+    // dishes built as a process (bakes, pies, staged curries, risotto, soups, roast dinners) compete for the night too
+    try { const ref = (c.length ? c[Math.min(4, c.length - 1)].s : 4) - (used.procN || 0) * 1.8, pc = P.candidates(state, { stock: night, serves, allowSlow: ctx.allowSlow, maxTime: ctx.maxTime, quick: ctx.quick, useStock: true, noise: 1, vegOnly: opts.vegOnly }, ref).filter(x => !used.titles[x.r.title] && !(used.procF || {})[x.sp.proc]).slice(0, 4);
+      if (pc.length) { c.push(...pc); c.sort((a, b) => b.s - a.s); } } catch (e) { console.warn('process', e); }
     if (!c.length) continue;
     // Softmax-ish choice among the top few
     const top = c.slice(0, 6), wts = top.map(x => Math.exp((x.s - top[0].s) / 0.9));
@@ -1160,7 +1179,7 @@ export function planWeek(state, dates, basket, opts = {}) {
     let cook = serves;
     const leftoverOk = ctx.leftovers && METHODS[ch.sp.method].batch;
     const next = dates[dates.indexOf(d) + 1];
-    if (leftoverOk && !MAINS[ch.sp.main].joint && next && !(opts.night && opts.night(next).skip) && pr !== 'variety') cook = serves * 2;
+    if (leftoverOk && !(MAINS[ch.sp.main] && MAINS[ch.sp.main].joint) && ch.sp.proc !== 'roastdinner' && next && !(opts.night && opts.night(next).skip) && pr !== 'variety') cook = serves * 2;
     let r = buildMeal(state, ch.sp, cook, stock);
     for (const alt of c.slice(0, 12)) { if (!used.titles[r.title]) break; if (alt === ch) continue; ch = alt; r = buildMeal(state, ch.sp, cook, stock); }
     picks.push({ date: d, recipe: r, serves: cook });
@@ -1168,7 +1187,8 @@ export function planWeek(state, dates, basket, opts = {}) {
     for (const i of r.ings) if (i.item && stock.has(i.item)) stock.set(i.item, Math.max(0, stock.get(i.item) - (C.toBase(i.q, i.u, ITEM[i.item]) || 0)));
     if (r.leftover) addStock(r.leftover.item, r.leftover.g); // the rest of the joint becomes quick meals later in the week
     if (r.gear === 'sc') used.gear = (used.gear || 0) + 1;
-    used.kit[ch.sp.kit] = (used.kit[ch.sp.kit] || 0) + 1; used.method[ch.sp.method] = (used.method[ch.sp.method] || 0) + 1; used.main[ch.sp.main] = (used.main[ch.sp.main] || 0) + 1; used.base[ch.sp.base] = (used.base[ch.sp.base] || 0) + 1; used.lastMain = ch.sp.main; used.titles[r.title] = 1; for (const tg of kitOf(ch.sp.kit).tags) used.tags[tg] = (used.tags[tg] || 0) + 1;
+    if (ch.sp.proc) { used.procN = (used.procN || 0) + 1; (used.procF = used.procF || {})[ch.sp.proc] = 1; }
+    used.kit[ch.sp.kit] = (used.kit[ch.sp.kit] || 0) + 1; used.method[ch.sp.method] = (used.method[ch.sp.method] || 0) + 1; used.main[ch.sp.main] = (used.main[ch.sp.main] || 0) + 1; used.base[ch.sp.base] = (used.base[ch.sp.base] || 0) + 1; used.lastMain = ch.sp.main; used.titles[r.title] = 1; for (const tg of (kitOf(ch.sp.kit) || { tags: [] }).tags) used.tags[tg] = (used.tags[tg] || 0) + 1;
   }
   const usedItems = new Set(picks.flatMap(p => p.recipe.ings.map(i => i.item)));
   const unused = [...basketIds].filter(id => !usedItems.has(id));
@@ -1206,7 +1226,7 @@ export function namedDish(clean) {
 export function parseWant(state, text) {
   const as = {}, mi = ph => { const id = C.matchIngredient(ph); if (id && ITEM[id] && ITEM[id].standin) { as[ITEM[id].standin] = id; return ITEM[id].standin; } return id; };
   const t = ' ' + norm(text) + ' ', want = { veg: [] }, exclude = new Set(), mods = {};
-  for (const m of t.matchAll(/\b(?:no|without|not|hate|minus)\s+([a-z ]+?)(?=\s(?:and|or|with|but|please|,)\s|$|\s{2})/g)) { const id = mi(m[1].trim()); if (id) exclude.add(id); for (const [kid, k] of Object.entries(KITS)) if ((k.words || '').split(' ').some(w => w && m[1].includes(w))) exclude.add(kid); }
+  for (const m of t.matchAll(/\b(?:no|without|not|hate|minus)\s+([a-z ]+?)(?=\s(?:and|or|with|but|please|,)\s|$|\s{2})/g)) { const id = mi(m[1].trim()); if (id) exclude.add(id); { const wd = norm(m[1].trim()).replace(/s$/, ''); if (wd.length >= 4) for (const it of Object.values(ITEM)) if (!it.world && (norm(it.n).split(' ').some(x => x.replace(/s$/, '') === wd) || (it.al || []).some(a => norm(a).split(' ').some(x => x.replace(/s$/, '') === wd)))) exclude.add(it.id); } for (const [kid, k] of Object.entries(KITS)) if ((k.words || '').split(' ').some(w => w && m[1].includes(w))) exclude.add(kid); }
   let clean = t.replace(/\b(?:no|without|not|hate|minus)\s+[a-z]+(?: [a-z]+)?/g, ' ');
   // How much you've got: "1.2kg pork roast", "800 g ribs"
   const qm = /(\d+(?:[.,]\d+)?)\s*(kg|kilo|kilos|g|grams?)\b/.exec(text.toLowerCase());
@@ -1275,5 +1295,6 @@ export function parseWant(state, text) {
   if (want.base && want.method && !BASES[want.base].methods.includes(want.method)) { if (want.method === 'bowl') delete want.method; else delete want.base; }
   if (want.main && want.method && !mainList().some(id => MAINS[id].methods.includes(want.method))) delete want.method;
   if (Object.keys(as).length) want.as = as;
+  { const pd = P.detect(text); if (pd) want.proc = pd; }
   return { want, exclude, mods };
 }
