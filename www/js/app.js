@@ -51,9 +51,9 @@ const stars = (n, act, key) => `<div class="stars" role="group" aria-label="Rati
 const shopsOpts = sel => S.settings.shops.concat(SHOPS.filter(s => !S.settings.shops.includes(s))).map(s => `<option${s === sel ? ' selected' : ''}>${esc(s)}</option>`).join('');
 
 /* ================= Router ================= */
-const TITLES = { plan: 'This week', recipes: 'Saved meals', list: 'Shopping list', pantry: 'Pantry', more: 'Menu', make: 'What can I make?', builder: 'Mise', receipts: 'Receipts', deals: 'Deals', insights: 'Stats', settings: 'Settings', install: 'Install', quiz: 'Taste quiz', add: 'Your recipe', tastes: 'Your tastes', discover: 'Discover', week: 'Plan the week', lab: 'Flavour lab' };
+const TITLES = { plan: 'This week', recipes: 'Saved meals', list: 'Shopping list', pantry: 'Pantry', more: 'Menu', make: 'What can I make?', builder: 'Mise', receipts: 'Receipts', deals: 'Deals', insights: 'Stats', settings: 'Settings', install: 'Install', quiz: 'Taste quiz', add: 'Your recipe', tastes: 'Your tastes', discover: 'Discover', swipe: 'Teach Mise your taste', week: 'Plan the week', lab: 'Flavour lab' };
 const TAB_OF = { make: 'pantry', lab: 'builder' };
-const SUBPAGE = { week: 'plan', recipes: 'more', tastes: 'more', add: 'recipes', make: 'pantry', receipts: 'more', deals: 'more', insights: 'more', settings: 'more', install: 'more', quiz: 'more', more: 'builder' };
+const SUBPAGE = { swipe: 'discover', week: 'plan', recipes: 'more', tastes: 'more', add: 'recipes', make: 'pantry', receipts: 'more', deals: 'more', insights: 'more', settings: 'more', install: 'more', quiz: 'more', more: 'builder' };
 const OLD_ROUTES = { meals: 'recipes', saved: 'recipes', home: 'builder' };
 function checkShared() { const shared = M.readShareLink(location.hash); if (!shared) return false; ui.importing = shared; history.replaceState(null, '', location.pathname + '#recipes'); ui.route = 'recipes'; render(true); setTimeout(() => openSheet(`<h2>${esc(shared.title)}</h2><p class="small muted">Someone shared this recipe with you. ${shared.ings.length} ingredients, ${shared.steps.length} steps.</p><button class="btn primary block" data-act="importKeep">Save to my recipes</button>`), 200); return true; }
 function route() {
@@ -73,8 +73,9 @@ function render(scrollTop) {
   const v = VIEWS[ui.route] || VIEWS.plan;
   $('#view').innerHTML = v();
   if (scrollTop) window.scrollTo(0, 0);
-  if (['plan', 'recipes', 'discover'].includes(ui.route)) setTimeout(fillAutoImages, ui.route === 'discover' ? 50 : 400);
-  if (ui.route === 'quiz' || ui.route === 'discover') bindQuizSwipe();
+  if (['plan', 'recipes', 'swipe'].includes(ui.route)) setTimeout(fillAutoImages, ui.route === 'swipe' ? 50 : 400);
+  if (ui.route === 'discover' && ui.disco && ui.disco.pending) setTimeout(discoBuild, 30);
+  if (ui.route === 'quiz' || ui.route === 'swipe') bindQuizSwipe();
 }
 function updateBadge() {
   try { const l = C.buildList(S, C.weekDates(0)); const n = l.rows.filter(r => !S.list.checked[r.key]).length; const b = $('#listBadge'); b.hidden = !n; b.textContent = n; } catch (e) { /* ignore */ }
@@ -130,7 +131,7 @@ function tonightCard() {
 function viewRecipes() {
   if (!['regular', 'mine', 'easy', 'recent'].includes(ui.recTab)) ui.recTab = 'regular';
   const tab = ui.recTab, q = (ui.recQuery || '').toLowerCase().trim();
-  let h = `<div class="quick3"><a href="#discover" data-tour="discoverCta">${ICON.spark}<b>Discover</b><span>Swipe to teach Mise</span></a><a href="#builder" data-tour="buildCta">${ICON.pot}<b>Make a meal</b><span>Say what you fancy</span></a><a href="#add" data-act="newRecipe" data-tour="addRecipe"><span style="font:700 22px var(--display)">+</span><b>Add yours</b><span>Type, link, photo</span></a></div>
+  let h = `<div class="quick3"><a href="#swipe" data-tour="discoverCta">${ICON.spark}<b>Discover</b><span>Swipe to teach Mise</span></a><a href="#builder" data-tour="buildCta">${ICON.pot}<b>Make a meal</b><span>Say what you fancy</span></a><a href="#add" data-act="newRecipe" data-tour="addRecipe"><span style="font:700 22px var(--display)">+</span><b>Add yours</b><span>Type, link, photo</span></a></div>
   <div class="seg" role="group" data-tour="recTabs">${[['regular', 'Regulars'], ['mine', 'Yours'], ['easy', 'Easy'], ['recent', 'Recent']].map(([k, n]) => `<button data-act="recTab" data-val="${k}" aria-pressed="${tab === k}">${n}</button>`).join('')}</div>
   <input type="search" id="recSearch" placeholder="Search" value="${esc(ui.recQuery)}" data-in="recQuery" enterkeyhint="search">`;
   let list = [];
@@ -491,12 +492,12 @@ const TILE_ICON = {
   egg: '<svg viewBox="0 0 48 48"><path d="M24 8c7 0 12 11 12 19a12 12 0 0 1-24 0c0-8 5-19 12-19z"/><circle cx="24" cy="29" r="5"/></svg>',
   spark: '<svg viewBox="0 0 48 48"><path d="M24 8v8M24 32v8M8 24h8M32 24h8M13 13l5 5M30 30l5 5M35 13l-5 5M18 30l-5 5"/></svg>'
 };
-const TILE_OF = { roast: ['oven', '#7d4527'], traybake: ['oven', '#8a5a2b'], bake: ['oven', '#8c4f30'], sticky: ['oven', '#93492c'], braise: ['pot', '#6e3f2a'], pie: ['oven', '#86603a'],
-  panfry: ['pan', '#9a5b1f'], stirfry: ['pan', '#a0561c'], friedrice: ['pan', '#94631d'], hash: ['pan', '#8d6420'],
-  pasta: ['bowl', '#8b6a1f'], risotto: ['bowl', '#7f6a2a'], bowl: ['bowl', '#3f6b4c'], salad: ['leaf', '#46703f'],
-  simmer: ['pot', '#8f3f2c'], curry: ['pot', '#9a3d22'], soup: ['pot', '#7f4a2c'], noodlesoup: ['bowl', '#8a4a24'], pulled: ['pot', '#6b3b26'],
-  wraps: ['wrap', '#7d5631'], quesadilla: ['wrap', '#8a5a26'], burgers: ['wrap', '#6f4a2e'], flatbread: ['wrap', '#93542a'],
-  frittata: ['egg', '#a0711c'], shakshuka: ['egg', '#9b3f26'], loaded: ['oven', '#80612e'] };
+const TILE_OF = { roast: ['oven', '#7d4527'], traybake: ['oven', '#8a5a2b'], bake: ['oven', '#6d4a7a'], sticky: ['oven', '#93492c'], braise: ['pot', '#5b3a2e'], pie: ['oven', '#86603a'],
+  panfry: ['pan', '#9a5b1f'], stirfry: ['pan', '#2f6b62'], friedrice: ['pan', '#7a6a1f'], hash: ['pan', '#8d6420'],
+  pasta: ['bowl', '#5f6e2c'], risotto: ['bowl', '#6f6a3a'], bowl: ['bowl', '#3d5f7a'], salad: ['leaf', '#46703f'],
+  simmer: ['pot', '#8f3f2c'], curry: ['pot', '#9a3d22'], soup: ['pot', '#7a3b4a'], noodlesoup: ['bowl', '#2e5a6b'], pulled: ['pot', '#6b3b26'],
+  wraps: ['wrap', '#7d5631'], quesadilla: ['wrap', '#a0661f'], burgers: ['wrap', '#6f4a2e'], flatbread: ['wrap', '#93542a'],
+  frittata: ['egg', '#a0711c'], shakshuka: ['egg', '#9b3f26'], loaded: ['oven', '#4f5f3a'] };
 function tile(r, cls) {
   const m = r && r.spec && r.spec.method, [ic, col] = r && r.exp ? ['spark', '#6b2f57'] : TILE_OF[m] || ['pot', 'var(--accent)'];
   return `<div class="tile ${cls || ''}" style="--tc:${col}" aria-hidden="true">${TILE_ICON[ic]}</div>`;
@@ -582,7 +583,7 @@ function viewBuilder() {
       <p class="small muted" style="margin:0">${esc(r.ings.filter(i => i.u !== 'taste' && !(ITEM[i.item] || {}).staple).slice(0, 8).map(i => i.name).join(' · '))}</p>
       ${S.pantry.length ? `<div class="small"><b style="color:var(--accent)">Uses ${haveN.length} thing${haveN.length !== 1 ? 's' : ''} you have</b> · ${buy.length ? `buy: ${esc(buy.map(id => ITEM[id].n.toLowerCase()).join(', '))}` : 'nothing to buy'}</div>` : ''}${why.length ? `<div class="why" style="margin:0">${why.map(w => `<span>+ ${esc(w[1])}</span>`).join('')}</div>` : ''}
       <div class="row"><button class="btn primary grow" data-act="makeTonight" data-idx="${k}">Tonight</button><button class="btn grow" data-act="makeOpen" data-idx="${k}">See it / pick a day</button></div></div>`; }).join('') + '<button class="btn block" data-act="makeMore">More ideas</button>'
-    : `<div class="empty"><h3>Couldn't make that work</h3><p>Try fewer conditions, or check your dislikes in Your tastes.</p></div>`;
+    : (() => { let why = ''; try { const pw = G.parseWant(S, B.text || ''), ids = [].concat(pw.want.main || [], pw.want.base || [], pw.want.veg || []).filter(id => ITEM[id] && C.likeOf(S, { item: id, name: ITEM[id].n }) < 0); if (ids.length) why = `You've marked ${ids.map(id => ITEM[id].n.toLowerCase()).join(' and ')} as something you don't eat. <a href="#tastes">Change that in Your tastes</a>.`; } catch (e) { /* ignore */ } return `<div class="empty"><h3>Couldn't make that work</h3><p>${why || 'Try fewer conditions, or check your dislikes in Your tastes.'}</p></div>`; })();
   else h += homeLinks();
   return h;
 }
@@ -594,7 +595,10 @@ function makeRun(surprise, append) {
   const opts = { want: p.want, exclude: p.exclude, serves: M.servesFor(S, t), stock, useStock, seen: B.seen, seenTitles: B.seenTitles, quick: p.mods.quick || ch.includes('quick'), cheap: p.mods.cheap || ch.includes('cheap'), healthy: p.mods.healthy || ch.includes('healthy'), spicy: p.mods.spicy || ch.includes('spicy'), vegOnly: p.mods.veggie || ch.includes('veggie'), mood: p.mods.mood || (ch.includes('comfort') ? 'comfort' : null), kids: ctx.kids, onlyStockMains: useStock && [...stock.keys()].some(id => G.MAINS[id] && !p.want.main), noise: surprise ? 4 : 1.6, allowSlow: true, priority: useStock ? 'save' : 'balanced' };
   if (ch.includes('exp')) { B.res = B.res.concat(F.experiments(S, { ...expWant(B.text), stock, serves: opts.serves, wild: B.wild || 1, vegOnly: opts.vegOnly, seenTitles: B.seenTitles }, 6)); return; }
   if (!append) { const joints = [...stock.keys()].filter(id => G.MAINS[id] && G.MAINS[id].joint && !opts.vegOnly && (!p.want.main || [].concat(p.want.main).includes(id))); B.jp = joints.slice(0, 2).map(id => G.jointPlan(S, id, opts.serves)).filter(x => x && x.first.length); B.jpR = B.jp.flatMap(x => [...x.first, ...x.then]); }
-  const got = G.options(S, { ...opts, recent: true }, 6); G.noteShown(S, got.map(r => r.spec)); save();
+  let got = G.options(S, { ...opts, recent: true }, 6);
+  if (!got.length && !append) got = G.options(S, { ...opts, recent: false, seen: new Set(), seenTitles: new Set(), onlyStockMains: false }, 6);
+  if (!got.length && !append && useStock) got = G.options(S, { ...opts, recent: false, useStock: false, onlyStockMains: false, priority: 'balanced', seen: new Set(), seenTitles: new Set() }, 6);
+  G.noteShown(S, got.map(r => r.spec)); save();
   B.res = B.res.concat(got);
 }
 // "pork chop, coffee and blue cheese" -> hero + partners
@@ -1231,6 +1235,9 @@ const A = {
   makeGo: () => { const t = $('#makeText'); if (t) ui.make.text = t.value; ui.make.ask = null; makeRun(false); render(); setTimeout(() => { const c = $('.card.fs'); if (c) c.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 30); },
   makeSurprise: () => { ui.make.ask = null; ui.make.text = ''; ui.make.chips = ui.make.chips.filter(x => x === 'have'); makeRun(true); render(); },
   makeOpen: el => openRecipeObj(ui.make.res[+el.dataset.idx]),
+  discoOpen: el => { const D = ui.disco, l = el.dataset.key === 'res' ? D.res : D.rows[el.dataset.key]; openRecipeObj(l[+el.dataset.idx]); },
+  discoF: el => { const F = ui.discoF, k = el.dataset.key; if (k === 'veg' || k === 'have') F[k] = !F[k]; else F[k] = +el.dataset.val; if (ui.disco && ui.disco.q) discoSearch(ui.disco.q); render(); },
+  discoClear: () => { ui.disco.res = null; ui.disco.q = ''; render(); },
   makeClear: () => { Object.assign(ui.make, { res: null, text: '', ask: null }); render(true); },
   useFirst: el => { const B = ui.make; B.text = ITEM[el.dataset.val].n; B.ask = null; if (!B.chips.includes('have')) B.chips.push('have'); makeRun(false); render(); setTimeout(() => { const c = $('.card.fs'); if (c) c.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 30); },
   homeOpen: el => openRecipeObj(ui.home.list[+el.dataset.idx].r),
@@ -1310,10 +1317,10 @@ async function fillAutoImages() {
     const want = [];
     for (const d of C.weekDates(ui.weekOffset)) for (const e of (S.plan[d] || [])) want.push(e.rid);
     if (ui.route === 'recipes') want.push(...Object.keys(R));
-    if (ui.route === 'discover' && ui.disc) want.unshift(...ui.disc.deck.slice(ui.disc.i, ui.disc.i + 4).map(r => r.id).filter(id => R[id]));
+    if (ui.route === 'swipe' && ui.disc) want.unshift(...ui.disc.deck.slice(ui.disc.i, ui.disc.i + 4).map(r => r.id).filter(id => R[id]));
     for (const id of [...new Set(want)].slice(0, 30)) { const r = R[id]; if (!r || r.src === 'built' || r.src === 'freestyle' || C.photoOf(S, r) || S.autoImg[id] !== undefined) continue; S.autoImg[id] = await C.autoImageFor(S, r); if (S.autoImg[id]) changed = true; }
   } catch (e) { /* offline or blocked */ }
-  autoBusy = false; if (changed) { save(); if (!ui.tour && ['plan', 'recipes', 'discover'].includes(ui.route)) render(); }
+  autoBusy = false; if (changed) { save(); if (!ui.tour && ['plan', 'recipes', 'swipe'].includes(ui.route)) render(); }
 }
 
 /* ================= Global events ================= */
@@ -1354,6 +1361,7 @@ document.addEventListener('change', ev => {
 });
 document.addEventListener('submit', ev => {
   const f = ev.target.dataset.form; if (!f) return; ev.preventDefault();
+  if (f === 'discoSearch') { const v = (($('#discoQ') || {}).value || '').trim(); if (v) { discoSearch(v); render(); } return; }
   if (f === 'addExtra') { addTyped('extra', '#extraName', (id, txt) => S.list.extras.push({ item: id, name: id ? ITEM[id].n : txt }), true); return; }
   if (f === 'askAdd') { const v = (($('#askName') || {}).value || '').trim(); if (!v) return; const id = C.matchIngredient(v); if (!id) { toast(`Couldn't match ${v}.`); return; } if (!ui.ask.sel.includes(id)) ui.ask.sel.push(id); setSheet(askSheet()); return; }
   if (f === 'labAdd') { const v = (($('#labName') || {}).value || '').trim(); if (!v) return; const id = C.matchIngredient(v); if (!id || !F.aroma(id)) { toast(`Mise doesn't know the flavours of ${v} yet.`); return; } ui.lab = ui.lab || { sel: [] }; if (!ui.lab.sel.includes(id)) ui.lab.sel.unshift(id); render(); return; }
@@ -1635,8 +1643,8 @@ function bindQuizSwipe() {
   const card = $('#qcard'); if (!card) return; let x0 = null, dx = 0;
   card.addEventListener('pointerdown', e => { x0 = e.clientX; dx = 0; card.setPointerCapture(e.pointerId); card.style.transition = 'none'; });
   card.addEventListener('pointermove', e => { if (x0 == null) return; dx = e.clientX - x0; card.style.transform = `translateX(${dx}px) rotate(${dx / 18}deg)`; card.classList.toggle('yes', dx > 40); card.classList.toggle('no', dx < -40); });
-  const vote = v => ui.route === 'discover' ? discVote(v) : quizVote(v);
-  const up = () => { if (x0 == null) return; x0 = null; card.style.transition = 'transform .2s ease'; if (ui.route === 'discover' && Math.abs(dx) < 6) { card.style.transform = ''; A.discOpen(); return; } if (Math.abs(dx) > 90) { card.style.transform = `translateX(${dx > 0 ? 600 : -600}px) rotate(${dx > 0 ? 25 : -25}deg)`; setTimeout(() => vote(dx > 0 ? 1 : -1), 160); } else { card.style.transform = ''; card.classList.remove('yes', 'no'); } };
+  const vote = v => ui.route === 'swipe' ? discVote(v) : quizVote(v);
+  const up = () => { if (x0 == null) return; x0 = null; card.style.transition = 'transform .2s ease'; if (ui.route === 'swipe' && Math.abs(dx) < 6) { card.style.transform = ''; A.discOpen(); return; } if (Math.abs(dx) > 90) { card.style.transform = `translateX(${dx > 0 ? 600 : -600}px) rotate(${dx > 0 ? 25 : -25}deg)`; setTimeout(() => vote(dx > 0 ? 1 : -1), 160); } else { card.style.transform = ''; card.classList.remove('yes', 'no'); } };
   card.addEventListener('pointerup', up); card.addEventListener('pointercancel', up);
 }
 function quizVote(v) { const q = ui.quiz; const x = q.deck[q.i]; if (q.stage === 'dishes') { q.votes['d:' + x.id] = v; C.voteDish(S, x, v); } else { q.votes[x] = v; if (v) S.likes[x] = v; else delete S.likes[x]; } save(); q.i++; render(); bindQuizSwipe(); }
@@ -1900,6 +1908,70 @@ function discVote(v) {
   D.n++; if (v > 0) D.likes++; D.i++; save(); render(); bindQuizSwipe();
 }
 
+/* ================= Discover: collections from your kitchen ================= */
+const DISCO_ROWS = [
+  ['kitchen', 'From your kitchen', 'Uses what you have', { useStock: true }],
+  ['quick', 'On the table in 30', 'Weeknight fast', { maxTime: 30, quick: true }],
+  ['slow', 'Roasts & slow cooks', 'Worth the wait', { methods: ['roast', 'pulled', 'braise', 'sticky'], allowSlow: true }],
+  ['pot', 'One pot & curries', 'Less washing up', { methods: ['simmer', 'curry', 'soup', 'noodlesoup', 'risotto'] }],
+  ['oven', 'Throw it in the oven', 'Traybakes & bakes', { methods: ['traybake', 'bake', 'loaded', 'pie'] }],
+  ['italian', 'Italian', '', { feel: ['Italian'] }],
+  ['mexican', 'Mexican & Tex-Mex', '', { feel: ['Mexican', 'American'] }],
+  ['asian', 'Chinese, Thai & Japanese', '', { feel: ['Chinese', 'Thai', 'Japanese'] }],
+  ['indian', 'Indian & Moroccan', '', { feel: ['Indian', 'Moroccan'] }],
+  ['irish', 'Irish & British', '', { feel: ['Irish', 'British'], noMeth: ['wraps', 'quesadilla', 'flatbread', 'burgers', 'bowl', 'friedrice', 'stirfry'] }],
+  ['med', 'Mediterranean', '', { feel: ['Mediterranean', 'Greek', 'Portuguese', 'French'] }]];
+const DISCO_TIME = [[0, 'Any time'], [30, '30 min'], [45, '45 min'], [60, '1 hour']];
+const DISCO_COST = [[0, 'Any price'], [2, 'Under €2'], [3, 'Under €3']];
+function discoKey() { const F = ui.discoF || {}; return C.today() + '|' + JSON.stringify(F) + '|' + S.pantry.length + '|' + JSON.stringify(S.gear || {}); }
+function discoBuild() {
+  const D = ui.disco; if (!D || !D.pending) return;
+  const F = ui.discoF || {}, t = C.today(), stock = G.pantryStock(S), serves = M.servesFor(S, t), seenTitles = new Set();
+  let curNo;
+  const fits = r => (!F.time || C.effort(r).total <= F.time + 5) && (!r.spec || !(curNo || []).includes(r.spec.method)) && (!F.cost || C.recipeCost(S, r, r.serves).perServe <= F.cost);
+  const base = { want: {}, stock, serves, seenTitles, recent: false, noise: 2, vegOnly: !!F.veg, cheap: !!F.cost, maxTime: F.time ? Math.max(10, F.time - 10) : null, quick: F.time && F.time <= 30, allowSlow: !F.time };
+  const t0 = performance.now();
+  try {
+    for (const [key, , , o] of DISCO_ROWS) {
+      if (D.rows[key]) continue;
+      curNo = o.noMeth;
+      let got = [];
+      const opts = { ...base, ...o, useStock: o.useStock || F.have, onlyStockMains: (o.useStock || F.have) && [...stock.keys()].some(id => G.MAINS[id]) };
+      if (o.methods) for (const m of o.methods) { got = got.concat(G.options(S, { ...opts, want: { method: m } }, 2)); }
+      else if (o.feel) { const kids = Object.entries(G.KITS).filter(([, k]) => o.feel.includes(k.feel)).map(([id]) => id).sort(() => Math.random() - 0.5).slice(0, 4); for (const kid of kids) got = got.concat(G.options(S, { ...opts, want: { kit: kid } }, o.noMeth ? 3 : 2)); }
+      else got = G.options(S, opts, 7);
+      D.rows[key] = got.filter(fits).slice(0, 8);
+      if (performance.now() - t0 > 250) { setTimeout(() => { discoBuild(); if (ui.route === 'discover') render(); }, 0); return; }
+    }
+    D.pending = false;
+  } catch (e) { console.warn('discover', e); D.pending = false; D.err = true; for (const [k] of DISCO_ROWS) if (!D.rows[k]) D.rows[k] = []; }
+  if (ui.route === 'discover') render();
+}
+function discoSearch(q) {
+  const D = ui.disco, F = ui.discoF || {}, p = G.parseWant(S, q), t = C.today(), stock = G.pantryStock(S);
+  D.q = q;
+  try { const want = { ...p.want }; if (want.main) want.lock = true;
+    const got = G.options(S, { want, exclude: p.exclude, stock, serves: M.servesFor(S, t), useStock: !!F.have, vegOnly: p.mods.veggie || !!F.veg, quick: p.mods.quick || (F.time && F.time <= 30), maxTime: F.time ? Math.max(10, F.time - 10) : null, cheap: p.mods.cheap || !!F.cost, spicy: p.mods.spicy, mood: p.mods.mood, healthy: p.mods.healthy, allowSlow: !F.time, noise: 1.6, seenTitles: new Set() }, 9);
+    D.res = got.filter(r => (!F.time || C.effort(r).total <= F.time + 5) && (!F.cost || C.recipeCost(S, r, r.serves).perServe <= F.cost));
+  } catch (e) { console.warn(e); D.res = []; }
+}
+function dcard(r, key, k) { const c = C.recipeCost(S, r, r.serves);
+  return `<button class="dcard" data-act="discoOpen" data-key="${key}" data-idx="${k}">${tile(r, 'dtile')}<b>${esc(r.title)}</b><span>${C.effort(r).slow ? hm(r.time) : C.effort(r).total + ' min'} · ${C.eur(c.perServe)}</span></button>`; }
+function viewDisco() {
+  if (!ui.disco || ui.disco.key !== discoKey()) ui.disco = { key: discoKey(), rows: {}, pending: true };
+  const D = ui.disco, F = ui.discoF || (ui.discoF = {});
+  let h = `<form class="ask-in disco-search" data-form="discoSearch"><input id="discoQ" type="search" enterkeyhint="search" autocomplete="off" aria-label="Search dishes" placeholder="Search: lamb, curry, something creamy…" value="${esc(D.q || '')}"><button class="go" type="submit" aria-label="Search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></button></form>
+  <div class="chips disco-f">${DISCO_TIME.map(([v, n]) => `<button class="chip" data-act="discoF" data-key="time" data-val="${v}" aria-pressed="${(F.time || 0) === v}">${n}</button>`).join('')}<span class="sep"></span>${DISCO_COST.map(([v, n]) => `<button class="chip" data-act="discoF" data-key="cost" data-val="${v}" aria-pressed="${(F.cost || 0) === v}">${n}</button>`).join('')}<span class="sep"></span><button class="chip" data-act="discoF" data-key="veg" aria-pressed="${!!F.veg}">Veggie</button><button class="chip" data-act="discoF" data-key="have" aria-pressed="${!!F.have}">Only what I have</button></div>`;
+  if (D.res) { h += `<div class="sec-h"><h3>${esc(D.q)}</h3><button class="btn sm ghost" data-act="discoClear">Clear</button></div>${D.res.length ? `<div class="dgrid">${D.res.map((r, k) => dcard(r, 'res', k)).join('')}</div>` : '<div class="empty"><h3>Nothing for that</h3><p>Try fewer words, or turn off a filter.</p></div>'}`; return h; }
+  h += `<a class="swipe-cta" href="#swipe">${ICON.spark}<div class="grow"><b>Teach Mise your taste</b><span>Swipe through dishes. Mise learns what you like.</span></div><span aria-hidden="true">›</span></a>`;
+  for (const [key, title, sub] of DISCO_ROWS) {
+    const list = D.rows[key];
+    if (list && !list.length) continue;
+    h += `<section class="drow-wrap"><div class="sec-h"><h3>${title}</h3>${sub ? `<span class="small muted">${sub}</span>` : ''}</div><div class="drow">${list ? list.map((r, k) => dcard(r, key, k)).join('') : '<div class="dcard sk"></div><div class="dcard sk"></div><div class="dcard sk"></div>'}</div></section>`;
+  }
+  if (!D.pending && DISCO_ROWS.every(([k]) => !(D.rows[k] || []).length)) h += `<div class="empty"><h3>${D.err ? 'Something went wrong' : 'Nothing fits those filters'}</h3><p>${D.err ? 'Pull down to refresh, or try again in a moment.' : 'Try a longer time or a higher price.'}</p></div>`;
+  return h;
+}
 /* ================= Your own recipe ================= */
 function viewAdd() {
   const e = ui.editDraft || (ui.editDraft = { title: '', serves: S.settings.household || 2, time: 30, ing: '', steps: '', id: null, img: null });
@@ -1916,7 +1988,7 @@ function viewAdd() {
 function fillDraftFrom(r) { const e = ui.editDraft; e.title = r.title; e.serves = r.serves; e.time = r.time; e.ing = r.ings.map(i => i.raw || `${i.q} ${i.u} ${i.name}`).join('\n'); e.steps = r.steps.join('\n'); if (r.img) e.img = r.img; e.url = r.url; }
 function readAddForm() { const e = ui.editDraft; e.title = $('#arTitle').value.trim(); e.serves = +$('#arServes').value || 2; e.time = +$('#arTime').value || 30; e.ing = $('#arIng').value; e.steps = $('#arSteps').value; e.batch = $('#arBatch').checked; return e; }
 
-const VIEWS = { make: () => { ui.make = { text: '', chips: ['have'], res: null }; makeRun(false); history.replaceState(null, '', '#builder'); ui.route = 'builder'; return viewBuilder(); }, week: viewWeek, discover: viewDiscover, tastes: viewTastes, add: viewAdd, quiz: viewQuiz, plan: viewPlan, recipes: viewRecipes, list: viewList, pantry: viewPantry, more: viewMore, receipts: viewReceipts, builder: viewBuilder, lab: viewLab, deals: viewDeals, insights: viewInsights, settings: viewSettings, install: viewInstall };
+const VIEWS = { make: () => { ui.make = { text: '', chips: ['have'], res: null }; makeRun(false); history.replaceState(null, '', '#builder'); ui.route = 'builder'; return viewBuilder(); }, week: viewWeek, discover: viewDisco, swipe: viewDiscover, tastes: viewTastes, add: viewAdd, quiz: viewQuiz, plan: viewPlan, recipes: viewRecipes, list: viewList, pantry: viewPantry, more: viewMore, receipts: viewReceipts, builder: viewBuilder, lab: viewLab, deals: viewDeals, insights: viewInsights, settings: viewSettings, install: viewInstall };
 async function syncLib(manual) {
   if (ui.libBusy) return; ui.libBusy = 0.01; if (ui.route === 'settings') render();
   try { const before = C.libraryInfo().count; const n = await C.syncLibrary(S, f => { ui.libBusy = Math.max(0.01, f); if (ui.route === 'settings') { const y = scrollY; render(); scrollTo(0, y); } }); ui.libBusy = 0; refreshRecipes(); if (manual || !before) toast(`${n} recipes ready, even offline`); }
