@@ -314,13 +314,15 @@ const NUT = {
   milk: [50, 3.4], butter: [740, 0.6], cheddar: [415, 25], mozzarella: [250, 18], parmesan: [400, 33], feta: [265, 14], halloumi: [320, 21], cream: [200, 2.5], 'double-cream': [450, 1.7], 'creme-fraiche': [290, 2.4], yogurt: [60, 4], eggs: [75, 6.5], 'cream-cheese': [250, 6], tofu: [120, 13], 'fresh-pasta': [270, 11], coleslaw: [150, 1],
   pasta: [355, 12], spaghetti: [355, 12], rice: [350, 7], basmati: [350, 8], noodles: [340, 11], couscous: [360, 13], oats: [370, 13], flour: [340, 10], sugar: [400, 0], 'chopped-tomatoes': [21, 1.2], passata: [30, 1.4], 'tomato-puree': [80, 4], 'coconut-milk': [180, 1.5], stock: [15, 1], chickpeas: [115, 7], 'kidney-beans': [100, 7], 'baked-beans': [80, 4.7], lentils: [330, 24], sweetcorn: [80, 2.7], 'olive-oil': [820, 0], oil: [820, 0], honey: [330, 0], 'curry-paste': [180, 3], pesto: [450, 5], 'peanut-butter': [600, 25], peas: [70, 5.5], 'frozen-veg': [50, 3], chips: [160, 2.5], 'bbq-sauce': [170, 1], 'pasta-sauce': [60, 1.6], 'cooking-sauce': [90, 1.5], aubergine: [90, 4], beetroot: [43, 1.6], parsnip: [75, 1.2], butternut: [450, 10], kale: [35, 2.9], asparagus: [20, 2.2], 'sugar-snap': [40, 2.8], 'corn-cob': [100, 3.5], 'salad-veg': [15, 1], olives: [150, 1], gnocchi: [150, 3.5], lasagne: [350, 12], breadcrumbs: [380, 12], 'salmon-tin': [150, 21], hummus: [300, 7]
 };
+const REFUSE = { 'whole-chicken': 0.32, 'chicken-drum': 0.3, 'chicken-wings': 0.38, 'pork-ribs': 0.4, 'pork-chop': 0.18, 'lamb-chops': 0.3, 'lamb-leg': 0.15, 'pork-roast': 0.1, gammon: 0.08 };
 export function nutrition(state, r, serves) {
   if (!r || !r.ings) return null; let kcal = 0, protein = 0, known = 0, veg = 0, fat = 0, carb = 0, fibre = 0, salt = 0;
   const f = (serves || r.serves) / r.serves;
   for (const i of C.withSubs(state, r.ings)) {
     const it = ITEM[i.item]; if (it && it.cat === 'veg') veg++;
     const usda = it && it.u !== 'pc' ? K.nutritionOf(it.id) : null, n = usda ? [usda.kcal || 0, usda.protein || 0] : it && NUT[it.id];
-    if (!n) continue; const b = C.toBase(i.q * f, i.u, it); if (!b) continue;
+    if (!n) continue; let b = i.whole && i.portion ? i.portion * (serves || r.serves) : C.toBase(i.whole ? i.q : i.q * f, i.u, it); if (!b) continue;
+    b *= 1 - (REFUSE[it.id] || 0); // bones and skin you don't eat
     const k = it.u === 'pc' ? b : b / 100; kcal += n[0] * k; protein += n[1] * k; known++;
     if (usda) { fat += (usda.fat || 0) * k; carb += (usda.carb || 0) * k; fibre += (usda.fiber || 0) * k; salt += (usda.sodium || 0) * k * 2.5 / 1000; }
   }

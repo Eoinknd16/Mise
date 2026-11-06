@@ -736,8 +736,8 @@ function updateCard() {
 }
 function knowledgeCard() {
   const st = K.stats(); if (!st) return '';
-  return `<div class="card"><h2>Chef knowledge</h2><p class="small" style="margin:0">${st.ingredients.toLocaleString()} ingredients · ${st.compounds.toLocaleString()} flavour compounds · ${st.recipes.toLocaleString()} real recipes analysed · ${Math.round(st.pairs).toLocaleString()} proven pairings${st.foods ? ` · nutrition for ${st.foods.toLocaleString()} foods` : ''}</p>
-    <p class="tiny muted" style="margin:6px 0 0">Flavour data: Ahn, Ahnert, Bagrow &amp; Barabási, "Flavor network and the principles of food pairing", Scientific Reports 1:196 (2011). Nutrition: USDA FoodData Central / SR Legacy (public domain).</p></div>`;
+  return `<div class="card"><h2>Chef knowledge</h2><p class="small" style="margin:0">${st.ingredients.toLocaleString()} ingredients · ${st.chefPairs.toLocaleString()} chef pairings · ${st.dishes.toLocaleString()} real dishes analysed (${st.pairs.toLocaleString()} proven combinations) · ${Object.keys(TQ.PROTEIN).length + Object.keys(TQ.VEGTECH).length} technique profiles${st.foods ? ` · nutrition for ${st.foods.toLocaleString()} foods` : ''}</p>
+    <p class="tiny muted" style="margin:6px 0 0">Dish and nutrition data: USDA FNDDS and SR28 (public domain). Contains information licensed under the Open Government Licence – Canada (Canadian Nutrient File).</p></div>`;
 }
 function viewSettings() {
   const st = S.settings, R7 = M.rhythm(S), ppl = S.people || [];

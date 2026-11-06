@@ -1,32 +1,24 @@
-// Which entry in the flavour database each Mise ingredient corresponds to,
-// plus the cooked versions whose aromas change with technique (roasting makes new compounds).
-export const FMAP = {
-  courgette: 'zucchini', salad: 'lettuce', 'spring-onion': 'scallion', prawns: 'prawn', sweetcorn: 'corn', butternut: 'squash', sausages: 'pork_sausage', 'chicken-breast': 'chicken', pasta: 'macaroni', noodles: 'egg_noodle', olives: 'olive', 'baked-beans': 'bean', berries: 'berry',
-  'red-onion': 'onion', spinach: 'dried_spinach', 'cherry-tomato': 'tomato', 'green-beans': 'bean', chilli: 'pepper',
-  wraps: 'wheat_bread', buns: 'white_bread', naan: 'wheat_bread', pitta: 'wheat_bread', baguette: 'white_bread', 'garlic-bread': 'bread',
-  'chicken-thigh': 'chicken', 'chicken-wings': 'chicken', 'whole-chicken': 'chicken', 'chicken-drum': 'chicken', 'cooked-chicken': 'chicken', nuggets: 'chicken', 'turkey-breast': 'turkey', 'turkey-mince': 'turkey', 'duck-breast': 'chicken',
-  'beef-mince': 'beef', steak: 'beef', 'diced-beef': 'beef', 'beef-brisket': 'beef', 'beef-roast': 'beef', 'cooked-beef': 'roasted_beef', burgers: 'beef',
-  'pork-chop': 'pork', 'pork-mince': 'pork', 'pork-roast': 'pork', 'pork-fillet': 'pork', 'pork-ribs': 'pork', 'pork-belly': 'pork', 'cooked-pork': 'roasted_pork', gammon: 'ham', 'deli-meat': 'ham', chorizo: 'smoked_sausage', pudding: 'pork_sausage',
-  'lamb-mince': 'lamb', 'lamb-leg': 'lamb', 'lamb-chops': 'lamb', 'cooked-lamb': 'roasted_lamb',
-  mozzarella: 'mozzarella_cheese', parmesan: 'parmesan_cheese', halloumi: 'sheep_cheese', 'double-cream': 'cream', 'creme-fraiche': 'sour_milk', 'sour-cream': 'sour_milk', cheddar: 'cheddar_cheese', brie: 'camembert_cheese', 'cheese-slices': 'cheese',
-  tofu: 'soybean', hummus: 'chickpea', 'fresh-pasta': 'macaroni', spaghetti: 'macaroni', lasagne: 'macaroni', gnocchi: 'potato', basmati: 'rice', 'risotto-rice': 'rice', couscous: 'wheat', grains: 'barley',
-  flour: 'wheat', sugar: 'cane_molasses', 'chopped-tomatoes': 'tomato', passata: 'tomato', 'tomato-puree': 'tomato', 'coconut-milk': 'coconut', stock: 'chicken_broth', 'puff-pastry': 'butter',
-  'fish-sauce': 'fish', sriracha: 'thai_pepper', 'hot-sauce': 'tabasco_pepper', jalapenos: 'pepper', capers: 'olive', 'butter-beans': 'lima_bean', mayo: 'egg', ketchup: 'tomato', 'curry-paste': 'turmeric', pesto: 'basil',
-  paprika: 'pimento', 'garam-masala': 'cardamom', 'mixed-herbs': 'oregano', 'chilli-flakes': 'cayenne', 'garlic-granules': 'garlic', 'onion-granules': 'onion', 'ground-ginger': 'ginger', 'ground-coriander': 'coriander', 'cajun-spice': 'cayenne', 'fajita-mix': 'cumin', 'five-spice': 'star_anise', 'peri-spice': 'thai_pepper',
-  'dried-thyme': 'thyme', 'dried-rosemary': 'rosemary', 'dried-basil': 'basil', 'bay-leaves': 'bay', 'fennel-seeds': 'fennel', cocoa: 'cocoa', vanilla: 'vanilla', 'frozen-veg': 'pea', chips: 'french_fried_potato', 'hash-browns': 'potato', 'fish-fingers': 'cod', 'frozen-fish': 'cod', 'fish-cakes': 'cod', 'salmon-tin': 'salmon', 'other-fish': 'fish',
-  chocolate: 'cocoa', 'dark-chocolate': 'cocoa', 'bbq-sauce': 'smoke', 'sweet-chilli': 'thai_pepper', 'brown-sauce': 'tamarind', worcestershire: 'tamarind', 'oyster-sauce': 'oyster', 'mint-sauce': 'mint', salsa: 'tomato', gravy: 'beef_broth', 'pasta-sauce': 'tomato', 'cooking-sauce': 'tomato',
-  aubergine: 'vegetable', beetroot: 'beet', 'sugar-snap': 'pea', 'corn-cob': 'corn', 'salad-veg': 'lettuce', coleslaw: 'cabbage', 'tinned-fruit': 'peach', 'frozen-fruit': 'berry', 'tinned-veg': 'vegetable',
-  miso: 'soybean', tahini: 'sesame_seed', chipotle: 'smoke', anchovies: 'fish', kimchi: 'chinese_cabbage', breadcrumbs: 'bread', baking: 'wheat', cheddar_: 'cheddar_cheese',
-  'curry-powder': 'turmeric', oil: 'vegetable_oil', 'white-fish': 'cod', 'peanut-butter': 'peanut_butter', nuts: 'nut', syrup: 'maple_syrup', 'dried-fruit': 'raisin', game: 'veal', 'hot-dogs': 'frankfurter'
+// Which ingredient family (as used in the USDA dish data) each Mise ingredient belongs to.
+const G = {
+  chicken: 'chicken-thigh chicken-breast chicken-drum chicken-wings whole-chicken cooked-chicken nuggets', turkey: 'turkey-breast turkey-mince', duck: 'duck-breast',
+  beef_mince: 'beef-mince burgers', beef: 'steak diced-beef beef-brisket beef-roast cooked-beef game', pork: 'pork-chop pork-mince pork-fillet pork-roast pork-belly pork-ribs cooked-pork',
+  ham: 'ham gammon deli-meat', bacon: 'bacon', sausage: 'sausages chorizo hot-dogs pudding', lamb: 'lamb lamb-mince lamb-chops lamb-leg cooked-lamb',
+  salmon: 'salmon smoked-salmon salmon-tin', tuna: 'tuna', shrimp: 'prawns', fish: 'white-fish frozen-fish fish-cakes fish-fingers mackerel anchovies other-fish',
+  egg: 'eggs', cheddar: 'cheddar cheese-slices', parmesan: 'parmesan', mozzarella: 'mozzarella', feta: 'feta halloumi goats-cheese', cheese: 'blue-cheese brie cottage-cheese',
+  cream_cheese: 'cream-cheese', sour_cream: 'sour-cream creme-fraiche', cream: 'cream double-cream', yogurt: 'yogurt', milk: 'milk', butter: 'butter',
+  olive_oil: 'olive-oil', oil: 'oil', flour: 'flour', rice: 'rice basmati risotto-rice', pasta: 'pasta spaghetti lasagne fresh-pasta gnocchi', noodle: 'noodles',
+  breadcrumbs: 'breadcrumbs', tortilla: 'wraps', bread: 'bread buns naan pitta baguette garlic-bread', potato: 'potato chips hash-browns', sweet_potato: 'sweet-potato butternut',
+  onion: 'onion red-onion spring-onion leek', garlic: 'garlic garlic-granules', tomato: 'tomato cherry-tomato chopped-tomatoes passata', tomato_paste: 'tomato-puree',
+  pepper: 'pepper', chilli: 'chilli jalapenos sriracha hot-sauce', carrot: 'carrot parsnip', celery: 'celery fennel', mushroom: 'mushroom', spinach: 'spinach kale',
+  broccoli: 'broccoli', cauliflower: 'cauliflower', cabbage: 'cabbage coleslaw kimchi', lettuce: 'salad salad-veg', cucumber: 'cucumber pickles gherkins', courgette: 'courgette',
+  aubergine: 'aubergine', green_beans: 'green-beans sugar-snap asparagus', peas: 'peas frozen-veg', sweetcorn: 'sweetcorn corn-cob', chickpeas: 'chickpeas hummus',
+  beans: 'kidney-beans baked-beans butter-beans', lentils: 'lentils', avocado: 'avocado', lemon: 'lemon', lime: 'lime', orange: 'orange', apple: 'apple pears',
+  pineapple: 'pineapple', mango: 'mango', raisin: 'dried-fruit dates', coconut: 'coconut-milk', soy_sauce: 'soy-sauce oyster-sauce fish-sauce miso', worcestershire: 'worcestershire brown-sauce',
+  vinegar: 'vinegar', mustard: 'mustard', ketchup: 'ketchup', mayonnaise: 'mayo salad-cream', honey: 'honey syrup', sugar: 'sugar sweet-chilli', curry: 'curry-paste curry-powder garam-masala turmeric',
+  cumin: 'cumin fajita-mix', paprika: 'paprika', chilli_powder: 'chilli-powder chilli-flakes cayenne cajun-spice peri-spice chipotle', oregano: 'oregano mixed-herbs',
+  basil: 'basil dried-basil pesto', parsley: 'parsley', coriander: 'coriander ground-coriander', thyme: 'thyme dried-thyme', rosemary: 'rosemary dried-rosemary', ginger: 'ginger ground-ginger lemongrass',
+  cinnamon: 'cinnamon', nutmeg: 'nutmeg', stock: 'stock', gravy: 'gravy', peanut_butter: 'peanut-butter', nuts: 'nuts', sesame: 'sesame-oil tahini', salsa: 'salsa', bbq_sauce: 'bbq-sauce',
+  olives: 'olives', capers: 'capers', dill: 'dill', mint: 'mint mint-sauce', sage: 'sage', bay: 'bay-leaves'
 };
-// cooked versions of ingredients that exist in the data (roasting/frying create new aromas)
-export const COOKED = {
-  pork: { roast: 'roasted_pork', traybake: 'roasted_pork', sticky: 'roasted_pork', panfry: 'fried_pork', pulled: 'roasted_pork', braise: 'boiled_pork', simmer: 'boiled_pork' },
-  beef: { roast: 'roasted_beef', traybake: 'roasted_beef', panfry: 'grilled_beef', burgers: 'grilled_beef', stirfry: 'fried_beef', braise: 'boiled_beef', simmer: 'boiled_beef', pulled: 'roasted_beef' },
-  chicken: { roast: 'roasted_chicken', traybake: 'roasted_chicken', sticky: 'roasted_chicken', panfry: 'fried_chicken', simmer: 'boiled_chicken', curry: 'boiled_chicken', soup: 'boiled_chicken' },
-  lamb: { roast: 'roasted_lamb', traybake: 'roasted_lamb', panfry: 'roasted_lamb', braise: 'boiled_mutton' },
-  turkey: { roast: 'roasted_turkey', traybake: 'roasted_turkey' },
-  potato: { roast: 'baked_potato', traybake: 'baked_potato', loaded: 'baked_potato', burgers: 'french_fried_potato', sticky: 'french_fried_potato' },
-  onion: { roast: 'roasted_onion', traybake: 'roasted_onion', hash: 'roasted_onion' },
-  nut: { '*': 'roasted_nut' }, peanut: { '*': 'roasted_peanut' }, sesame_seed: { '*': 'roasted_sesame_seed' }, almond: { '*': 'roasted_almond' }, hazelnut: { '*': 'roasted_hazelnut' }
-};
+export const CATKEY = {};
+for (const [k, ids] of Object.entries(G)) for (const id of ids.split(' ')) CATKEY[id] = k;

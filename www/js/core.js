@@ -855,8 +855,9 @@ export function bestPrice(state, itemId) {
   const it = ITEM[itemId]; if (!it) return null;
   const shops = state.settings.shops.length ? state.settings.shops : ['Lidl'];
   let best = null;
-  for (const d of activeDeals(state)) if (d.item === itemId && d.price) { const u = d.price / (d.qty || it.packs[0]); if (!best || u < best.unit) best = { unit: u, shop: d.shop || state.settings.defaultShop, src: 'deal', deal: d }; }
-  const manual = (state.prices || []).filter(p => p.item === itemId && p.src === 'manual' && p.qty > 0).sort((a, b) => b.date.localeCompare(a.date))[0];
+  for (const d of activeDeals(state)) if (d.item === itemId && d.price) { const u = d.price / (d.qty || it.packs[0]); if (!saneUnit(it, u)) continue; if (!best || u < best.unit) best = { unit: u, shop: d.shop || state.settings.defaultShop, src: 'deal', deal: d }; }
+  let manual = (state.prices || []).filter(p => p.item === itemId && p.src === 'manual' && p.qty > 0).sort((a, b) => b.date.localeCompare(a.date))[0];
+  if (manual && !saneUnit(it, manual.price / manual.qty)) manual = null;
   if (manual) { const u = manual.price / manual.qty; if (!best || best.src !== 'deal' || u < best.unit) best = { unit: u, shop: manual.shop || state.settings.defaultShop, src: 'yours', date: manual.date }; }
   if (!manual) { const main = state.settings.defaultShop; const order = [main, ...shops.filter(s => s !== main)]; for (const s of order) { const k = knownUnitPrice(state, itemId, s); if (k && saneUnit(it, k.unit)) { if (!best || (best.src !== 'deal' && s === main) || k.unit < best.unit * 0.85) best = { unit: k.unit, shop: s, src: 'yours', date: k.date }; if (s === main) break; } } }
   if (!best) best = { unit: it.p / it.packs[0], shop: state.settings.defaultShop || shops[0], src: 'est' };
@@ -971,7 +972,7 @@ export function packLabel(row) {
 }
 export function recipeCost(state, r, serves) {
   const f = (serves || r.serves) / r.serves; let total = 0, known = 0, unknown = 0;
-  for (const i of withSubs(state, r.ings)) { const it = ITEM[i.item]; if (!it) { unknown++; continue; } const b = toBase(i.whole ? i.q : i.q * f, i.u, it); if (!b) continue; total += b * bestPrice(state, it.id).unit; known++; }
+  for (const i of withSubs(state, r.ings)) { const it = ITEM[i.item]; if (!it) { unknown++; continue; } const b = i.whole && i.portion ? i.portion * (serves || r.serves) : toBase(i.whole ? i.q : i.q * f, i.u, it); if (!b) continue; total += b * bestPrice(state, it.id).unit; known++; }
   return { total, perServe: total / (serves || r.serves), unknown };
 }
 

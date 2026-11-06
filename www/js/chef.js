@@ -1,13 +1,15 @@
-// Mise chef intelligence: pairing maths from real flavour-compound and recipe data,
-// plus the recipe grammar (sauce, texture and finishing blocks) with compatibility rules.
-// Data: www/data/chefdb.json (built by tools/build_chefdb.py from Ahn et al. 2011 + USDA SR28).
+// Mise chef intelligence: pairing maths from real dish compositions (USDA FNDDS) plus Mise's own aroma map,
+// and the recipe grammar (sauce, texture and finishing blocks) with compatibility rules.
+// Data: www/data/chefdb.json (built by tools/build_chefdb.py from public-domain USDA data). Commercially usable.
 import { ITEM } from './data.js';
-import { FMAP, COOKED } from './chefmap.js';
+import { CATKEY } from './chefmap.js';
+import * as FL from './flavour.js';
+import * as PR from './pairings.js';
 
 let DB = null, NUT = null;
 const cache = new Map();
 export const ready = () => !!DB;
-export function setDB(db, nut, nmap) { DB = db; if (nut) NUT = nut; if (nmap) NUTMAP = nmap; cache.clear(); for (const e of Object.values(DB.ing)) if (e.k && !e.ks) e.ks = new Set(e.k); }
+export function setDB(db, nut, nmap) { DB = db; if (nut) NUT = nut; if (nmap) NUTMAP = nmap; cache.clear(); }
 export async function load() {
   if (DB) return true;
   try { const r = await fetch('data/chefdb.json'); setDB(await r.json()); return true; } catch (e) { return false; }
@@ -19,55 +21,50 @@ export async function loadNutrition() {
 }
 
 // ---------- ingredient identity ----------
-export function fname(id, tech) {
-  if (!DB || !id) return null;
-  const u = id.replace(/-/g, '_'), sg = u.replace(/ies$/, 'y').replace(/oes$/, 'o').replace(/s$/, '');
-  let n = FMAP[id] || (DB.ing[u] ? u : DB.ing[sg] ? sg : null);
-  if (!n || !DB.ing[n]) return null;
-  if (tech && COOKED[n]) { const c = COOKED[n][tech] || COOKED[n]['*']; if (c && DB.ing[c]) n = c; }
-  return n;
-}
-const ingOf = n => (DB && n ? DB.ing[n] : null);
-// shared aroma compounds, cosine-normalised (0..1)
-function compCos(a, b) {
-  const A = ingOf(a), B = ingOf(b); if (!A || !B || !A.ks || !B.ks) return 0;
-  let s = 0; const [x, y] = A.ks.size < B.ks.size ? [A.ks, B.ks] : [B.ks, A.ks];
-  for (const c of x) if (y.has(c)) s++;
-  return s / Math.sqrt(A.ks.size * B.ks.size);
-}
-function shared(a, b) { const A = ingOf(a), B = ingOf(b); if (!A || !B || !A.ks || !B.ks) return []; return A.k.filter(c => B.ks.has(c)); }
-// how much more often cooks put them together than chance (normalised PMI, -1..1); null if no recipe evidence
-// recipes often name the juice or peel rather than the fruit, the broth rather than the bird
-const REC_ALIAS = { lemon: ['lemon_juice', 'lemon_peel'], lime: ['lime_juice'], orange: ['orange_juice', 'orange_peel'], pepper: ['bell_pepper', 'green_bell_pepper'], cheese: ['cheddar_cheese'], tomato: ['tomato_juice'], chicken: ['chicken_broth'], beef: ['beef_broth'], scallion: ['onion'] };
+export const keyOf = id => CATKEY[id] || null;
+export function fname(id) { return keyOf(id); }
+const keyData = k => (DB && k ? DB.keys[k] : null);
+// how much more often real dishes combine two ingredient families than chance (normalised PMI); null = no evidence
 function rec(a, b) {
-  const A = ingOf(a), B = ingOf(b); if (!A || !B) return null;
-  let v = (A.p && A.p[b]) || (B.p && B.p[a]);
-  if (!v) for (const x of [a, ...(REC_ALIAS[a] || [])]) for (const y of [b, ...(REC_ALIAS[b] || [])]) { const X = ingOf(x), Y = ingOf(y); const w = (X && X.p && X.p[y]) || (Y && Y.p && Y.p[x]); if (w && (!v || w > v)) v = w; }
-  if (v) return v;
-  if (A.n && B.n && A.n > 150 && B.n > 150) return -0.05; // both common, almost never together
+  const ka = keyOf(a), kb = keyOf(b); if (!ka || !kb || ka === kb) return null;
+  const A = keyData(ka), B = keyData(kb); if (!A || !B) return null;
+  const v = (A.p && A.p[kb] != null) ? A.p[kb] : (B.p && B.p[ka] != null ? B.p[ka] : null);
+  if (v != null) return v;
+  if (A.n >= 25 && B.n >= 25) return -0.04; // both common in dishes, practically never together
   return null;
 }
-function famCos(a, b) {
-  const A = ingOf(a), B = ingOf(b); if (!A || !B || !A.f || !B.f) return 0;
-  let d = 0, na = 0, nb = 0; for (const k of DB.fams) { const x = A.f[k] || 0, y = B.f[k] || 0; d += x * y; na += x * x; nb += y * y; }
+// cooking adds roasted (Maillard) notes to proteins and veg
+const BROWN = new Set(['roast', 'traybake', 'panfry', 'sticky', 'burgers', 'stirfry', 'hash', 'loaded', 'friedrice']);
+function vec(id, tech) {
+  const a = FL.aroma(id); if (!a) return null;
+  const v = { ...a.n };
+  if (tech && BROWN.has(tech) && (CATKEY[id] && /chicken|turkey|duck|beef|pork|lamb|sausage|potato|onion|mushroom|carrot|cauliflower|broccoli|bread|tortilla/.test(CATKEY[id]))) v.R = Math.max(v.R || 0, 2);
+  return v;
+}
+function aroCos(a, b, tech) {
+  const A = vec(a, tech), B = vec(b, tech); if (!A || !B) return null;
+  let d = 0, na = 0, nb = 0; for (const k of new Set([...Object.keys(A), ...Object.keys(B)])) { const x = A[k] || 0, y = B[k] || 0; d += x * y; na += x * x; nb += y * y; }
   return na && nb ? d / Math.sqrt(na * nb) : 0;
 }
 // The pairing score between two Mise ingredients (optionally as cooked by a technique)
 export function pair(idA, idB, tech) {
-  if (!DB) return null;
-  const a = fname(idA, tech), b = fname(idB, tech); if (!a || !b || a === b) return null;
-  const k = a < b ? a + '|' + b : b + '|' + a; if (cache.has(k)) return cache.get(k);
-  const cc = compCos(a, b), r = rec(a, b), fc = famCos(a, b);
-  const recS = r == null ? null : Math.max(-1, Math.min(1, r * 3));
-  const s = recS == null ? cc * 0.75 + fc * 0.25 : recS * 0.55 + cc * 0.3 + fc * 0.15;
-  const out = { s, comp: cc, rec: r, fam: fc, a, b, n: shared(a, b).length };
+  if (!DB || !idA || !idB || idA === idB) return null;
+  const k = (idA < idB ? idA + '|' + idB : idB + '|' + idA) + '|' + (tech && BROWN.has(tech) ? 'b' : '');
+  if (cache.has(k)) return cache.get(k);
+  const r = rec(idA, idB), ac = aroCos(idA, idB, tech), kn = PR.known(idA, idB, keyOf);
+  if (r == null && ac == null && !kn) { cache.set(k, null); return null; }
+  const recS = r == null ? null : Math.max(-1, Math.min(1, r * 2.5));
+  const aro = ac == null ? 0.3 : ac;
+  // three kinds of evidence: chef knowledge (Mise's own), real dish data (USDA), shared aroma families
+  let s = recS == null ? (aro - 0.25) * 0.4 : recS * 0.6 + (aro - 0.25) * 0.3;
+  if (kn === 2) s = Math.max(s, 0.32) + 0.08; else if (kn === 1) s = Math.max(s, 0.24) + 0.04; else if (kn === -1) s = Math.min(s, -0.3);
+  const out = { s, rec: r, comp: aro, fam: aro, n: 0, known: kn };
   cache.set(k, out); return out;
 }
-// aroma families shared by two ingredients (plain-English names via flavour.js NOTES keys)
+const NOTE = { R: 'roasted', Ca: 'caramel', Sv: 'savoury', Gr: 'green', Ci: 'citrus', Pi: 'herbal', Fr: 'fruity', Cr: 'creamy', Sp: 'warm-spice', Sm: 'smoky', Ea: 'earthy', Fl: 'floral', Fu: 'tangy', Um: 'umami', Me: 'meaty', An: 'aniseed' };
 export function sharedFams(idA, idB, tech) {
-  const a = fname(idA, tech), b = fname(idB, tech); if (!a || !b) return [];
-  const cnt = {}; for (const c of shared(a, b)) { const f = (DB.comp[c] || [])[1]; if (f) cnt[f] = (cnt[f] || 0) + 1; }
-  return Object.entries(cnt).sort((x, y) => y[1] - x[1]).map(x => x[0]);
+  const A = vec(idA, tech), B = vec(idB, tech); if (!A || !B) return [];
+  return Object.keys(A).filter(k => B[k]).sort((x, y) => Math.min(B[y], A[y]) - Math.min(B[x], A[x]));
 }
 const QUIET = new Set(['garlic', 'onion', 'oil', 'olive-oil', 'salt', 'black-pepper', 'stock', 'flour', 'sugar', 'butter']);
 // Harmony of a whole dish: mean pairing over its meaningful pairs, with the hero pairings counted double
@@ -82,24 +79,24 @@ export function harmony(ids, tech, hero) {
   return w ? { h: t / w, pairs: known } : null;
 }
 // Plain-English reasons for a pairing
-const FAMNAME = { R: 'roasted', Ca: 'caramel', Sv: 'savoury', Gr: 'green', Ci: 'citrus', Pi: 'herbal', Fr: 'fruity', Cr: 'buttery', Sp: 'warm-spice', Sm: 'smoky', Ea: 'earthy', Fl: 'floral', Fu: 'cheesy', Me: 'meaty', An: 'aniseed' };
 export function why(idA, idB, tech) {
   const p = pair(idA, idB, tech); if (!p) return null;
   const bits = [];
-  if (p.rec != null && p.rec > 0.08) bits.push(p.rec > 0.2 ? 'a proven classic in real recipes' : 'cooks pair them often');
-  if (p.n >= 3) { const all = sharedFams(idA, idB, tech), pref = all.filter(x => !['Fu', 'Sv', 'Cr'].includes(x)); const f = (pref.length ? pref : all).slice(0, 2).map(x => FAMNAME[x]).filter(Boolean); bits.push(`${p.n} shared aroma compounds${f.length ? ` (${f.join(' and ')} notes)` : ''}`); }
+  if (p.known === 2) bits.push('a classic pairing'); else if (p.known === 1) bits.push('a bold pairing chefs use');
+  if (p.rec != null && p.rec > 0.08) bits.push(p.rec > 0.2 ? 'proven in real dishes' : 'often combined in real dishes');
+  const f = sharedFams(idA, idB, tech).slice(0, 2).map(x => NOTE[x]).filter(Boolean);
+  if (f.length && p.comp >= 0.45) bits.push(`both have ${f.join(' and ')} notes`);
   return bits.join('; ') || null;
 }
-// Partners for an ingredient across the whole database: classic (recipe evidence), surprising and wild (chemistry)
+// Partners for an ingredient: classic (dish evidence), surprising and wild (shared aromas, little evidence)
 export function partnersOf(id, mapBack) {
-  const a = fname(id); if (!a) return null;
-  const A = ingOf(a), out = { classic: [], surprising: [], wild: [] };
-  const cands = mapBack(); // Mise ids that exist in the database
-  for (const b of cands) {
+  if (!FL.aroma(id) && !keyOf(id)) return null;
+  const out = { classic: [], surprising: [], wild: [] }, catA = FL.catOf(id);
+  for (const b of mapBack()) {
     if (b === id) continue; const p = pair(id, b); if (!p) continue;
-    const catA = A.c, catB = (ingOf(fname(b)) || {}).c;
-    if (p.rec != null && p.rec > 0.06) out.classic.push([p.rec * 3 + p.comp, b, p]);
-    else if (p.comp >= 0.22 && (p.rec == null || p.rec <= 0.02)) (catA !== catB ? out.wild : out.surprising).push([p.comp, b, p]);
+    if (p.known === 2 || (p.rec != null && p.rec > 0.08)) out.classic.push([(p.known === 2 ? 1 : 0) + (p.rec || 0) * 3 + p.comp, b, p]);
+    else if (p.known === 1) out.wild.push([1 + p.comp, b, p]);
+    else if (p.comp >= 0.55 && (p.rec == null || p.rec <= 0.03)) (FL.catOf(b) !== catA ? out.wild : out.surprising).push([p.comp, b, p]);
   }
   for (const k of Object.keys(out)) out[k] = out[k].sort((x, y) => y[0] - x[0]).map(x => ({ id: x[1], p: x[2] }));
   return out;
@@ -197,7 +194,7 @@ export function nutritionOf(id) {
   NUT.idx = NUT.idx || new Map(NUT.foods.map(r => [r[0], r]));
   const r = NUT.idx.get(ndb); if (!r) return null; const o = {}; NUT.cols.forEach((c, i) => o[c] = r[i]); return o;
 }
-export const stats = () => DB ? { ingredients: Object.keys(DB.ing).length, compounds: Object.keys(DB.comp).length, recipes: DB.recipes, pairs: Object.values(DB.ing).reduce((a, e) => a + Object.keys(e.p || {}).length, 0) / 2, foods: NUT ? NUT.foods.length : null } : null;
+export const stats = () => DB ? { chefPairs: PR.size(), ingredients: Object.keys(CATKEY).length, families: Object.keys(DB.keys).length, dishes: DB.dishes, pairs: Math.round(Object.values(DB.keys).reduce((a, e) => a + Object.values(e.p || {}).filter(v => v > 0.05).length, 0) / 2), foods: NUT ? NUT.foods.length : null } : null;
 // In Node (tests and build tools) load the data straight from disk
 if (typeof window === 'undefined' && globalThis.process && process.getBuiltinModule) {
   try { const fs = process.getBuiltinModule('fs'), url = process.getBuiltinModule('url'), path = process.getBuiltinModule('path'); const d = path.join(path.dirname(url.fileURLToPath(import.meta.url)), '..', 'data');

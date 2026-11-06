@@ -210,7 +210,7 @@ worcestershire|Worcestershire sauce|pantry|ml|150|1.29|500|sauce|lea perrins;wor
 oyster-sauce|Oyster sauce|pantry|ml|150|1.49|365|sauce|hoisin;hoisin sauce;teriyaki sauce;fish sauce;black bean sauce|s
 pasta-sauce|Pasta sauce|pantry|g|500|1.29|365|sauce|bolognese sauce;tomato pasta sauce;dolmio;arrabbiata sauce;pasta sauce jar;lasagne sauce;white sauce;cheese sauce;carbonara sauce|
 cooking-sauce|Cooking sauce|pantry|g|500|1.49|365|sauce|curry sauce;korma sauce;tikka masala sauce;sweet and sour sauce;stir fry sauce;chasseur sauce;jar sauce;butter chicken sauce;fajita sauce|
-gravy|Gravy granules|pantry|g|300|1.49|365|sauce|bisto;gravy|s
+gravy|Gravy granules|pantry|g|300|1.49|365|sauce|bisto;gravy|s|serving:20;tbsp:8;spoon:8;tsp:3
 mint-sauce|Relish & chutney|pantry|g|300|1.39|365|sauce|mint sauce;cranberry sauce;relish;chutney;mango chutney;pickle;branston;apple sauce|s
 salsa|Salsa & dips|chilled|g|300|1.29|14|sauce|salsa;dip;guacamole;tzatziki;sour cream and chive dip|
 pears|Pears|fruitveg|pc|4|1.49|10|fruit|pear;conference pears|
@@ -238,7 +238,7 @@ crumpets|Crumpets & pancakes|bakery|pc|6|1.09|5|bakery|crumpet;pancakes;potato f
 chicken-drum|Chicken drumsticks|meat|g|1000|3.49|3|meat|drumsticks;chicken legs;chicken drumsticks|p:chicken
 turkey-mince|Turkey mince|meat|g|500|3.49|3|meat|minced turkey;turkey mince|p:chicken
 burgers|Burgers|meat|pc|4|2.99|3|meat|beef burgers;quarter pounders;burger patties|p:beef
-pudding|Black & white pudding|meat|g|280|1.49|14|meat|black pudding;white pudding;clonakilty;pudding|p:pork
+pudding|Black & white pudding|meat|g|280|1.49|14|meat|black pudding;white pudding;clonakilty;pudding|p:pork|slice:35
 deli-meat|Cooked meats|meat|g|150|1.79|5|meat|salami;pepperoni;chicken slices;turkey slices;roast beef slices;corned beef;chicken pieces cooked;sliced chicken|p:pork
 hot-dogs|Hot dogs|meat|pc|8|1.29|21|meat|frankfurters;hot dog sausages|p:pork
 gammon|Gammon & bacon joint|meat|g|1000|5.99|7|meat|gammon;bacon joint;ham joint|p:pork

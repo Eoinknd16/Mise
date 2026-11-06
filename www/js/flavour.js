@@ -72,7 +72,7 @@ const CAT = id => {
 export const catOf = CAT;
 // how much two ingredients share, 0..1, plus the notes they share
 export function affinity(a, b) {
-  if (K.ready()) { const p = K.pair(a, b); if (p) return { s: Math.max(0, Math.min(1, p.comp * 1.5 + Math.max(0, p.rec || 0) * 1.6)), shared: K.sharedFams(a, b).filter(k => NOTES[k]).slice(0, 3), data: p }; }
+  if (K.ready()) { const p = K.pair(a, b); if (p) return { s: Math.max(0, Math.min(1, (p.comp - 0.25) * 1.1 + Math.max(0, p.rec || 0) * 1.8)), shared: K.sharedFams(a, b).filter(k => NOTES[k]).slice(0, 3), data: p }; }
   const x = A[a], y = A[b]; if (!x || !y) return { s: 0, shared: [] };
   let s = 0, tot = 0; const shared = [];
   for (const [k, v] of Object.entries(x.n)) { tot += v; if (y.n[k]) { const m = Math.min(v, y.n[k]); s += m; shared.push([k, m]); } }
@@ -183,7 +183,7 @@ export function experiment(state, opts = {}) {
   const ok = id => ITEM[id] && G.okItem(state, id) && !(opts.vegOnly && G.MAINS[id] && G.MAINS[id].grp !== 'veg');
   // hero: what you asked for, or something you've got
   let hero = opts.hero;
-  if (!hero) { const pool = [...stock.keys()].filter(id => A[id] && ok(id) && (['protein', 'veg'].includes(CAT(id)) || ['halloumi', 'goats-cheese', 'tofu'].includes(id)) && !(G.MAINS[id] && G.MAINS[id].joint)); const prot = pool.filter(id => CAT(id) === 'protein'); hero = pick(prot.length && Math.random() < 0.75 ? prot : pool.length ? pool : ['chicken-thigh']); }
+  if (!hero) { const pool = [...stock.keys()].filter(id => A[id] && ok(id) && (['protein', 'veg'].includes(CAT(id)) || ['halloumi', 'goats-cheese', 'tofu'].includes(id)) && !['onion', 'red-onion', 'garlic', 'spring-onion', 'chilli', 'ginger', 'leek', 'celery'].includes(id) && !(G.MAINS[id] && G.MAINS[id].joint)); const prot = pool.filter(id => CAT(id) === 'protein'); hero = pick(prot.length && Math.random() < 0.75 ? prot : pool.length ? pool : ['chicken-thigh']); }
   if (!A[hero]) return null;
   const chosen = (opts.with || []).filter(id => id !== hero && ok(id));
   // the surprise partner, then a bridge that links both

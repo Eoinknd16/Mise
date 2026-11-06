@@ -342,7 +342,7 @@ export function buildMeal(state, sp, serves, stock) {
   let jointG = 0;
   if (!J && main.cut) main = { ...main, ...main.cut, joint: null, cutFrom: sp.main };
   if (J) { const have = stock.get(sp.main) || 0; jointG = sp.qty || (have >= main.pp * 2 ? have : Math.max(ITEM[sp.main].packs[0], main.pp * serves)); jointG = Math.round(jointG / 50) * 50;
-    const jn = ITEM[sp.main].n.toLowerCase().replace(/ or shoulder/, '').replace(/^beef roasting joint$/, 'beef roasting joint'); ings.push({ q: jointG >= 1000 ? +(jointG / 1000).toFixed(2) : jointG, u: jointG >= 1000 ? 'kg' : 'g', name: jn, item: sp.main, whole: true, raw: `${jointG >= 1000 ? +(jointG / 1000).toFixed(2) + ' kg' : jointG + ' g'} ${jn}` }); }
+    const jn = ITEM[sp.main].n.toLowerCase().replace(/ or shoulder/, '').replace(/^beef roasting joint$/, 'beef roasting joint'); ings.push({ q: jointG >= 1000 ? +(jointG / 1000).toFixed(2) : jointG, u: jointG >= 1000 ? 'kg' : 'g', name: jn, item: sp.main, whole: true, portion: main.pp, raw: `${jointG >= 1000 ? +(jointG / 1000).toFixed(2) + ' kg' : jointG + ' g'} ${jn}` }); }
   else add(sp.main, main.pp, ITEM[sp.main].u === 'pc' ? '' : ITEM[sp.main].u, main.n);
   const form = base && base.forms ? base.forms[sp.method] : null;
   if (base) add(sp.base, base.pp, ITEM[sp.base].u === 'pc' ? '' : ITEM[sp.base].u, base.n);
