@@ -486,7 +486,8 @@ function makeRun(surprise, append) {
   const useStock = ch.includes('have');
   const opts = { want: p.want, exclude: p.exclude, serves: M.servesFor(S, t), stock, useStock, seen: B.seen, seenTitles: B.seenTitles, quick: p.mods.quick || ch.includes('quick'), cheap: p.mods.cheap || ch.includes('cheap'), healthy: p.mods.healthy || ch.includes('healthy'), spicy: p.mods.spicy || ch.includes('spicy'), vegOnly: p.mods.veggie || ch.includes('veggie'), mood: p.mods.mood || (ch.includes('comfort') ? 'comfort' : null), kids: ctx.kids, onlyStockMains: useStock && [...stock.keys()].some(id => G.MAINS[id] && !p.want.main), noise: surprise ? 4 : 1.6, allowSlow: true, priority: useStock ? 'save' : 'balanced' };
   if (ch.includes('exp')) { B.res = B.res.concat(F.experiments(S, { ...expWant(B.text), stock, serves: opts.serves, wild: B.wild || 1, vegOnly: opts.vegOnly, seenTitles: B.seenTitles }, 6)); return; }
-  B.res = B.res.concat(G.options(S, opts, append ? 6 : 6));
+  const got = G.options(S, { ...opts, recent: true }, 6); G.noteShown(S, got.map(r => r.spec)); save();
+  B.res = B.res.concat(got);
 }
 // "pork chop, coffee and blue cheese" -> hero + partners
 function expWant(text) {
@@ -1475,7 +1476,8 @@ function buildWeekNow(auto) {
   // anything you're buying that no meal used still goes on the list
   for (const id of res.unused) if (!S.list.extras.some(x => x.item === id)) S.list.extras.push({ item: id, name: ITEM[id].n, qty: ITEM[id].packs[0] * ((bk.find(b => b.item === id) || {}).packs || 1) });
   save(); location.hash = 'plan';
-  setTimeout(() => toast(`Planned ${n} dinner${n !== 1 ? 's' : ''}${lefts ? ` + ${lefts} leftover night${lefts > 1 ? 's' : ''}` : ''}${fz ? ` + ${fz} from the freezer` : ''}${res.unused.length ? `. Not used: ${res.unused.map(id => ITEM[id].n.toLowerCase()).join(', ')} (still on your list)` : ''}.`), 150);
+  if (res.freeze && res.freeze.length) S.nudgeFreeze = { items: res.freeze, date: C.today() };
+  setTimeout(() => toast(`${res.freeze && res.freeze.length ? `Freeze the ${res.freeze.map(id => ITEM[id].n.toLowerCase()).join(' and ')} today: it won't last until it's needed. ` : ''}Planned ${n} dinner${n !== 1 ? 's' : ''}${lefts ? ` + ${lefts} leftover night${lefts > 1 ? 's' : ''}` : ''}${fz ? ` + ${fz} from the freezer` : ''}${res.unused.length ? `. Not used: ${res.unused.map(id => ITEM[id].n.toLowerCase()).join(', ')} (still on your list)` : ''}.`), 150);
 }
 function leftBox(r) {
   if (!r.leftover) return '';

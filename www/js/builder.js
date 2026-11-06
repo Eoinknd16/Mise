@@ -15,7 +15,7 @@ export const MAINS = {
   'turkey-mince': M('turkey mince', 'turkey', 'chicken', 125, 'simmer pasta wraps bowl burgers bake loaded pie', { mince: true, cook: 'Brown the turkey mince, breaking it up, 6 minutes' }),
   'lamb-mince': M('lamb mince', 'lamb', 'lamb', 125, 'simmer wraps bowl burgers', { mince: true, cook: 'Brown the lamb mince, breaking it up, 6–8 minutes' }),
   steak: M('steak', 'steak', 'beef', 150, 'panfry stirfry wraps bowl salad', { cook: 'Fry the steak in a very hot pan, 2–3 minutes a side, rest, then slice' }),
-  'pork-chop': M('pork chops', 'pork', 'pork', 180, 'traybake panfry', { roast: 25, cook: 'Fry the pork chops 4–5 minutes a side' }),
+  'pork-chop': M('pork chops', 'pork', 'pork', 180, 'traybake panfry stirfry bowl wraps hash salad sticky', { strip: 'Trim the fat, slice the pork chops into thin strips and fry them in a hot pan for 3–4 minutes until just cooked', roast: 25, cook: 'Fry the pork chops 4–5 minutes a side' }),
   sausages: M('sausages', 'sausage', 'pork', 2, 'traybake simmer pasta panfry bake hash flatbread pie soup', { roast: 25, cook: 'Fry the sausages until browned all over, 10 minutes, then slice' }),
   bacon: M('bacon', 'bacon', 'pork', 60, 'pasta friedrice bake panfry hash soup risotto frittata flatbread loaded quesadilla salad', { cook: 'Fry the bacon until crisp' }),
   salmon: M('salmon', 'salmon', 'fish', 120, 'traybake panfry bowl pasta stirfry salad risotto noodlesoup', { roast: 15, cook: 'Pan-fry the salmon skin-side down 4 minutes, then flip for 2' }),
@@ -30,18 +30,18 @@ export const MAINS = {
   nuggets: M('chicken goujons', 'goujon', 'chicken', 150, 'wraps bowl burgers', { ready: true, oven: 20, cook: 'Oven-cook the goujons as the pack says' }),
   'fish-fingers': M('fish fingers', 'fish finger', 'fish', 4, 'wraps burgers', { ready: true, oven: 20, cook: 'Oven-cook the fish fingers as the pack says' }),
   'diced-beef': M('diced beef', 'beef', 'beef', 150, 'simmer pie braise', { slow: true, cook: 'Brown the beef in batches' }),
-  'pork-roast': M('pork roast', 'pork', 'pork', 200, 'roast pulled braise', { joint: { temp: 180, per500: 30, extra: 30, start: 'Start at 220°C for 25 minutes so the crackling puffs up, then turn down to 180°C', skin: true }, leftover: 'cooked-pork', cook: 'Brown the pork all over' }),
-  'beef-roast': M('roast beef', 'beef', 'beef', 180, 'roast braise', { joint: { temp: 190, per500: 20, extra: 20, note: 'for medium (15 per 500 g for rare)' }, leftover: 'cooked-beef', cook: 'Brown the beef all over' }),
+  'pork-roast': M('pork roast', 'pork', 'pork', 200, 'roast pulled braise panfry stirfry bowl wraps', { cut: { n: 'pork steaks', short: 'pork', pp: 170, cook: 'Cut 1–2 cm thick steaks from the pork joint (wrap and freeze the rest, or keep it for a roast). Fry them 4–5 minutes a side until cooked through', strip: 'Cut a few thin steaks from the pork joint (wrap and freeze or keep the rest) and slice into strips. Fry hard for 3–4 minutes until cooked' }, joint: { temp: 180, per500: 30, extra: 30, start: 'Start at 220°C for 25 minutes so the crackling puffs up, then turn down to 180°C', skin: true }, leftover: 'cooked-pork', cook: 'Brown the pork all over' }),
+  'beef-roast': M('roast beef', 'beef', 'beef', 180, 'roast braise panfry stirfry bowl wraps', { cut: { n: 'beef steaks', short: 'beef', pp: 160, cook: 'Cut 1–2 cm steaks from the beef joint (wrap and freeze the rest, or keep it for a roast). Fry in a very hot pan 2–3 minutes a side and rest', strip: 'Cut a few thin slices from the beef joint (keep or freeze the rest) and slice into strips across the grain. Fry fast in a very hot pan for 1–2 minutes' }, joint: { temp: 190, per500: 20, extra: 20, note: 'for medium (15 per 500 g for rare)' }, leftover: 'cooked-beef', cook: 'Brown the beef all over' }),
   'beef-brisket': M('brisket', 'beef', 'beef', 200, 'pulled braise', { joint: { temp: 160, per500: 0, extra: 240, slow: true }, leftover: 'cooked-beef', cook: 'Brown the brisket all over' }),
-  'lamb-leg': M('lamb', 'lamb', 'lamb', 220, 'roast pulled braise', { joint: { temp: 190, per500: 25, extra: 25, note: 'for pink (add 20 minutes for well done)' }, leftover: 'cooked-lamb', cook: 'Brown the lamb all over' }),
-  'whole-chicken': M('whole chicken', 'chicken', 'chicken', 300, 'roast pulled', { joint: { temp: 200, per500: 20, extra: 20, bird: true }, leftover: 'cooked-chicken', cook: 'Brown the chicken' }),
-  gammon: M('gammon', 'gammon', 'pork', 180, 'roast braise', { joint: { temp: 180, per500: 20, extra: 20, glaze: true }, leftover: 'ham', cook: 'Brown the gammon' }),
+  'lamb-leg': M('lamb', 'lamb', 'lamb', 220, 'roast pulled braise panfry wraps bowl', { cut: { n: 'lamb steaks', short: 'lamb', pp: 170, cook: 'Cut 2 cm steaks from the leg of lamb (keep or freeze the rest). Fry 3–4 minutes a side and rest', strip: 'Cut a couple of steaks from the leg of lamb (keep or freeze the rest), fry 3–4 minutes a side, rest and slice' }, joint: { temp: 190, per500: 25, extra: 25, note: 'for pink (add 20 minutes for well done)' }, leftover: 'cooked-lamb', cook: 'Brown the lamb all over' }),
+  'whole-chicken': M('whole chicken', 'chicken', 'chicken', 300, 'roast pulled traybake', { cut: { n: 'chicken pieces', short: 'chicken', pp: 300, roast: 40, cook: 'Joint the chicken into 8 pieces (legs, thighs, wings, breasts)', strip: 'Joint the chicken and cut the meat off the bone into chunks. Fry until golden and cooked through' }, joint: { temp: 200, per500: 20, extra: 20, bird: true }, leftover: 'cooked-chicken', cook: 'Brown the chicken' }),
+  gammon: M('gammon', 'gammon', 'pork', 180, 'roast braise panfry hash', { cut: { n: 'gammon steaks', short: 'gammon', pp: 150, cook: 'Cut thick steaks from the gammon (keep or freeze the rest), snip the fat so they stay flat and fry 4 minutes a side', strip: 'Cut a thick slice from the gammon (keep the rest), dice it and fry until golden' }, joint: { temp: 180, per500: 20, extra: 20, glaze: true }, leftover: 'ham', cook: 'Brown the gammon' }),
   'pork-belly': M('pork belly', 'pork belly', 'pork', 180, 'roast bowl sticky', { joint: { temp: 160, per500: 0, extra: 120, skin: true, start: 'Roast at 160°C for 2 hours, then 220°C for 20 minutes to crisp the crackling' }, leftover: 'cooked-pork', cook: 'Crisp the pork belly' }),
   'pork-fillet': M('pork fillet', 'pork', 'pork', 150, 'traybake panfry stirfry bowl wraps salad', { roast: 20, cook: 'Sear the pork fillet all over, then roast at 200°C for 15–20 minutes. Rest and slice' }),
   'pork-ribs': M('ribs', 'rib', 'pork', 350, 'sticky', { cook: 'Bake the ribs' }),
-  'chicken-wings': M('chicken wings', 'wing', 'chicken', 300, 'sticky', { cook: 'Bake the wings' }),
+  'chicken-wings': M('chicken wings', 'wing', 'chicken', 300, 'sticky traybake', { roast: 40, cook: 'Bake the wings' }),
   'chicken-drum': M('chicken drumsticks', 'chicken', 'chicken', 250, 'traybake curry simmer sticky bowl', { roast: 40, cook: 'Brown the drumsticks all over' }),
-  'lamb-chops': M('lamb chops', 'lamb', 'lamb', 180, 'panfry traybake', { roast: 15, cook: 'Fry the lamb chops 3–4 minutes a side, then rest' }),
+  'lamb-chops': M('lamb chops', 'lamb', 'lamb', 180, 'panfry traybake bowl wraps salad sticky', { strip: 'Fry the lamb chops 3–4 minutes a side, rest for a few minutes, then slice the meat off the bone', roast: 15, cook: 'Fry the lamb chops 3–4 minutes a side, then rest' }),
   lamb: M('diced lamb', 'lamb', 'lamb', 150, 'curry braise simmer', { slow: true, cook: 'Brown the lamb in batches' }),
   'turkey-breast': M('turkey breast', 'turkey', 'chicken', 150, 'panfry traybake stirfry wraps bowl salad', { roast: 25, cook: 'Fry the turkey until golden and cooked through, 6–8 minutes' }),
   'duck-breast': M('duck breast', 'duck', 'chicken', 175, 'panfry bowl salad stirfry', { cook: 'Score the duck skin, start skin-side down in a cold pan, cook 8 minutes until crisp, flip for 4, rest and slice' }),
@@ -207,6 +207,7 @@ function makeKit(fam, comps, style) {
 function rebuildKit(id) { const m = /^cx:([a-z]+):([a-z]+):(.+)$/.exec(id || ''); if (!m) return null; const comps = m[3].split('+').filter(c => COMP[c] && ITEM[c]); return comps.length ? makeKit(m[1], comps, m[2]) : null; }
 // Invent n flavour combinations from what's available (your stock plus everyday cupboard basics)
 export function composeKits(state, stock, n = 14) {
+  const usedC = {};
   const avail = c => ITEM[c] && okItem(state, c) && ((stock.get(c) || 0) > 0 || C.stapleHave(state, c) || c === 'garlic');
   const T = partTaste(state), out = [], seen = new Set();
   const famW = ALLF.map(f => { const have = Object.entries(COMP).filter(([c, x]) => x.fam.includes(f) && (stock.get(c) || 0) > 0).length; const liked = Object.entries(KITS).filter(([, k]) => k.feel === FAM[f]).reduce((a, [id]) => a + sq(T.kit[id]), 0); return [f, Math.max(0.2, 1 + have * 0.6 + liked * 0.3)]; });
@@ -216,7 +217,8 @@ export function composeKits(state, stock, n = 14) {
     const fam = pickW(famW), style = rnd(['wet', 'glaze', 'dry', 'dry', 'wet']);
     const pool = role => Object.keys(COMP).filter(c => COMP[c].role === role && COMP[c].fam.includes(fam) && avail(c));
     const comps = ['garlic'];
-    const add = (role, p = 1) => { if (Math.random() > p) return; const c = pool(role).filter(x => !comps.includes(x)); if (c.length) comps.push(rnd(c)); };
+    const wpick = c => { const w = c.map(x => 1 / (1 + (usedC[x] || 0) * 0.8)); let t = Math.random() * w.reduce((a, b) => a + b, 0); for (let i = 0; i < c.length; i++) { t -= w[i]; if (t <= 0) return c[i]; } return c[0]; };
+    const add = (role, p = 1) => { if (Math.random() > p) return; const c = pool(role).filter(x => !comps.includes(x)); if (c.length) comps.push(wpick(c)); };
     if (style === 'wet') { const liq = pool('liquid').concat(pool('paste').length ? ['__paste'] : []); if (!liq.length) continue; const l = rnd(liq); if (l === '__paste') { comps.push(rnd(pool('paste'))); const cl = pool('liquid').filter(x => ['coconut-milk', 'chopped-tomatoes', 'passata', 'stock'].includes(x)); if (!cl.length) continue; comps.push(rnd(cl)); } else comps.push(l); add('spice', 0.8); add('herb', 0.6); add('umami', 0.5); add('heat', 0.3); if (!comps.some(c => COMP[c].rich)) add('rich', 0.25); add('acid', 0.25); add('aroma', 0.4); }
     if (style === 'glaze') { add('umami', 1); add('sweet', 0.85); add('acid', 0.5); add('aroma', 0.7); add('heat', 0.35); add('herb', 0.3); if (fam === 'asian' || fam === 'thai') add('rich', 0.15); }
     if (style === 'dry') { add('spice', 0.9); add('spice', 0.4); add('herb', 0.6); add('acid', 0.6); add('heat', 0.25); add('rich', 0.35); add('sweet', 0.2); }
@@ -232,6 +234,7 @@ export function composeKits(state, stock, n = 14) {
     if (has('mayo') && style === 'wet') continue;
     if (has('ketchup') && (has('coconut-milk') || has('cream'))) continue;
     const key = fam + style + comps.slice().sort().join('+'); if (seen.has(key)) continue; seen.add(key);
+    for (const c of comps) usedC[c] = (usedC[c] || 0) + 1;
     out.push(makeKit(fam, comps, style));
   }
   return out;
@@ -321,11 +324,12 @@ export function pantryStock(state) { const m = new Map(); for (const p of state.
 export function specKey(sp) { return [sp.main, sp.base, sp.kit, sp.method, (sp.veg || []).slice().sort().join('+'), (sp.add || []).slice().sort().join('+')].join('|') + (sp.gear ? '|' + sp.gear : ''); }
 export function buildMeal(state, sp, serves, stock) {
   stock = stock || pantryStock(state);
-  const main = MAINS[sp.main], base = sp.base ? BASES[sp.base] : null, kit = kitOf(sp.kit), meth = METHODS[sp.method];
+  let main = MAINS[sp.main]; const base = sp.base ? BASES[sp.base] : null, kit = kitOf(sp.kit), meth = METHODS[sp.method];
   serves = serves || 2;
   const ings = [], add = (id, pp, unit, name) => { const { q, u } = qtyFor(id, pp, serves, unit); ings.push({ q, u, name: name || ITEM[id].n.toLowerCase(), item: id, raw: `${q} ${u} ${name || ITEM[id].n.toLowerCase()}`.replace(/\s+/g, ' ') }); };
   const J = main.joint && ['roast', 'pulled', 'braise'].includes(sp.method) ? main.joint : null;
   let jointG = 0;
+  if (!J && main.cut) main = { ...main, ...main.cut, joint: null, cutFrom: sp.main };
   if (J) { const have = stock.get(sp.main) || 0; jointG = sp.qty || (have >= main.pp * 2 ? have : Math.max(ITEM[sp.main].packs[0], main.pp * serves)); jointG = Math.round(jointG / 50) * 50;
     const jn = ITEM[sp.main].n.toLowerCase().replace(/ or shoulder/, '').replace(/^beef roasting joint$/, 'beef roasting joint'); ings.push({ q: jointG >= 1000 ? +(jointG / 1000).toFixed(2) : jointG, u: jointG >= 1000 ? 'kg' : 'g', name: jn, item: sp.main, whole: true, raw: `${jointG >= 1000 ? +(jointG / 1000).toFixed(2) + ' kg' : jointG + ' g'} ${jn}` }); }
   else add(sp.main, main.pp, ITEM[sp.main].u === 'pc' ? '' : ITEM[sp.main].u, main.n);
@@ -351,6 +355,7 @@ export function buildMeal(state, sp, serves, stock) {
   const steps = []; let roastMins = 0, gearDone = false, handsOn = 0;
   const GR = gearOf(state), batches = serves > 4 ? ' (in batches if your basket is small)' : '';
   let mainCook = main.ready ? main.cook + '.' : main.cook + '.';
+  if (main.strip && ['stirfry', 'wraps', 'bowl', 'friedrice', 'noodlesoup', 'quesadilla', 'salad', 'hash'].includes(sp.method)) mainCook = main.strip + '.';
   if (sp.gear === 'af') {
     const LATE = ['broccoli', 'cauliflower']; const hard2 = hard.filter(v => !LATE.includes(v)); quick.push(...hard.filter(v => LATE.includes(v))); hard.splice(0, hard.length, ...hard2);
     const t = AFT[sp.main] || 15, roastVeg = [...(form === 'roast' ? [base.n] : []), ...hard.map(vegName), ...firm.map(vegName)];
@@ -585,6 +590,7 @@ export function buildMeal(state, sp, serves, stock) {
       break;
     }
   }
+  if (main.cutFrom && !steps.some(st => /from the|Joint the/.test(st))) steps.unshift(main.cook.split('. ')[0].replace(/\.$/, '') + '.');
   // Add-ins from your kitchen
   const STIR = new Set(['sweetcorn', 'kidney-beans', 'chickpeas', 'butter-beans', 'olives', 'capers', 'jalapenos', 'cherry-tomato', 'ham']);
   const stirIn = addOther.filter(a => STIR.has(a)), tops = addOther.filter(a => !STIR.has(a));
@@ -600,7 +606,7 @@ export function buildMeal(state, sp, serves, stock) {
   let leftover = null;
   if (J && main.leftover && ITEM[main.leftover]) { const spare = jointG - main.pp * serves; if (spare >= main.pp * 0.8) { const g = Math.round(spare * 0.65 / 50) * 50; leftover = { item: main.leftover, g, portions: Math.max(1, Math.floor(spare / main.pp)), feeds: Math.floor(jointG / main.pp) }; } }
   const named = NAMED.find(x => x.main.includes(sp.main) && x.kit.split(' ').includes(sp.kit) && x.method.split(' ').includes(sp.method) && (!x.base || x.base.includes(sp.base)));
-  const title = (named ? named.n : madeUpName(sp, main, base, kit, veg)) + (sp.gear === 'af' ? ' (air fryer)' : sp.gear === 'sc' ? ' (slow cooker)' : '');
+  const title = dedupeWords(named ? named.n : madeUpName(sp, main, base, kit, veg)) + (sp.gear === 'af' ? ' (air fryer)' : sp.gear === 'sc' ? ' (slow cooker)' : '');
   const id = 'g2:' + specKey(sp).replace(/[^a-z0-9|+-]/gi, '') + (jointG ? '|' + jointG : '');
   const r = C.normalizeRecipe({ id, src: 'built', title, serves, time, cat: 'Built', area: kit.feel || '', ings, steps: steps.filter(Boolean), spec: { ...sp, veg }, named: !!named, nice: niceToAdd });
   if (leftover) { r.leftover = leftover; r.wholeJoint = jointG; }
@@ -608,16 +614,17 @@ export function buildMeal(state, sp, serves, stock) {
   if (sp.gear) { r.gear = sp.gear; if (handsOn) r.handsOn = handsOn; }
   return r;
 }
+const dedupeWords = t => { const w = t.split(' '), out = []; for (const x of w) { const p = out[out.length - 1]; if (p && x.length > 3 && p.length > 3 && p.slice(0, 4).toLowerCase() === x.slice(0, 4).toLowerCase()) continue; out.push(x); } return out.join(' '); };
 const fmtMins = m => m < 60 ? m + ' minutes' : `${Math.floor(m / 60)} hr${m >= 120 ? 's' : ''}${m % 60 ? ' ' + (m % 60) + ' min' : ''}`;
 function madeUpName(sp, main, base, kit, veg) {
-  const m = main.short === 'chickpea' ? 'chickpea' : main.short;
+  const m = main.cutFrom ? main.n.replace(/s$/, '') : main.short === 'chickpea' ? 'chickpea' : main.short;
   const v = veg.filter(x => !['onion', 'red-onion'].includes(x) && VEG[x].kind !== 'side')[0];
   const vbit = v ? ` & ${single(vegName(v))}` : '';
   const bShort = base ? single(base.n.replace(/^basmati /, '').replace(/^oven /, '')) : '';
   const A = cap(kit.adj);
   switch (sp.method) {
     case 'traybake': return `${A} ${m}${vbit} traybake`;
-    case 'panfry': return `${A} ${m} with ${base ? (base.forms && base.forms.panfry === 'mash' ? 'mash' : base.n) : 'greens'}`;
+    case 'panfry': return kit.adj === 'roast' ? `${m.charAt(0).toUpperCase() + m.slice(1)}${main.cutFrom || /chop/.test(main.n) ? (main.cutFrom ? 's' : ' chops') : ''} with ${base ? (base.forms && base.forms.panfry === 'mash' ? 'mash' : base.n) : 'greens'} & gravy` : `${A} ${m} with ${base ? (base.forms && base.forms.panfry === 'mash' ? 'mash' : base.n) : 'greens'}`;
     case 'stirfry': return `${A} ${m}${vbit} ${sp.base === 'noodles' ? 'noodles' : 'stir-fry'}`;
     case 'friedrice': return `${cap(m)}${vbit} fried rice`;
     case 'pasta': return `${A} ${m}${vbit} ${sp.base === 'gnocchi' ? 'gnocchi' : 'pasta'}`;
@@ -640,7 +647,7 @@ function madeUpName(sp, main, base, kit, veg) {
     case 'risotto': return `${A} ${m}${vbit} risotto`;
     case 'roast': return `${kit.adj === 'roast' ? 'Roast' : A + ' roast'} ${m}${base && sp.base === 'potato' ? ' & roasties' : ''}`;
     case 'pulled': return `${A} pulled ${m}${sp.base === 'buns' ? ' buns' : sp.base === 'wraps' ? ' wraps' : sp.base === 'rice' ? ' rice bowls' : sp.base === 'chips' ? ' loaded fries' : ''}`;
-    case 'braise': return `${kit.adj === 'roast' ? 'Pot-roast' : A + ' pot-roast'} ${m}`;
+    case 'braise': return main.joint ? `${kit.adj === 'roast' ? 'Pot-roast' : A + ' pot-roast'} ${m}` : `${A} ${m} stew`;
     case 'sticky': return `Sticky ${kit.adj} ${main.n.replace(/^chicken (wings|drumsticks)$/, '$1')}`.replace(/sticky sticky/i, 'Sticky');
   }
   return `${A} ${m}`;
@@ -752,6 +759,20 @@ function finishingTouch(state, sp, kit, stock, ck) {
   return null;
 }
 
+// How soon things in the kitchen go off (days), so they get used first
+export function urgencyMap(state, date) {
+  const m = new Map(), d0 = date || C.today();
+  for (const p of state.pantry || []) if (p.item && p.exp && ITEM[p.item] && !ITEM[p.item].staple) { const d = C.daysBetween(d0, p.exp); if (!m.has(p.item) || d < m.get(p.item)) m.set(p.item, d); }
+  return m;
+}
+const urgBonus = (d, big) => d == null ? 0 : d <= 1 ? big : d <= 3 ? big * 0.6 : d <= 5 ? big * 0.25 : 0;
+// Ideas you've already been shown recently count against them, so Make keeps moving
+const recentKey = sp => sp.main + '|' + sp.kit + '|' + sp.method;
+export function noteShown(state, sps) {
+  const t = C.today(), m = state.makeSeen = state.makeSeen || {};
+  for (const sp of sps) { const k = recentKey(sp), e = m[k]; m[k] = { n: (e ? e.n * Math.pow(0.6, C.daysBetween(e.d, t)) : 0) + 1, d: t }; }
+  const keys = Object.keys(m); if (keys.length > 600) for (const k of keys.sort((a, b) => m[a].d.localeCompare(m[b].d)).slice(0, keys.length - 500)) delete m[k];
+}
 export function candidates(state, opts = {}) {
   // opts: stock (Map id->qty), serves, priority, used (week history), want: {main, kit, base, method, veg[], tag}, exclude: Set, maxTime, kids, protein, quick, mood, useStock, compose
   const T = partTaste(state), serves = opts.serves || 2, stock = opts.stock || new Map(), used = opts.used || { kit: {}, method: {}, main: {}, base: {}, lastMain: null };
@@ -762,6 +783,7 @@ export function candidates(state, opts = {}) {
   const composed = opts.composedKits || composeKits(state, stock, opts.compose ?? (useStock ? 26 : 14));
   const kitList = Object.entries(KITS).concat(composed.map(k => [k.id, k]));
   for (const id of stock.keys()) { if (!['hot-dogs', 'deli-meat', 'other-meat', 'other-fish', 'frozen-burgers'].includes(id)) ensureMain(id); ensureVeg(id); }
+  const urg = opts.urgent || urgencyMap(state, opts.date), seenM = opts.recent ? (state.makeSeen || {}) : null, tday = C.today();
   const addPool = Object.keys(ADDIN_PP).filter(a => ITEM[a] && inSt(a) && okItem(state, a) && !ex.has(a));
   const out = [];
   for (const [mid, m] of Object.entries(MAINS)) {
@@ -851,6 +873,9 @@ export function candidates(state, opts = {}) {
         if (opts.cheap) s += ['chickpeas', 'kidney-beans', 'lentils', 'eggs', 'sausages', 'chicken-thigh', 'beef-mince', 'pork-mince', 'butter-beans'].includes(mid) ? 1.2 : -0.6;
         if (want.veg && want.veg.length) s += want.veg.filter(v => VEG[v] && kinds.includes(VEG[v].kind)).length * 2.5 - (m.slow || METHODS[meth].slow ? 2 : 0);
         s += chefCheck(sp, k).score;
+        s += urgBonus(urg.get(mid), 5) + veg.reduce((a, v) => a + urgBonus(urg.get(v), 1.2), 0) + (base ? urgBonus(urg.get(base), 0.8) : 0) + adds.reduce((a, v) => a + urgBonus(urg.get(v), 0.6), 0);
+        if (m.cut && !['roast', 'pulled', 'braise'].includes(meth)) s -= opts.allowSlow && !(urg.get(mid) <= 3) ? 2 : 0.4;
+        if (seenM) { const e = seenM[recentKey(sp)]; if (e) s -= Math.min(5, e.n * Math.pow(0.6, C.daysBetween(e.d, tday)) * 1.6); }
         if (gear === 'af' && opts.maxTime) s += 0.8; if (gear === 'sc') s += opts.allowSlow ? 0 : 0.3 - (used.gear || 0) * 1.5;
         if (want.kit === kid) s += 3; if (want.main === mid) s += 3; if (want.method === meth) s += 2;
         if (opts.seen && opts.seen.has(specKey(sp))) s -= 6;
@@ -862,7 +887,7 @@ export function candidates(state, opts = {}) {
 }
 // A few different options (not five versions of the same thing)
 // Pick n options that are good AND different from each other (and from ones already shown)
-const simSp = (a, b) => (a.main === b.main ? 1 : MAINS[a.main] && MAINS[b.main] && MAINS[a.main].grp === MAINS[b.main].grp ? 0.4 : 0) + (a.kit === b.kit ? 1.2 : (kitOf(a.kit) || {}).feel === (kitOf(b.kit) || {}).feel ? 0.4 : 0) + (a.method === b.method ? 0.9 : 0) + (a.base === b.base ? 0.3 : 0);
+const simSp = (a, b) => (a.main === b.main ? 1.7 : MAINS[a.main] && MAINS[b.main] && MAINS[a.main].grp === MAINS[b.main].grp ? 0.4 : 0) + (a.kit === b.kit ? 1.2 : (kitOf(a.kit) || {}).feel === (kitOf(b.kit) || {}).feel ? 0.4 : 0) + (a.method === b.method ? 0.9 : 0) + (a.base === b.base ? 0.3 : 0);
 export function options(state, opts = {}, n = 3) {
   const picked = [], w = { ...(opts.want || {}) }, seen = opts.seen || new Set();
   let pool = candidates(state, { ...opts, want: w });
@@ -946,7 +971,8 @@ export function planWeek(state, dates, basket, opts = {}) {
   const stock = new Map();
   const addStock = (id, q) => stock.set(id, (stock.get(id) || 0) + q);
   for (const b of basket || []) if (ITEM[b.item]) addStock(b.item, (b.packs || 1) * ITEM[b.item].packs[0]);
-  for (const p of state.pantry) if (p.item && ITEM[p.item] && !ITEM[p.item].staple && (!p.exp || p.exp >= dates[0])) addStock(p.item, p.qty || 0);
+  const expOf = new Map();
+  for (const p of state.pantry) if (p.item && ITEM[p.item] && !ITEM[p.item].staple && (!p.exp || p.exp >= dates[0])) { addStock(p.item, p.qty || 0); if (p.exp && (!expOf.has(p.item) || p.exp < expOf.get(p.item))) expOf.set(p.item, p.exp); }
   const basketIds = new Set((basket || []).map(b => b.item));
   const used = { kit: {}, method: {}, main: {}, base: {}, lastMain: null, titles: {}, tags: {} };
   const picks = [], cover = new Set();
@@ -960,8 +986,11 @@ export function planWeek(state, dates, basket, opts = {}) {
     if (ctx.easy) { const e = opts.easyPick && opts.easyPick(d, stock); if (e) { picks.push({ date: d, recipe: e, serves }); continue; } }
     // Sometimes a regular or your own recipe instead (more often on 'save' if they use the basket)
     if (opts.regularPick) { const rg = opts.regularPick(d, stock, used); if (rg) { picks.push({ date: d, recipe: rg.recipe, serves }); for (const i of rg.recipe.ings) if (i.item && stock.has(i.item)) stock.set(i.item, Math.max(0, stock.get(i.item) - (C.toBase(i.q * serves / rg.recipe.serves, i.u, ITEM[i.item]) || 0))); continue; } }
-    const haveMain = Object.keys(MAINS).some(id => (stock.get(id) || 0) >= MAINS[id].pp * serves * 0.6);
-    const c = candidates(state, { stock, serves, used, priority: pr, useStock: pr === 'save', maxTime: ctx.maxTime, kids: ctx.kids, protein: ctx.protein, quick: ctx.quick, allowSlow: ctx.allowSlow, onlyStockMains: pr === 'save' && haveMain && !opts.planForMe, exclude: opts.exclude, healthy: opts.healthy, cheap: opts.cheap, noise: 1.4 });
+    // what's still good tonight, and how urgent it is
+    const night = new Map([...stock].filter(([id, q]) => q > 0 && !(expOf.has(id) && expOf.get(id) < d)));
+    const urgent = new Map([...expOf].filter(([id]) => night.has(id)).map(([id, e]) => [id, C.daysBetween(d, e)]));
+    const haveMain = Object.keys(MAINS).some(id => (night.get(id) || 0) >= MAINS[id].pp * serves * 0.6 && !(MAINS[id].slow && !ctx.allowSlow && !gearOf(state).slowcooker));
+    const c = candidates(state, { stock: night, urgent, date: d, serves, used, priority: pr, useStock: pr === 'save' || haveMain, maxTime: ctx.maxTime, kids: ctx.kids, protein: ctx.protein, quick: ctx.quick, allowSlow: ctx.allowSlow, onlyStockMains: haveMain && pr !== 'variety', exclude: opts.exclude, healthy: opts.healthy, cheap: opts.cheap, noise: 1.4 });
     if (!c.length) continue;
     // Softmax-ish choice among the top few
     const top = c.slice(0, 6), wts = top.map(x => Math.exp((x.s - top[0].s) / 0.9));
@@ -970,7 +999,8 @@ export function planWeek(state, dates, basket, opts = {}) {
     const leftoverOk = ctx.leftovers && METHODS[ch.sp.method].batch;
     const next = dates[dates.indexOf(d) + 1];
     if (leftoverOk && !MAINS[ch.sp.main].joint && next && !(opts.night && opts.night(next).skip) && pr !== 'variety') cook = serves * 2;
-    const r = buildMeal(state, ch.sp, cook, stock);
+    let r = buildMeal(state, ch.sp, cook, stock);
+    for (const alt of c.slice(0, 12)) { if (!used.titles[r.title]) break; if (alt === ch) continue; ch = alt; r = buildMeal(state, ch.sp, cook, stock); }
     picks.push({ date: d, recipe: r, serves: cook });
     if (cook > serves && next) { picks.push({ date: next, recipe: r, serves, leftover: d }); cover.add(next); }
     for (const i of r.ings) if (i.item && stock.has(i.item)) stock.set(i.item, Math.max(0, stock.get(i.item) - (C.toBase(i.q, i.u, ITEM[i.item]) || 0)));
@@ -980,13 +1010,20 @@ export function planWeek(state, dates, basket, opts = {}) {
   }
   const usedItems = new Set(picks.flatMap(p => p.recipe.ings.map(i => i.item)));
   const unused = [...basketIds].filter(id => !usedItems.has(id));
-  return { picks, unused, stockLeft: stock };
+  // meat or fish that will go off before the plan uses it: freeze it today
+  const last = dates[dates.length - 1];
+  const freeze = [...expOf].filter(([id, e]) => (MAINS[id] && MAINS[id].grp !== 'veg' || ['meat', 'fish'].includes(ITEM[id].cat)) && e <= last && (stock.get(id) || 0) > 0 && !usedItems.has(id)).map(([id]) => id);
+  return { picks, unused, stockLeft: stock, freeze };
 }
 // "Plan it for me": pick a sensible basket from your tastes
 export function suggestBasket(state, n = 3) {
   const T = partTaste(state), mains = Object.entries(MAINS).filter(([id, m]) => !m.slow && !m.ready && okItem(state, id) && !['bacon', 'eggs', 'lentils'].includes(id))
     .map(([id, m]) => [sq(T.main[id]) + sq(T.grp[m.grp]) * 0.7 + (['chicken-thigh', 'beef-mince', 'sausages', 'salmon', 'chicken-breast', 'chickpeas'].includes(id) ? 1 : 0) + Math.random() * 1.2, id]).sort((a, b) => b[0] - a[0]);
-  const out = []; const grp = new Set(); for (const [, id] of mains) { if (grp.has(MAINS[id].grp) && out.length < n - 1) continue; grp.add(MAINS[id].grp); out.push({ item: id, packs: 1 }); if (out.length >= n) break; }
+  // start from what's already in the kitchen: only buy mains for the nights it can't cover
+  const stock = pantryStock(state), urg = urgencyMap(state);
+  const haveMains = [...stock.keys()].filter(id => MAINS[id] && !MAINS[id].ready && MAINS[id].grp !== 'veg' && stock.get(id) >= MAINS[id].pp * 2 && !(urg.get(id) < 0));
+  n = Math.max(0, n - haveMains.length);
+  const out = []; const grp = new Set(haveMains.map(id => MAINS[id].grp)); for (const [, id] of mains) { if (out.length >= n) break; if (stock.get(id) > 0) continue; if (grp.has(MAINS[id].grp) && out.length < n - 1) continue; grp.add(MAINS[id].grp); out.push({ item: id, packs: 1 }); if (out.length >= n) break; }
   return out;
 }
 // Understand "rice dish with mince and onions, no mushrooms, quick" in terms of parts
