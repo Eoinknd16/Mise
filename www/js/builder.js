@@ -680,6 +680,7 @@ export function likeThis(state, r) {
 export const gearOf = state => ({ oven: true, hob: true, microwave: true, airfryer: false, slowcooker: false, ...(state.gear || {}) });
 // air fryer minutes at 200°C for each main (from raw)
 export const AFT = { 'chicken-thigh': 18, 'chicken-breast': 15, 'chicken-drum': 24, 'chicken-wings': 22, sausages: 12, salmon: 10, 'white-fish': 10, 'frozen-fish': 14, 'fish-cakes': 12, halloumi: 8, chickpeas: 14, 'pork-chop': 13, 'pork-fillet': 18, 'lamb-chops': 10, 'turkey-breast': 15, nuggets: 10, tofu: 14, prawns: 7, burgers: 11, 'pork-belly': 25, 'pork-ribs': 30, gnocchi: 12, 'sweet-potato': 18 };
+const HOB_ONLY = new Set(['panfry', 'stirfry', 'simmer', 'curry', 'pasta', 'soup', 'noodlesoup', 'friedrice', 'risotto', 'shakshuka', 'frittata', 'hash', 'quesadilla', 'burgers']);
 const OVEN_ONLY = new Set(['bake', 'pie', 'flatbread', 'roast', 'traybake', 'sticky', 'braise']);
 function afOk(meth, mid, stock) {
   if (meth === 'traybake' || meth === 'panfry') return !!AFT[mid] && !['pork-belly', 'pork-ribs'].includes(mid);
@@ -811,6 +812,7 @@ function pickFlair(state, sp, k, pool) {
   }
   return best;
 }
+const LIGHT = new Set(['ham', 'nuggets', 'fish-fingers', 'hot-dogs', 'frozen-burgers']);
 export function candidates(state, opts = {}) {
   // opts: stock (Map id->qty), serves, priority, used (week history), want: {main, kit, base, method, veg[], tag}, exclude: Set, maxTime, kids, protein, quick, mood, useStock, compose
   const T = partTaste(state), serves = opts.serves || 2, stock = opts.stock || new Map(), used = opts.used || { kit: {}, method: {}, main: {}, base: {}, lastMain: null };
@@ -837,10 +839,11 @@ export function candidates(state, opts = {}) {
     for (const meth of m.methods) {
       if (!METHODS[meth]) continue;
       if (want.method && want.method !== meth) continue;
-      const GR = gearOf(state);
+      const GR = opts.gear ? { ...gearOf(state), ...opts.gear } : gearOf(state);
       // slow cooker: 15 minutes in the morning counts as a weeknight meal
       const gear = GR.slowcooker && scOk(meth, m) ? 'sc' : GR.airfryer && afOk(meth, mid, stock) && (meth !== 'panfry' || Math.random() < 0.5 || !GR.hob) ? 'af' : null;
       if (!GR.oven && OVEN_ONLY.has(meth) && gear !== 'af' && gear !== 'sc') continue;
+      if (!GR.hob && HOB_ONLY.has(meth) && gear !== 'af' && gear !== 'sc') continue;
       if (!GR.hob && !GR.oven && gear !== 'af' && gear !== 'sc') continue;
       if (gear !== 'sc') {
         if (m.slow && !opts.allowSlow && !typed) continue;
@@ -866,7 +869,7 @@ export function candidates(state, opts = {}) {
       for (const [, kid, k] of kits) {
         const fam = k.fam || FEEL2FAM[k.feel] || 'british';
         // base
-        const bases = Object.entries(BASES).filter(([bid, b]) => b.methods.includes(meth) && k.bases.includes(bid) && !ex.has(bid) && okItem(state, bid, b.forms && b.forms[meth] === 'mash' ? 'mashed' : null) && (!want.base || want.base === bid));
+        const bases = Object.entries(BASES).filter(([bid, b]) => b.methods.includes(meth) && k.bases.includes(bid) && !ex.has(bid) && okItem(state, bid, b.forms && b.forms[meth] === 'mash' ? 'mashed' : null) && (!want.base || want.base === bid || (Array.isArray(want.base) && want.base.includes(bid))));
         let base = null, bs = -99;
         for (const [bid, b] of bases) { let s = sq(T.base[bid]) * 0.5 + (has(bid, b.pp * serves) ? (useStock ? 4 : 2 * W.reuse / 1.6) : 0) - (used.base[bid] || 0) * 0.4 * W.vary + Math.random() * 0.8; if (bid === 'basmati' && !has(bid, 1)) s -= 0.5; if (s > bs) { bs = s; base = bid; } }
         const needsBase = !['bowl', 'traybake', 'panfry', 'simmer', 'curry', 'soup', 'frittata', 'salad', 'shakshuka'].includes(meth);
@@ -886,8 +889,10 @@ export function candidates(state, opts = {}) {
         const nAdd = useStock ? (Math.random() < 0.5 ? 2 : 1) : 1;
         const adds = addC.map(a => [pairWith(a, [mid, ...veg, ...k.core.map(c => c[0])]) + Math.random() * 1.2, a]).sort((x, y) => y[0] - x[0]).map(x => x[1]).slice(0, Math.random() < (useStock ? 0.85 : 0.35) ? nAdd : 0);
         if (['quesadilla', 'flatbread'].includes(meth) && !adds.some(a => ['cheddar', 'mozzarella', 'feta'].includes(a))) adds.push(fam === 'italian' ? 'mozzarella' : fam === 'med' ? 'feta' : 'cheddar');
+        if (opts.mustUse) for (const id of opts.mustUse) if (ADDIN_PP[id] && !adds.includes(id) && id !== mid && !veg.includes(id) && okItem(state, id) && (!ADDIN_METHODS[id] || ADDIN_METHODS[id].split(' ').includes(meth))) adds.push(id);
         const sp = { main: mid, base, kit: kid, method: meth, veg, add: adds };
-        if (useStock && flairPool.length && Math.random() < 0.65) { const f = pickFlair(state, sp, k, flairPool); if (f) sp.flair = f; }
+        if (opts.mustUse) { const f = [...opts.mustUse].find(id => FLAIR[id] && FLAIR[id][0].split(' ').includes(meth) && !spItems(sp).includes(id)); if (f && !chefCheck({ ...sp, flair: f }, k).fail) sp.flair = f; }
+        if (!sp.flair && useStock && flairPool.length && Math.random() < 0.65) { const f = pickFlair(state, sp, k, flairPool); if (f) sp.flair = f; }
         if (gear) sp.gear = gear;
         if (!GR.oven && !GR.airfryer && ['chips'].includes(base)) continue;
         if (typed && want.qty && m.joint) sp.qty = want.qty;
@@ -899,6 +904,9 @@ export function candidates(state, opts = {}) {
         let s = sq(T.kit[kid]) * 1.1 + sq(T.method[meth]) * 0.8 + sq(T.main[mid]) * 0.7 + sq(T.grp[m.grp]) * 0.5 + sq(T.base[base]) * 0.3;
         if (k.composed) s += sq((T.kit[k.fam] || 0)) * 0.3 + Object.entries(KITS).filter(([, kk]) => kk.feel === k.feel).reduce((a, [id]) => a + sq(T.kit[id]), 0) * 0.15;
         if (useStock) s += inStock * 1.2 - extras * 1.6;
+        // the big, valuable things in your kitchen (a whole joint) matter more than a pack of sliced ham
+        if (useStock && inSt(mid)) { const portions = (stock.get(mid) || 0) / Math.max(1, m.pp * serves); s += Math.min(2.5, Math.log2(1 + portions)) * 0.6 + Math.min(2, (ITEM[mid].p || 1) / 4); }
+        if (LIGHT.has(mid) && !opts.quick && !opts.kids) s -= 1.2;
         else s += W.reuse * (inStock / Math.max(1, fresh.length)) * 2 + (mainHave ? W.reuse : 0) - W.extra * extras * 0.6;
         s -= W.vary * k.tags.reduce((a, tg) => a + ((used.tags || {})[tg] || 0) * 0.35, 0);
         s -= W.vary * ((used.kit[kid] || 0) * 1.4 + (used.method[meth] || 0) * 0.7 + (used.main[mid] || 0) * (pr === 'save' ? 0.1 : 0.6)) + (used.lastMain === mid ? 0.8 : 0);
@@ -917,6 +925,7 @@ export function candidates(state, opts = {}) {
         if (m.cut && !['roast', 'pulled', 'braise'].includes(meth)) s -= opts.allowSlow && !(urg.get(mid) <= 3) ? 2 : 0.4;
         if (seenM) { const e = seenM[recentKey(sp)]; if (e) s -= Math.min(5, e.n * Math.pow(0.6, C.daysBetween(e.d, tday)) * 1.6); }
         if (gear === 'af' && opts.maxTime) s += 0.8; if (gear === 'sc') s += opts.allowSlow ? 0 : 0.3 - (used.gear || 0) * 1.5;
+        if (opts.mustUse) { const its = new Set(spItems(sp)); for (const id of opts.mustUse) if (its.has(id)) s += 2.5; }
         if (want.kit === kid) s += 3; if (want.main === mid) s += 3; if (want.method === meth) s += 2;
         if (opts.seen && opts.seen.has(specKey(sp))) s -= 6;
         out.push({ sp, s: s + Math.random() * (opts.noise ?? 1.2), mainHave, inStock, extras });
@@ -1003,6 +1012,15 @@ export function unlockers(state, n = 5, opts = {}) {
   const out = Object.values(by).filter(b => b.keys.size >= 2).map(b => ({ item: b.item, meals: b.keys.size, price: packPrice(state, b.item), score: b.score / Math.max(0.8, Math.sqrt(packPrice(state, b.item))) * (MAINS[b.item] && [...real.keys()].some(id => MAINS[id] && id !== b.item && MAINS[id].grp === MAINS[b.item].grp && MAINS[id].grp !== 'veg') ? 0.45 : 1), examples: b.eg.map(sp => buildMeal(state, sp, opts.serves || 2, new Map([...real, [b.item, 99999]])).title) }))
     .sort((a, b) => b.score - a.score).slice(0, n);
   out.basics = basics; out.ready = ready.size; return out;
+}
+// Make the most of a joint: ways to cook it, then what to do with the leftovers
+export function jointPlan(state, id, serves = 2) {
+  const stock = pantryStock(state), m = MAINS[id]; if (!m || !m.joint) return null;
+  const first = [];
+  for (const meth of ['roast', 'pulled', 'braise']) { if (!m.methods.includes(meth)) continue; const o = options(state, { want: { main: id, method: meth, lock: true }, stock, serves, useStock: true, allowSlow: true, priority: 'save', noise: 1.5 }, 1); if (o[0]) first.push(o[0]); }
+  const lead = first.find(r => r.leftover) || first[0];
+  const then = lead && lead.leftover ? leftoverIdeas(state, lead, 4) : [];
+  return { id, first, then, leftover: lead && lead.leftover };
 }
 // What to do with the rest of a joint
 export function leftoverIdeas(state, r, n = 3) {

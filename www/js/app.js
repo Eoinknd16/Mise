@@ -466,9 +466,16 @@ function viewBuilder() {
   const B = ui.make || (ui.make = { text: '', chips: S.pantry.filter(p => p.item && ITEM[p.item] && !ITEM[p.item].staple).length >= 6 ? ['have'] : [], res: null });
   let h = `<div class="card" data-tour="bDesc"><textarea id="makeText" placeholder="What do you fancy? e.g. chicken and rice, something creamy, beef tacos, salmon no mushrooms" style="min-height:76px">${esc(B.text)}</textarea>
     <div class="chips wrap">${MAKE_CHIPS.map(([k, n]) => `<button class="chip" data-act="makeChip" data-val="${k}" aria-pressed="${B.chips.includes(k)}">${n}</button>`).join('')}</div>
-    <div class="row" data-tour="bGo"><button class="btn primary grow" data-act="makeGo">Show me</button><button class="btn" data-act="makeSurprise">Surprise me</button></div></div>
+    <div class="row" data-tour="bGo"><button class="btn primary grow" data-act="makeGo">Show me</button><button class="btn" data-act="makeSurprise">Surprise me</button></div>
+    <button class="btn block" data-act="askOpen" data-tour="ask" style="margin-top:8px">Help me choose: pick what to use</button></div>
+    ${B.ask && B.res ? `<div class="row between small" style="margin:0 2px 8px"><span class="muted">From your picks: ${esc(B.ask.sum)}</span><button class="btn sm ghost" data-act="askOpen">Change</button></div>` : ''}
     ${S.pantry.length >= 4 ? `<button class="btn block ghost" data-act="unlockOpen" style="margin-bottom:10px">What one thing should I buy?</button>` : ''}`;
   if (B.chips.includes('exp')) h = h.replace('<div class="row" data-tour="bGo">', `<div class="exp-bar"><span class="small"><b>How adventurous?</b></span><div class="chips">${[[1, 'A twist'], [2, 'Properly wild']].map(([v, n]) => `<button class="chip" data-act="makeWild" data-val="${v}" aria-pressed="${(B.wild || 1) === v}">${n}</button>`).join('')}</div><a class="small" href="#lab" style="margin-left:auto">Flavour lab ›</a></div><div class="row" data-tour="bGo">`);
+  if (B.res && B.jp && B.jp.length) h += B.jp.map(J => { const nm = ITEM[J.id].n.toLowerCase(), idx = r => B.jpR.indexOf(r);
+    return `<section class="card jp"><div class="eyebrow">Make the most of it</div><h3 style="margin:2px 0 6px">Your ${esc(nm)}</h3>
+      <div class="small muted">Cook it whole:</div>${J.first.map(r => `<button class="meal" data-act="jpOpen" data-idx="${idx(r)}"><div class="grow"><b>${esc(r.title)}</b><div class="tiny muted">${timeLabel(r)}${r.leftover ? ` · feeds ${r.leftover.feeds}` : ''}</div></div><span class="small muted">›</span></button>`).join('')}
+      ${J.then.length ? `<div class="small muted" style="margin-top:8px">Then the leftovers (about ${J.leftover.g} g) become quick dinners:</div>${J.then.map(r => `<button class="meal" data-act="jpOpen" data-idx="${idx(r)}"><div class="grow"><b>${esc(r.title)}</b><div class="tiny muted">${timeLabel(r)}</div></div><span class="small muted">›</span></button>`).join('')}` : ''}
+      <button class="btn block" data-act="jpPlan" data-val="${J.id}" style="margin-top:8px">Plan it: roast + ${J.then.length ? Math.min(3, J.then.length) : 0} leftover nights</button></section>`; }).join('');
   if (B.res) h += B.res.length ? B.res.map((r, k) => { if (r.exp) return expCard(r, k); const like = G.likeThis(S, r), c = C.recipeCost(S, r, r.serves), why = C.whyRecipe(S, r).filter(w => w[0] > 0).slice(0, 2);
     const fresh = [...new Set(r.ings.map(i => i.item).filter(id => id && ITEM[id] && !(ITEM[id].staple && C.stapleHave(S, id))))], haveN = fresh.filter(id => C.pantryQty(S, id) > 0), buy = fresh.filter(id => !haveN.includes(id));
     return `<div class="card fs"><button class="mealbtn" data-act="makeOpen" data-idx="${k}" style="width:100%"><div class="grow"><div class="eyebrow">${esc(G.METHODS[r.spec.method].n)} · ${timeLabel(r)} · ${C.eur(c.perServe)} each</div><h3 style="margin:2px 0 0;white-space:normal">${esc(r.title)}</h3>${like ? `<div class="tiny muted">Like the ${esc(like)} you liked</div>` : ''}</div></button>
@@ -486,6 +493,7 @@ function makeRun(surprise, append) {
   const useStock = ch.includes('have');
   const opts = { want: p.want, exclude: p.exclude, serves: M.servesFor(S, t), stock, useStock, seen: B.seen, seenTitles: B.seenTitles, quick: p.mods.quick || ch.includes('quick'), cheap: p.mods.cheap || ch.includes('cheap'), healthy: p.mods.healthy || ch.includes('healthy'), spicy: p.mods.spicy || ch.includes('spicy'), vegOnly: p.mods.veggie || ch.includes('veggie'), mood: p.mods.mood || (ch.includes('comfort') ? 'comfort' : null), kids: ctx.kids, onlyStockMains: useStock && [...stock.keys()].some(id => G.MAINS[id] && !p.want.main), noise: surprise ? 4 : 1.6, allowSlow: true, priority: useStock ? 'save' : 'balanced' };
   if (ch.includes('exp')) { B.res = B.res.concat(F.experiments(S, { ...expWant(B.text), stock, serves: opts.serves, wild: B.wild || 1, vegOnly: opts.vegOnly, seenTitles: B.seenTitles }, 6)); return; }
+  if (!append) { const joints = [...stock.keys()].filter(id => G.MAINS[id] && G.MAINS[id].joint && !opts.vegOnly && (!p.want.main || [].concat(p.want.main).includes(id))); B.jp = joints.slice(0, 2).map(id => G.jointPlan(S, id, opts.serves)).filter(x => x && x.first.length); B.jpR = B.jp.flatMap(x => [...x.first, ...x.then]); }
   const got = G.options(S, { ...opts, recent: true }, 6); G.noteShown(S, got.map(r => r.spec)); save();
   B.res = B.res.concat(got);
 }
@@ -494,6 +502,43 @@ function expWant(text) {
   const ids = []; for (const part of String(text || '').toLowerCase().split(/,|\band\b|\bwith\b|\+|&/)) { const t = part.trim(); if (!t) continue; const id = C.matchIngredient(t); if (id && F.aroma(id) && !ids.includes(id)) ids.push(id); }
   const hero = ids.find(id => ['protein', 'veg'].includes(F.catOf(id)) || ['halloumi', 'goats-cheese', 'tofu'].includes(id)) || ids[0];
   return hero ? { hero, with: ids.filter(id => id !== hero) } : {};
+}
+/* ---------- Help me choose: a short quiz, then Mise fills in the rest ---------- */
+const ASK_TIMES = [[20, '20 min'], [30, '30 min'], [45, '45 min'], [60, '1 hour'], [0, 'No rush']];
+const ASK_MOODS = [['any', 'Anything'], ['comfort', 'Comfort'], ['light', 'Light'], ['spicy', 'Spicy'], ['new', 'Something new']];
+function askGroups() {
+  const ids = [...new Set(S.pantry.map(p => p.item).filter(id => id && ITEM[id] && !ITEM[id].staple && C.pantryQty(S, id) > 0))];
+  const isMain = id => G.MAINS[id], isVeg = id => G.VEG[id] && !isMain(id), isBase = id => G.BASES[id];
+  return [['Meat, fish & protein', ids.filter(isMain)], ['Veg', ids.filter(isVeg)], ['Rice, pasta, bread & potatoes', ids.filter(id => isBase(id) && !isVeg(id))], ['Everything else', ids.filter(id => !isMain(id) && !isVeg(id) && !isBase(id) && (G.ADDIN_PP[id] || G.FLAIR[id] || G.COMP[id] || F.aroma(id)))]].filter(g => g[1].length);
+}
+function askSheet() {
+  const A = ui.ask, g = G.gearOf(S);
+  if (A.step === 0) return `<h2>What do you want to use?</h2><p class="small muted">Pick one thing or lots. Mise fills in the rest.</p>
+    ${askGroups().map(([n, ids]) => `<div class="small" style="font-weight:700;margin:10px 0 4px">${n}</div><div class="chips wrap">${ids.map(id => `<button class="chip" data-act="askTog" data-val="${id}" aria-pressed="${A.sel.includes(id)}">${esc(ITEM[id].n)}</button>`).join('')}</div>`).join('') || '<p class="muted">Your kitchen is empty. Add a few things in Pantry first, or type below.</p>'}
+    <form class="row" data-form="askAdd" style="margin-top:10px"><input id="askName" placeholder="Something else? e.g. leftover rice" autocomplete="off" aria-label="Ingredient"><button class="btn" type="submit">Add</button></form>
+    <div class="row" style="margin-top:14px"><button class="btn grow" data-act="askSkip">Anything is fine</button><button class="btn primary grow" data-act="askNext">${A.sel.length ? `Next (${A.sel.length})` : 'Next'}</button></div>`;
+  if (A.step === 1) return `<h2>What can you cook with?</h2><p class="small muted">Turn off anything you don't want to use tonight.</p>
+    <div class="chips wrap">${GEAR.filter(([k]) => g[k] || A.gear[k]).map(([k, n]) => `<button class="chip" data-act="askGear" data-val="${k}" aria-pressed="${!!A.gear[k]}">${n}</button>`).join('')}</div>
+    <div class="row" style="margin-top:14px"><button class="btn grow" data-act="askBack">Back</button><button class="btn primary grow" data-act="askNext">Next</button></div>`;
+  if (A.step === 2) return `<h2>How long have you got?</h2><p class="small muted">All in: prep, cooking and washing up.</p>
+    <div class="chips wrap">${ASK_TIMES.map(([v, n]) => `<button class="chip" data-act="askTime" data-val="${v}" aria-pressed="${A.time === v}">${n}</button>`).join('')}</div>
+    <div class="row" style="margin-top:14px"><button class="btn grow" data-act="askBack">Back</button><button class="btn primary grow" data-act="askNext">Next</button></div>`;
+  return `<h2>What are you in the mood for?</h2>
+    <div class="chips wrap">${ASK_MOODS.map(([v, n]) => `<button class="chip" data-act="askMood" data-val="${v}" aria-pressed="${A.mood === v}">${n}</button>`).join('')}</div>
+    <div class="row" style="margin-top:14px"><button class="btn grow" data-act="askBack">Back</button><button class="btn primary grow" data-act="askGo">Show me ideas</button></div>`;
+}
+function askRun(append) {
+  const A = ui.make.ask, B = ui.make, stock = G.pantryStock(S), serves = M.servesFor(S, C.today());
+  for (const id of A.sel) if (!(stock.get(id) > 0)) stock.set(id, ITEM[id].packs[0]);
+  const mains = A.sel.filter(id => G.MAINS[id]), veg = A.sel.filter(id => G.VEG[id] && !G.MAINS[id]), bases = A.sel.filter(id => G.BASES[id] && !G.VEG[id]), rest = A.sel.filter(id => !mains.includes(id) && !veg.includes(id) && !bases.includes(id));
+  const want = {}; if (mains.length) { want.main = mains.length === 1 ? mains[0] : mains; want.lock = true; } if (veg.length && veg.length <= 2) want.veg = veg; if (bases.length) want.base = bases.length === 1 ? bases[0] : bases;
+  const gear = { ...A.gear }, maxTime = A.time ? Math.max(10, A.time - 20) : null;
+  if (!append || !B.seen) { B.seen = new Set(); B.seenTitles = new Set(); B.res = []; B.jp = null; }
+  const opts = { want, stock, serves, useStock: true, gear, maxTime, allowSlow: !A.time || A.time >= 90 || !!gear.slowcooker, quick: A.time && A.time <= 30, mood: A.mood === 'comfort' || A.mood === 'light' ? A.mood : null, spicy: A.mood === 'spicy', noise: A.mood === 'new' ? 3.5 : 1.6, mustUse: new Set([...rest, ...(veg.length > 2 ? veg : [])]), seen: B.seen, seenTitles: B.seenTitles, recent: true, priority: 'save', onlyStockMains: !mains.length && [...stock.keys()].some(id => G.MAINS[id]) };
+  let got = G.options(S, opts, A.time ? 9 : 6);
+  if (A.time) { const fit = got.filter(r => C.effort(r).total <= A.time + 5); got = (fit.length >= 3 ? fit : got.slice().sort((a, b) => C.effort(a).total - C.effort(b).total)).slice(0, 6); }
+  G.noteShown(S, got.map(r => r.spec)); save();
+  B.res = B.res.concat(got);
 }
 function expCard(r, k) {
   const fresh = [...new Set(r.ings.map(i => i.item).filter(id => id && ITEM[id] && !(ITEM[id].staple && C.stapleHave(S, id))))], buy = fresh.filter(id => C.pantryQty(S, id) <= 0);
@@ -1044,6 +1089,22 @@ const A = {
     save(); render(); ui.sheetServes = null; openRecipe(nw.id, ctx); toast('Swapped. Mise will remember you prefer that.');
   },
   makeRegular: () => { const r = ui.sheetRecipe; if (!S.recipes[r.id]) S.recipes[r.id] = r; S.recipes[r.id].regular = !S.recipes[r.id].regular; refreshRecipes(); save(); ui.sheetRecipe = R[r.id]; renderRecipeSheet(); toast(S.recipes[r.id].regular ? 'Added to your regulars' : 'Removed from regulars'); },
+  askOpen: () => { const g = G.gearOf(S); ui.ask = ui.ask || { step: 0, sel: [], gear: Object.fromEntries(GEAR.map(([k]) => [k, !!g[k]])), time: S.settings.weeknightMax && new Date().getDay() % 6 ? 45 : 0, mood: 'any' }; ui.ask.step = 0; openSheet(askSheet()); },
+  askTog: el => { const id = el.dataset.val, A = ui.ask; A.sel = A.sel.includes(id) ? A.sel.filter(x => x !== id) : [...A.sel, id]; el.setAttribute('aria-pressed', A.sel.includes(id)); const nb = $('#sheetBody [data-act=askNext]'); if (nb) nb.textContent = A.sel.length ? `Next (${A.sel.length})` : 'Next'; },
+  askSkip: () => { ui.ask.sel = []; ui.ask.step = 1; setSheet(askSheet()); },
+  askNext: () => { ui.ask.step++; setSheet(askSheet()); },
+  askBack: () => { ui.ask.step = Math.max(0, ui.ask.step - 1); setSheet(askSheet()); },
+  askGear: el => { const k = el.dataset.val; ui.ask.gear[k] = !ui.ask.gear[k]; el.setAttribute('aria-pressed', !!ui.ask.gear[k]); },
+  askTime: el => { ui.ask.time = +el.dataset.val; setSheet(askSheet()); },
+  askMood: el => { ui.ask.mood = el.dataset.val; setSheet(askSheet()); },
+  askGo: () => { const A = ui.ask; ui.make = ui.make || { text: '', chips: [], res: null }; const t = ASK_TIMES.find(x => x[0] === A.time);
+    ui.make.ask = { ...A, sel: A.sel.slice(), gear: { ...A.gear }, sum: [A.sel.length ? A.sel.slice(0, 4).map(id => ITEM[id].n.toLowerCase()).join(', ') + (A.sel.length > 4 ? ` +${A.sel.length - 4}` : '') : 'anything', t ? t[1] : '', A.mood !== 'any' ? ASK_MOODS.find(m => m[0] === A.mood)[1].toLowerCase() : ''].filter(Boolean).join(' · ') };
+    askRun(false); closeSheet(false, () => { if (location.hash !== '#builder') location.hash = 'builder'; else render(); setTimeout(() => { const c = $('.card.fs'); if (c) c.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 60); }); },
+  jpOpen: el => openRecipeObj(ui.make.jpR[+el.dataset.idx]),
+  jpPlan: el => { const J = (ui.make.jp || []).find(x => x.id === el.dataset.val); if (!J) return; const lead = J.first.find(r => r.leftover) || J.first[0]; let d = C.today(); const dates = [];
+    for (let i = 0; i < 14 && dates.length < 1 + Math.min(3, J.then.length); i++) { const dd = C.addDays(d, i); if (!(S.plan[dd] || []).length) dates.push(dd); }
+    if (!dates.length) { toast('No free nights in the next two weeks.'); return; }
+    const all = [lead, ...J.then.slice(0, dates.length - 1)]; dates.forEach((dd, i) => { saveBuilt(all[i]); S.plan[dd] = [{ rid: all[i].id, serves: i ? 2 : all[i].serves }]; }); save(); toast(`Planned: ${all[0].title} then ${all.length - 1} leftover night${all.length > 2 ? 's' : ''}.`); location.hash = 'plan'; },
   makeWild: el => { ui.make.wild = +el.dataset.val; render(); },
   labPick: el => { const L = ui.lab || (ui.lab = { sel: [] }); const id = el.dataset.val; if (L.sel.includes(id)) L.why = id; else if (L.sel.length < 5) { L.sel.push(id); L.why = null; } render(); },
   labDrop: el => { ui.lab.sel = ui.lab.sel.filter(x => x !== el.dataset.val); render(); },
@@ -1051,9 +1112,9 @@ const A = {
   labRate: el => { const r = ui.sheetRecipe; if (!r || !r.exp) return; const v = +el.dataset.val; S.lab = S.lab || { pairs: {}, notes: {} }; S.lab.notes = S.lab.notes || {}; const prev = S.lab.notes[r.id]; if (prev && prev.v != null) F.rateExperiment(S, r, -prev.v); S.lab.notes[r.id] = { ...(prev || {}), v, date: C.today() }; F.rateExperiment(S, r, v); S.recipes[r.id] = r; refreshRecipes(); save(); renderRecipeSheet(); toast(v > 0 ? "Noted. Mise will try more like this." : v < 0 ? "Noted. Mise will steer away from that combo." : 'Noted.'); },
   labNoteSave: () => { const r = ui.sheetRecipe; if (!r || !r.exp) return; S.lab = S.lab || { pairs: {}, notes: {} }; S.lab.notes = S.lab.notes || {}; S.lab.notes[r.id] = { ...(S.lab.notes[r.id] || {}), note: ($('#labNote') || {}).value || '', date: C.today() }; S.recipes[r.id] = r; refreshRecipes(); save(); toast('Saved to your notebook'); },
   makeChip: el => { const B = ui.make, k = el.dataset.val; B.chips = B.chips.includes(k) ? B.chips.filter(x => x !== k) : [...B.chips, k]; render(); },
-  makeMore: () => { const y = scrollY; makeRun(false, true); render(); scrollTo(0, y); },
-  makeGo: () => { const t = $('#makeText'); if (t) ui.make.text = t.value; makeRun(false); render(); setTimeout(() => { const c = $('.card.fs'); if (c) c.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 30); },
-  makeSurprise: () => { ui.make.text = ''; ui.make.chips = ui.make.chips.filter(x => x === 'have'); makeRun(true); render(); },
+  makeMore: () => { const y = scrollY; if (ui.make.ask) askRun(true); else makeRun(false, true); render(); scrollTo(0, y); },
+  makeGo: () => { const t = $('#makeText'); if (t) ui.make.text = t.value; ui.make.ask = null; makeRun(false); render(); setTimeout(() => { const c = $('.card.fs'); if (c) c.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 30); },
+  makeSurprise: () => { ui.make.ask = null; ui.make.text = ''; ui.make.chips = ui.make.chips.filter(x => x === 'have'); makeRun(true); render(); },
   makeOpen: el => openRecipeObj(ui.make.res[+el.dataset.idx]),
   makeTonight: el => { const r = saveBuilt(ui.make.res[+el.dataset.idx]); setTonight(r.id, r); toast('Tonight: ' + r.title); location.hash = 'plan'; },
   discMake: () => { const r = ui.disc.deck[ui.disc.i]; if (!r) return; const p = G.guessParts(r); const res = G.options(S, { want: { kit: p.kit || undefined, main: p.main && G.MAINS[p.main] ? p.main : undefined, method: p.method || undefined }, serves: M.servesFor(S, C.today()), stock: G.pantryStock(S) }, 3); ui.make = { text: '', chips: [], res };
@@ -1172,6 +1233,7 @@ document.addEventListener('change', ev => {
 document.addEventListener('submit', ev => {
   const f = ev.target.dataset.form; if (!f) return; ev.preventDefault();
   if (f === 'addExtra') { addTyped('extra', '#extraName', (id, txt) => S.list.extras.push({ item: id, name: id ? ITEM[id].n : txt }), true); return; }
+  if (f === 'askAdd') { const v = (($('#askName') || {}).value || '').trim(); if (!v) return; const id = C.matchIngredient(v); if (!id) { toast(`Couldn't match ${v}.`); return; } if (!ui.ask.sel.includes(id)) ui.ask.sel.push(id); setSheet(askSheet()); return; }
   if (f === 'labAdd') { const v = (($('#labName') || {}).value || '').trim(); if (!v) return; const id = C.matchIngredient(v); if (!id || !F.aroma(id)) { toast(`Mise doesn't know the flavours of ${v} yet.`); return; } ui.lab = ui.lab || { sel: [] }; if (!ui.lab.sel.includes(id)) ui.lab.sel.unshift(id); render(); return; }
   if (f === 'scanCode') { const v = ($('#scanCode') || {}).value || ''; if (v.trim()) { SC.last = null; scanFound(v.trim()); } return; }
   if (f === 'scanFix') { const v = (($('#scanFix') || {}).value || '').trim(); if (!v) return; const id = C.matchIngredient(v); const c = SC.cur; if (!c) return; if (id) scanSave(id, c.item === id && c.qty ? c.qty : ITEM[id].packs[0]); else { C.addPantry(S, null, 1, v); save(); toast('Added ' + v); SC.cur = null; SC.busy = false; $('#scanRes').innerHTML = ''; } return; }
