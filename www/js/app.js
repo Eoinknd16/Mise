@@ -370,23 +370,26 @@ function showReview(rec) {
 function sel(id, obj, cur, any = 'Any') { return `<select id="${id}" data-bspec="${id.replace('b-', '')}"><option value="">${any}</option>${Object.entries(obj).map(([k, v]) => `<option value="${k}"${k === cur ? ' selected' : ''}>${esc(v.n)}</option>`).join('')}</select>`; }
 const MAKE_CHIPS = [['have', 'Use what I have'], ['quick', 'Quick'], ['comfort', 'Comfort'], ['healthy', 'Healthy'], ['cheap', 'Cheap'], ['spicy', 'Spicy'], ['veggie', 'Veggie']];
 function viewBuilder() {
-  const B = ui.make || (ui.make = { text: '', chips: [], res: null });
+  const B = ui.make || (ui.make = { text: '', chips: S.pantry.filter(p => p.item && ITEM[p.item] && !ITEM[p.item].staple).length >= 6 ? ['have'] : [], res: null });
   let h = `<div class="card" data-tour="bDesc"><textarea id="makeText" placeholder="What do you fancy? e.g. chicken and rice, something creamy, beef tacos, salmon no mushrooms" style="min-height:76px">${esc(B.text)}</textarea>
     <div class="chips wrap">${MAKE_CHIPS.map(([k, n]) => `<button class="chip" data-act="makeChip" data-val="${k}" aria-pressed="${B.chips.includes(k)}">${n}</button>`).join('')}</div>
     <div class="row" data-tour="bGo"><button class="btn primary grow" data-act="makeGo">Show me</button><button class="btn" data-act="makeSurprise">Surprise me</button></div></div>`;
   if (B.res) h += B.res.length ? B.res.map((r, k) => { const like = G.likeThis(S, r), c = C.recipeCost(S, r, r.serves), why = C.whyRecipe(S, r).filter(w => w[0] > 0).slice(0, 2);
+    const fresh = [...new Set(r.ings.map(i => i.item).filter(id => id && ITEM[id] && !ITEM[id].staple))], haveN = fresh.filter(id => C.pantryQty(S, id) > 0), buy = fresh.filter(id => !haveN.includes(id));
     return `<div class="card fs"><button class="mealbtn" data-act="makeOpen" data-idx="${k}" style="width:100%"><div class="grow"><div class="eyebrow">${esc(G.METHODS[r.spec.method].n)} · ≈ ${C.effort(r).total} min all in · ${C.eur(c.perServe)} each</div><h3 style="margin:2px 0 0;white-space:normal">${esc(r.title)}</h3>${like ? `<div class="tiny muted">Like the ${esc(like)} you liked</div>` : ''}</div></button>
-      <p class="small muted" style="margin:0">${esc(r.ings.filter(i => i.u !== 'taste' && !(ITEM[i.item] || {}).staple).slice(0, 6).map(i => i.name).join(' · '))}</p>${why.length ? `<div class="why" style="margin:0">${why.map(w => `<span>+ ${esc(w[1])}</span>`).join('')}</div>` : ''}
-      <div class="row"><button class="btn primary grow" data-act="makeTonight" data-idx="${k}">Tonight</button><button class="btn grow" data-act="makeOpen" data-idx="${k}">See it / pick a day</button></div></div>`; }).join('') + '<button class="btn block" data-act="makeGo">Show me others</button>'
+      <p class="small muted" style="margin:0">${esc(r.ings.filter(i => i.u !== 'taste' && !(ITEM[i.item] || {}).staple).slice(0, 8).map(i => i.name).join(' · '))}</p>
+      ${S.pantry.length ? `<div class="small"><b style="color:var(--accent)">Uses ${haveN.length} thing${haveN.length !== 1 ? 's' : ''} you have</b> · ${buy.length ? `buy: ${esc(buy.map(id => ITEM[id].n.toLowerCase()).join(', '))}` : 'nothing to buy'}</div>` : ''}${why.length ? `<div class="why" style="margin:0">${why.map(w => `<span>+ ${esc(w[1])}</span>`).join('')}</div>` : ''}
+      <div class="row"><button class="btn primary grow" data-act="makeTonight" data-idx="${k}">Tonight</button><button class="btn grow" data-act="makeOpen" data-idx="${k}">See it / pick a day</button></div></div>`; }).join('') + '<button class="btn block" data-act="makeMore">More ideas</button>'
     : `<div class="empty"><h3>Couldn't make that work</h3><p>Try fewer conditions, or check your dislikes in Your tastes.</p></div>`;
   return h;
 }
-function makeRun(surprise) {
+function makeRun(surprise, append) {
   const B = ui.make, p = G.parseWant(S, B.text || ''), ch = B.chips, t = C.today();
   const stock = G.pantryStock(S), ctx = nightCtx(t);
-  const opts = { want: p.want, exclude: p.exclude, serves: M.servesFor(S, t), stock, quick: p.mods.quick || ch.includes('quick'), cheap: p.mods.cheap || ch.includes('cheap'), healthy: p.mods.healthy || ch.includes('healthy'), spicy: p.mods.spicy || ch.includes('spicy'), vegOnly: p.mods.veggie || ch.includes('veggie'), mood: p.mods.mood || (ch.includes('comfort') ? 'comfort' : null), kids: ctx.kids, onlyStockMains: ch.includes('have') && [...stock.keys()].some(id => G.MAINS[id]), noise: surprise ? 4 : 1.4, allowSlow: true };
-  if (ch.includes('have')) opts.priority = 'save';
-  B.res = G.options(S, opts, 3);
+  if (!append || !B.seen) { B.seen = new Set(); B.seenTitles = new Set(); B.res = []; }
+  const useStock = ch.includes('have');
+  const opts = { want: p.want, exclude: p.exclude, serves: M.servesFor(S, t), stock, useStock, seen: B.seen, seenTitles: B.seenTitles, quick: p.mods.quick || ch.includes('quick'), cheap: p.mods.cheap || ch.includes('cheap'), healthy: p.mods.healthy || ch.includes('healthy'), spicy: p.mods.spicy || ch.includes('spicy'), vegOnly: p.mods.veggie || ch.includes('veggie'), mood: p.mods.mood || (ch.includes('comfort') ? 'comfort' : null), kids: ctx.kids, onlyStockMains: useStock && [...stock.keys()].some(id => G.MAINS[id] && !p.want.main), noise: surprise ? 4 : 1.6, allowSlow: true, priority: useStock ? 'save' : 'balanced' };
+  B.res = B.res.concat(G.options(S, opts, append ? 6 : 6));
 }
 function viewTogether() {
   const T = ui.together || (ui.together = { sel: S.pantry.filter(p => p.item && ITEM[p.item] && !ITEM[p.item].staple && ['veg', 'meat', 'fish', 'dairy', 'pantry', 'bakery', 'chilled'].includes(ITEM[p.item].cat) && (!p.exp || C.daysBetween(C.today(), p.exp) >= 0)).sort((a, b) => (a.exp || '9').localeCompare(b.exp || '9')).map(p => p.item).filter((v, i, a) => a.indexOf(v) === i).slice(0, 8), ideas: null });
@@ -838,6 +841,7 @@ const A = {
   },
   makeRegular: () => { const r = ui.sheetRecipe; if (!S.recipes[r.id]) S.recipes[r.id] = r; S.recipes[r.id].regular = !S.recipes[r.id].regular; refreshRecipes(); save(); ui.sheetRecipe = R[r.id]; renderRecipeSheet(); toast(S.recipes[r.id].regular ? 'Added to your regulars' : 'Removed from regulars'); },
   makeChip: el => { const B = ui.make, k = el.dataset.val; B.chips = B.chips.includes(k) ? B.chips.filter(x => x !== k) : [...B.chips, k]; render(); },
+  makeMore: () => { const y = scrollY; makeRun(false, true); render(); scrollTo(0, y); },
   makeGo: () => { const t = $('#makeText'); if (t) ui.make.text = t.value; makeRun(false); render(); setTimeout(() => { const c = $('.card.fs'); if (c) c.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 30); },
   makeSurprise: () => { ui.make.text = ''; ui.make.chips = ui.make.chips.filter(x => x === 'have'); makeRun(true); render(); },
   makeOpen: el => openRecipeObj(ui.make.res[+el.dataset.idx]),

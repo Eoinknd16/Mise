@@ -113,6 +113,14 @@ lentils|Lentils|pantry|g|500|1.29|700|pantry|red lentils;green lentils;puy lenti
 sweetcorn|Sweetcorn|pantry|g|340|0.79|700|pantry|corn;tinned sweetcorn||tin:340;can:340
 olive-oil|Olive oil|pantry|ml|500|4.99|500|pantry|extra virgin olive oil;evoo|s
 oil|Vegetable oil|pantry|ml|1000|2.29|500|pantry|sunflower oil;rapeseed oil;cooking oil;vegetable oil|s
+puff-pastry|Puff pastry|chilled|g|320|1.49|20|bakery|puff pastry;ready rolled pastry;shortcrust pastry;pastry|
+sesame-oil|Sesame oil|pantry|ml|150|2.29|365|pantry|sesame oil;toasted sesame oil|s
+fish-sauce|Fish sauce|pantry|ml|150|1.99|365|pantry|fish sauce;nam pla|s
+sriracha|Sriracha|pantry|ml|200|2.49|365|pantry|sriracha;chilli sauce;hot chilli sauce|s
+risotto-rice|Risotto rice|pantry|g|500|1.69|700|pantry|risotto rice;arborio;arborio rice;carnaroli|
+jalapenos|Jalapeños|pantry|g|200|1.29|365|pantry|jalapenos;jalapeno;sliced jalapenos;pickled jalapenos|
+capers|Capers|pantry|g|100|1.19|365|pantry|capers|
+butter-beans|Butter beans|pantry|g|400|0.69|700|pantry|butter beans;cannellini beans;cannellini;haricot beans;white beans|p:veg|tin:400;can:400
 soy-sauce|Soy sauce|pantry|ml|150|1.29|500|pantry|soy;light soy;dark soy|s
 honey|Honey|pantry|g|340|2.99|700|pantry||s
 mayo|Mayonnaise|pantry|g|500|1.69|90|pantry|mayo;mayonnaise|s
