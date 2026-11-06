@@ -637,10 +637,54 @@ function viewSpend() {
 }
 
 /* ================= Settings ================= */
+/* ================= App updates (Android) ================= */
+const isNative = () => !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+const UP = { state: 'idle' };
+const updater = () => UP.plugin || (UP.plugin = window.Capacitor.registerPlugin('Updater'));
+async function checkUpdate(manual) {
+  if (!isNative() || UP.state === 'downloading') return;
+  try {
+    const me = await updater().getVersion(); UP.current = me.versionName; UP.code = me.versionCode;
+    const r = await fetch('https://api.github.com/repos/Eoinknd16/Mise/releases/latest', { headers: { Accept: 'application/vnd.github+json' } });
+    const j = await r.json(); const n = +String(j.tag_name || '').split('.').pop();
+    const asset = (j.assets || []).find(a => /\.apk$/i.test(a.name));
+    S.settings.updateChecked = Date.now(); save();
+    if (!n || !asset || n <= me.versionCode) { UP.state = 'current'; if (manual) toast(`You're on the newest version (${me.versionName}).`); if (ui.route === 'settings') render(); return; }
+    UP.latest = { code: n, name: j.tag_name.replace(/^v/, ''), url: asset.browser_download_url, file: asset.name, notes: j.body || '' };
+    if (S.settings.autoUpdate !== false || manual) downloadUpdate(); else { UP.state = 'available'; if (ui.route === 'settings') render(); toast(`Mise ${UP.latest.name} is available. Update it in Settings.`); }
+  } catch (e) { if (manual) toast("Couldn't check for updates. Are you online?"); }
+}
+async function downloadUpdate() {
+  if (!UP.latest || UP.state === 'downloading') return;
+  UP.state = 'downloading'; UP.pct = 0; if (ui.route === 'settings') render();
+  const h = await updater().addListener('progress', p => { UP.pct = p.percent; const el = $('#upPct'); if (el) el.textContent = p.percent + '%'; });
+  try { const d = await updater().download({ url: UP.latest.url, name: UP.latest.file }); UP.path = d.path; UP.state = 'ready'; installUpdate(); }
+  catch (e) { UP.state = 'failed'; toast("The update didn't download. Try again in Settings."); }
+  finally { try { h.remove(); } catch (e) {} if (ui.route === 'settings') render(); }
+}
+async function installUpdate() {
+  if (!UP.path) return;
+  const r = await updater().install({ path: UP.path });
+  if (r && r.needsPermission) openSheet(`<h2>One quick setting</h2><p class="muted">To update itself, Mise needs permission to install apps. You only do this once: switch on <b>Allow from this source</b>, then come back.</p><button class="btn primary block" data-act="upPerm">Open the setting</button>`);
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden || !isNative()) return;
+  if (UP.state === 'ready' && UP.waitPerm) { UP.waitPerm = false; closeSheet(); installUpdate(); return; }
+  if (Date.now() - (S.settings.updateChecked || 0) > 6 * 3600e3) checkUpdate(false);
+});
+function updateCard() {
+  if (!isNative()) return `<div class="card"><h2>Updates</h2><p class="small muted" style="margin:0">The web app updates itself. Refresh to get the newest version.</p></div>`;
+  const st = UP.state, L = UP.latest;
+  return `<div class="card" data-tour="sUpdate"><h2>Updates</h2><p class="small muted" style="margin:0 0 8px">Installed: ${esc(UP.current || '…')}${L && L.code > (UP.code || 0) ? ` · newest: ${esc(L.name)}` : ''}</p>
+    ${st === 'downloading' ? `<p class="small">Downloading the update… <b id="upPct">${UP.pct || 0}%</b></p>` : st === 'ready' ? `<button class="btn primary block" data-act="upInstall">Install the update</button>` : st === 'available' || st === 'failed' ? `<button class="btn primary block" data-act="upGet">Update to ${esc(L.name)}</button>` : `<button class="btn block" data-act="upCheck">Check for updates</button>`}
+    <div class="row between" style="margin-top:10px"><span class="small">Update automatically</span><button class="chip" data-act="upAuto" aria-pressed="${S.settings.autoUpdate !== false}">${S.settings.autoUpdate !== false ? 'On' : 'Off'}</button></div>
+    <p class="tiny muted" style="margin:6px 0 0">Mise downloads new versions by itself. Android then asks you to tap Install. Your data stays as it is.</p></div>`;
+}
 function viewSettings() {
   const st = S.settings, R7 = M.rhythm(S), ppl = S.people || [];
   if (ui.scrollTo) { const id = ui.scrollTo; ui.scrollTo = null; setTimeout(() => { const e = document.querySelector(`[data-tour=${id}]`); if (e) e.scrollIntoView({ block: 'start' }); }, 60); }
-  return `<div class="card" data-tour="sHouse"><h2>Household</h2>
+  if (isNative() && !UP.current) updater().getVersion().then(v => { UP.current = v.versionName; UP.code = v.versionCode; if (ui.route === 'settings') render(); }).catch(() => {});
+  return updateCard() + `<div class="card" data-tour="sHouse"><h2>Household</h2>
     <div class="pi" style="border:0;padding:0"><div class="grow"><b>You</b></div></div>
     ${ppl.map(p => `<div class="pi"><div class="grow"><b>${esc(p.name)}</b>${p.kid ? ' <span class="tag">child</span>' : ''}<div class="tiny muted">${[(p.diet || []).map(d => (C.DIETS.find(x => x[0] === d) || [, d])[1]).join(', '), Object.values(p.likes || {}).filter(v => v < 0).length ? Object.values(p.likes).filter(v => v < 0).length + ' dislikes' : ''].filter(Boolean).join(' · ') || 'Eats anything'}</div></div><button class="btn sm" data-act="personEdit" data-key="${p.id}">Edit</button></div>`).join('')}
     <button class="btn" data-act="personAdd">+ Add someone</button>
@@ -693,6 +737,11 @@ window.addEventListener('popstate', () => { if (ui.cook) { cookModeClose(true); 
 /* ================= Actions ================= */
 const A = {
   closeSheet: () => closeSheet(),
+  upCheck: () => { toast('Checking…'); checkUpdate(true); },
+  upGet: () => downloadUpdate(),
+  upInstall: () => installUpdate(),
+  upAuto: () => { S.settings.autoUpdate = S.settings.autoUpdate === false; save(); render(); },
+  upPerm: () => { UP.waitPerm = true; updater().openInstallSettings(); },
   week: el => { ui.weekOffset += +el.dataset.val; render(); },
   suggest: () => {
     const all = C.weekDates(ui.weekOffset), wk = M.weekKey(all[0]), W = (S.weekCheck || {})[wk] || {};
@@ -1676,6 +1725,7 @@ async function boot() {
   route(); updateBadge();
 
   if (!S.settings.onboarded) onboarding();
+  if (isNative()) setTimeout(() => checkUpdate(false), 5000);
   C.aiAvailable().then(a => { ui.aiStatus = a; });
   C.loadLibrary().then(L => { refreshRecipes(); if (ui.route === 'recipes') render(); if (navigator.onLine !== false && (!L.count || Date.now() - L.at > 14 * 864e5)) syncLib(false); });
   if ('serviceWorker' in navigator && location.protocol === 'https:' && !window.Capacitor) navigator.serviceWorker.register('sw.js').catch(() => {});
