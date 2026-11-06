@@ -37,7 +37,8 @@ export function freshState() {
     settings: { household: 2, shops: ['Lidl'], defaultShop: 'Lidl', budget: 80, tone: 'cheeky', adventure: 30, nights: [1, 1, 1, 1, 1, 1, 1], mealdbKey: '1', ai: 'off', onboarded: false },
     plan: {}, recipes: {}, ratings: {}, tagPref: {}, skipped: {},
     pantry: [], list: { checked: {}, extras: [], hidden: {}, weekOffset: 0 },
-    prices: [], receipts: [], aliases: {}, deals: [], waste: [], likes: {}, photos: {}, autoImg: {}, ingPref: {}
+    prices: [], receipts: [], aliases: {}, deals: [], waste: [], likes: {}, photos: {}, autoImg: {}, ingPref: {},
+    rack: { set: false, have: {} }, gear: { oven: true, hob: true, microwave: true, airfryer: false, slowcooker: false }, barcodes: {}
   };
 }
 function migrate(s) {
@@ -530,6 +531,7 @@ export const OPTIONAL = new Set(['garlic', 'onion', 'red-onion', 'ginger', 'chil
 /* ---- How much work a recipe really is: prep + cook + clean-up ---- */
 export function effort(r) {
   if (!r || !r.ings) return { total: 40, ings: 0, steps: 0, easy: false };
+  if (r.handsOn) return { total: r.handsOn + 10, ings: r.ings.length, steps: (r.steps || []).length, easy: true, slow: true, handsOn: r.handsOn };
   const ings = r.ings.filter(i => !i.skip && i.u !== 'taste' && !(ITEM[i.item] && ITEM[i.item].staple)).length;
   const steps = (r.steps || []).length;
   let cook = r.time || 40;
@@ -863,8 +865,23 @@ export function bestPrice(state, itemId) {
 
 /* ================= Pantry ================= */
 export function pantryQty(state, itemId) { return state.pantry.filter(p => p.item === itemId).reduce((a, p) => a + (p.qty || 0), 0); }
+// Spice rack: the cupboard things you tick once, instead of guessing
+export const RACK = [
+  ['Spices & dried herbs', 'salt black-pepper paprika cumin chilli-powder chilli-flakes cayenne curry-powder garam-masala turmeric ground-coriander ground-ginger cinnamon nutmeg five-spice oregano mixed-herbs dried-thyme dried-rosemary dried-basil bay-leaves garlic-granules onion-granules cajun-spice fajita-mix peri-spice'],
+  ['Sauces & jars', 'soy-sauce bbq-sauce ketchup mayo mustard sweet-chilli hot-sauce sriracha worcestershire oyster-sauce fish-sauce brown-sauce salad-cream mint-sauce honey syrup'],
+  ['Oils, stock & baking', 'oil olive-oil sesame-oil vinegar stock gravy tomato-puree flour sugar breadcrumbs baking']
+].map(([n, ids]) => [n, ids.split(' ').filter(id => ITEM[id])]);
+export const RACK_IDS = new Set(RACK.flatMap(r => r[1]));
+export const rackOn = state => !!(state.rack && state.rack.set);
+// Do you have this cupboard item? (rack ticked, or in the pantry; before the rack is set up we assume the basics)
+export function stapleHave(state, id) {
+  const it = ITEM[id]; if (!it) return false;
+  if (rackOn(state) && RACK_IDS.has(id)) return !!state.rack.have[id] || pantryQty(state, id) > 0;
+  return it.staple || pantryQty(state, id) > 0;
+}
 export function addPantry(state, itemId, qty, name, date = today()) {
   const it = ITEM[itemId];
+  if (it && RACK_IDS.has(itemId) && state.rack) { state.rack.have[itemId] = true; if (it.staple) return; }
   const exp = it ? addDays(date, it.life) : null;
   const ex = state.pantry.find(p => itemId ? p.item === itemId : p.name === name);
   if (ex) { ex.qty = (ex.qty || 0) + qty; if (exp && (!ex.exp || exp > ex.exp)) ex.exp = exp; ex.added = date; }
@@ -908,7 +925,8 @@ export function buildList(state, dates) {
     const f = (e.serves || r.serves) / r.serves;
     for (const i of withSubs(state, r.ings)) {
       const it = ITEM[i.item];
-      if (it && it.staple) { staples[it.id] = it; continue; }
+      if (it && it.staple && (!rackOn(state) || !RACK_IDS.has(it.id))) { staples[it.id] = it; continue; }
+      if (it && RACK_IDS.has(it.id) && stapleHave(state, it.id)) continue;
       if (i.u === 'taste' || i.skip) continue;
       if (it) { const b = toBase(i.whole ? i.q : i.q * f, i.u, it); const n = add(it.id, { item: it.id, name: it.n, unit: it.u, aisle: it.a }); n.qty += b || 0; n.from.add(r.title); }
       else { const k = 'x:' + norm(i.name); const ci = (state.customInfo || {})[norm(i.name)] || {}; const n = add(k, { item: null, name: i.name, unit: i.u || '', aisle: ci.aisle || 'other', loose: true, price: ci.price }); n.qty += i.q * f; n.from.add(r.title); }

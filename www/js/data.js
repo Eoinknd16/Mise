@@ -142,6 +142,24 @@ chilli-powder|Chilli powder|spices|g|50|0.89|700|pantry|chili powder;cayenne;chi
 curry-powder|Spice mix|spices|g|50|0.89|700|pantry|curry powder;garam masala;turmeric;ground coriander;ground ginger;allspice;nutmeg;five spice;cardamom|s
 oregano|Dried herbs|spices|g|15|0.79|700|pantry|oregano;dried oregano;mixed herbs;italian herbs;dried thyme;dried basil;bay leaf;bay leaves|s
 cinnamon|Cinnamon|spices|g|40|0.89|700|pantry|ground cinnamon|s
+turmeric|Turmeric|spices|g|40|0.89|700|pantry|ground turmeric;haldi|s
+garam-masala|Garam masala|spices|g|40|0.99|700|pantry|garam masala|s
+mixed-herbs|Mixed dried herbs|spices|g|15|0.79|700|pantry|mixed herbs;italian herbs;italian seasoning;herbes de provence;dried herbs|s
+chilli-flakes|Chilli flakes|spices|g|30|0.89|700|pantry|chilli flakes;chili flakes;crushed chillies;red pepper flakes|s
+garlic-granules|Garlic granules|spices|g|50|0.89|700|pantry|garlic granules;garlic powder;garlic salt|s
+onion-granules|Onion granules|spices|g|50|0.89|700|pantry|onion granules;onion powder|s
+ground-ginger|Ground ginger|spices|g|30|0.89|700|pantry|ground ginger;ginger powder|s
+ground-coriander|Ground coriander|spices|g|30|0.89|700|pantry|ground coriander;coriander powder|s
+cajun-spice|Cajun seasoning|spices|g|40|0.99|700|pantry|cajun seasoning;cajun spice;creole seasoning|s
+fajita-mix|Fajita seasoning|spices|g|30|0.79|700|pantry|fajita seasoning;fajita mix;taco seasoning;taco mix|s
+five-spice|Chinese five spice|spices|g|30|0.99|700|pantry|five spice;5 spice;chinese five spice|s
+peri-spice|Peri peri seasoning|spices|g|40|0.99|700|pantry|peri peri seasoning;piri piri seasoning;peri seasoning|s
+dried-thyme|Dried thyme|spices|g|10|0.79|700|pantry|dried thyme|s
+dried-rosemary|Dried rosemary|spices|g|15|0.79|700|pantry|dried rosemary|s
+dried-basil|Dried basil|spices|g|10|0.79|700|pantry|dried basil|s
+bay-leaves|Bay leaves|spices|g|5|0.79|700|pantry|bay leaf;bay leaves|s
+nutmeg|Nutmeg|spices|g|30|0.99|700|pantry|ground nutmeg|s
+cayenne|Cayenne pepper|spices|g|30|0.89|700|pantry|cayenne;cayenne pepper|s
 peas|Frozen peas|frozen|g|1000|1.99|180|veg|peas;garden peas;petits pois||handful:40
 frozen-veg|Frozen veg mix|frozen|g|1000|1.79|180|veg|mixed veg;stir fry veg;stir fry vegetables;frozen vegetables;mixed vegetables|
 chips|Oven chips|frozen|g|1500|2.49|180|ready|chips;fries;potato wedges|

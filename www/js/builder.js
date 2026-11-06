@@ -168,6 +168,9 @@ export const COMP = {
   garlic: CP('aroma', '*', 1, '', 'garlic'), ginger: CP('aroma', 'asian thai indian', 5, 'g', 'ginger'), 'spring-onion': CP('aroma', 'asian thai mex', 1, '', 'spring onion'), chilli: CP('heat', 'asian thai indian mex med', 0.5, '', 'chilli', { heat: 1 }), 'sesame-oil': CP('aroma', 'asian', 3, 'ml', 'sesame'),
   paprika: CP('spice', 'mex american med mideast british', 1, 'tsp', 'smoky paprika', { smoky: 1 }), cumin: CP('spice', 'mex indian mideast', 0.5, 'tsp', 'cumin'), 'curry-powder': CP('spice', 'indian british', 1, 'tsp', 'curry'), 'chilli-powder': CP('heat', 'mex indian american', 0.25, 'tsp', 'chilli', { heat: 1 }), cinnamon: CP('spice', 'mideast indian', 0.25, 'tsp', 'cinnamon'),
   oregano: CP('herb', 'italian med mex', 0.5, 'tsp', 'oregano'), thyme: CP('herb', 'british french med', 1, 'g', 'thyme'), rosemary: CP('herb', 'italian british french med', 1, 'g', 'rosemary'), basil: CP('herb', 'italian med thai', 3, 'g', 'basil'), parsley: CP('herb', 'med french british mideast', 3, 'g', 'parsley'), coriander: CP('herb', 'thai indian mex asian mideast', 3, 'g', 'coriander'), mint: CP('herb', 'mideast indian med', 2, 'g', 'mint'),
+  'garam-masala': CP('spice', 'indian', 1, 'tsp', 'garam masala'), turmeric: CP('spice', 'indian mideast', 0.5, 'tsp', 'golden'), 'ground-coriander': CP('spice', 'indian mideast', 0.5, 'tsp', 'coriander'), 'five-spice': CP('spice', 'asian', 0.5, 'tsp', 'five-spice'),
+  'cajun-spice': CP('spice', 'american', 1, 'tsp', 'cajun', { heat: 1 }), 'fajita-mix': CP('spice', 'mex', 1.5, 'tsp', 'fajita', { smoky: 1 }), 'peri-spice': CP('spice', 'american med', 1, 'tsp', 'peri-peri', { heat: 1 }), 'chilli-flakes': CP('heat', 'italian med asian', 0.25, 'tsp', 'chilli', { heat: 1 }),
+  'mixed-herbs': CP('herb', 'italian med british french', 1, 'tsp', 'herby'), 'dried-thyme': CP('herb', 'british french med', 0.5, 'tsp', 'thyme'), 'dried-rosemary': CP('herb', 'italian british med', 0.5, 'tsp', 'rosemary'), 'garlic-granules': CP('aroma', '*', 0.5, 'tsp', 'garlic'),
   'curry-paste': CP('paste', 'indian thai', 20, 'g', 'curry', { heat: 1 }), sriracha: CP('heat', 'asian american', 8, 'ml', 'sriracha', { heat: 1 }), 'hot-sauce': CP('heat', 'american mex', 6, 'ml', 'hot sauce', { heat: 1 }), jalapenos: CP('heat', 'mex american', 15, 'g', 'jalapeño', { heat: 1 }),
   'coconut-milk': CP('liquid', 'thai indian asian', 100, 'ml', 'coconut', { rich: 1 }), cream: CP('liquid', 'french italian british american', 60, 'ml', 'creamy', { rich: 1, dairy: 1 }), 'double-cream': CP('liquid', 'french italian british', 50, 'ml', 'creamy', { rich: 1, dairy: 1 }), 'chopped-tomatoes': CP('liquid', 'italian med mex indian mideast british american', 200, 'g', 'tomato'), passata: CP('liquid', 'italian med mex indian british', 150, 'g', 'tomato'),
   'creme-fraiche': CP('rich', 'french british italian', 50, 'g', 'crème fraîche', { dairy: 1 }), yogurt: CP('rich', 'indian mideast med', 40, 'g', 'yogurt', { dairy: 1 }), butter: CP('rich', 'french british american italian', 10, 'g', 'butter', { dairy: 1 }), 'cream-cheese': CP('rich', 'american british italian', 30, 'g', 'cream cheese', { dairy: 1 }), pesto: CP('rich', 'italian', 25, 'g', 'pesto'), 'peanut-butter': CP('rich', 'asian thai', 15, 'g', 'peanut', { nut: 1 })
@@ -204,7 +207,7 @@ function makeKit(fam, comps, style) {
 function rebuildKit(id) { const m = /^cx:([a-z]+):([a-z]+):(.+)$/.exec(id || ''); if (!m) return null; const comps = m[3].split('+').filter(c => COMP[c] && ITEM[c]); return comps.length ? makeKit(m[1], comps, m[2]) : null; }
 // Invent n flavour combinations from what's available (your stock plus everyday cupboard basics)
 export function composeKits(state, stock, n = 14) {
-  const avail = c => ITEM[c] && okItem(state, c) && ((stock.get(c) || 0) > 0 || ITEM[c].staple || c === 'garlic');
+  const avail = c => ITEM[c] && okItem(state, c) && ((stock.get(c) || 0) > 0 || C.stapleHave(state, c) || c === 'garlic');
   const T = partTaste(state), out = [], seen = new Set();
   const famW = ALLF.map(f => { const have = Object.entries(COMP).filter(([c, x]) => x.fam.includes(f) && (stock.get(c) || 0) > 0).length; const liked = Object.entries(KITS).filter(([, k]) => k.feel === FAM[f]).reduce((a, [id]) => a + sq(T.kit[id]), 0); return [f, Math.max(0.2, 1 + have * 0.6 + liked * 0.3)]; });
   const pickW = arr => { let t = Math.random() * arr.reduce((a, x) => a + x[1], 0); for (const x of arr) { t -= x[1]; if (t <= 0) return x[0]; } return arr[arr.length - 1][0]; };
@@ -315,7 +318,7 @@ function qtyFor(id, perPerson, serves, unit) {
   const step = q > 300 ? 50 : q > 60 ? 10 : 5; return { q: Math.max(step, Math.round(q / step) * step), u: unit || it.u };
 }
 export function pantryStock(state) { const m = new Map(); for (const p of state.pantry || []) if (p.item) m.set(p.item, (m.get(p.item) || 0) + (p.qty || 0)); return m; }
-export function specKey(sp) { return [sp.main, sp.base, sp.kit, sp.method, (sp.veg || []).slice().sort().join('+'), (sp.add || []).slice().sort().join('+')].join('|'); }
+export function specKey(sp) { return [sp.main, sp.base, sp.kit, sp.method, (sp.veg || []).slice().sort().join('+'), (sp.add || []).slice().sort().join('+')].join('|') + (sp.gear ? '|' + sp.gear : ''); }
 export function buildMeal(state, sp, serves, stock) {
   stock = stock || pantryStock(state);
   const main = MAINS[sp.main], base = sp.base ? BASES[sp.base] : null, kit = kitOf(sp.kit), meth = METHODS[sp.method];
@@ -336,7 +339,7 @@ export function buildMeal(state, sp, serves, stock) {
   const addOther = adds.filter(a => !cheeseAdd.includes(a) && !(addMeat.includes(a) && ['frittata'].includes(sp.method)));
   for (const a of adds) add(a, ADDIN_PP[a] || 30, ITEM[a].u === 'pc' ? '' : ITEM[a].u);
   if (['frittata', 'shakshuka'].includes(sp.method) && sp.main !== 'eggs' && !adds.includes('eggs')) add('eggs', 2, '');
-  const kitItems = [...kit.core.filter(([id]) => !adds.includes(id)), ...kit.extra.filter(([id]) => !adds.includes(id)).filter(([id]) => ITEM[id] && (ITEM[id].staple || (stock.get(id) || 0) > 0 || ['garlic', 'spring-onion', 'cheddar', 'salsa', 'kidney-beans', 'lime', 'lemon'].includes(id)))].filter(([id]) => ITEM[id] && id !== sp.main && !veg.includes(id) && id !== sp.base && okItem(state, id));
+  const kitItems = [...kit.core.filter(([id]) => !adds.includes(id)), ...kit.extra.filter(([id]) => !adds.includes(id)).filter(([id]) => ITEM[id] && (C.stapleHave(state, id) || (stock.get(id) || 0) > 0 || ['garlic', 'spring-onion', 'cheddar', 'salsa', 'kidney-beans', 'lime', 'lemon'].includes(id)))].filter(([id]) => ITEM[id] && id !== sp.main && !veg.includes(id) && id !== sp.base && okItem(state, id));
   const niceToAdd = kit.extra.filter(([id]) => ITEM[id] && !kitItems.some(k => k[0] === id) && okItem(state, id)).map(([id]) => ITEM[id].n.toLowerCase());
   for (const [id, pp, u] of kitItems) add(id, pp, u);
   // Loose steps
@@ -345,10 +348,60 @@ export function buildMeal(state, sp, serves, stock) {
   const flavour = kit.sauce || kit.rub, rub = kit.rub || kit.sauce;
   const potato = form === 'mash' ? `Boil the ${base.n} until soft, then mash with butter and a splash of milk.` : form === 'wedges' ? `Cut the ${base.n} into wedges, toss with oil and salt and roast at 200°C for 35 minutes.` : null;
   const baseStep = base && !form ? base.how : potato;
-  const steps = []; let roastMins = 0;
-  const mainCook = main.ready ? main.cook + '.' : main.cook + '.';
-  switch (sp.method) {
+  const steps = []; let roastMins = 0, gearDone = false, handsOn = 0;
+  const GR = gearOf(state), batches = serves > 4 ? ' (in batches if your basket is small)' : '';
+  let mainCook = main.ready ? main.cook + '.' : main.cook + '.';
+  if (sp.gear === 'af') {
+    const LATE = ['broccoli', 'cauliflower']; const hard2 = hard.filter(v => !LATE.includes(v)); quick.push(...hard.filter(v => LATE.includes(v))); hard.splice(0, hard.length, ...hard2);
+    const t = AFT[sp.main] || 15, roastVeg = [...(form === 'roast' ? [base.n] : []), ...hard.map(vegName), ...firm.map(vegName)];
+    if (sp.method === 'traybake') {
+      steps.push(`Heat the air fryer to 200°C.`);
+      if (roastVeg.length) steps.push(`Chop the ${join(roastVeg)} into chunks, toss with oil and salt and air fry ${hard.length || form === 'roast' ? 12 : 8} minutes.`);
+      steps.push(`Coat the ${mN} in ${rub}, add to the basket${batches} and air fry ${t} minutes, shaking halfway, until cooked through${quick.length ? `. Add the ${vn(quick)} for the last 5` : ''}.`);
+      if (kit.sauce && kit.rub) steps.push(`Brush over ${kit.sauce} and give it 2 more minutes.`); else if (kit.sauce && !kit.rub) steps.push(`Toss everything in ${kit.sauce} before serving.`);
+      if (base && !form) steps.push(baseStep);
+      roastMins = t + (roastVeg.length ? 10 : 0) + 5; gearDone = true;
+    } else if (sp.method === 'sticky') {
+      const ribs = sp.main === 'pork-ribs', belly = sp.main === 'pork-belly';
+      steps.push(`${belly ? `Cut the pork belly into thick strips. ` : ''}Season the ${main.n} with salt${sp.main === 'chicken-wings' ? ', a teaspoon of baking powder (for crispy skin)' : ''} and ${kit.rub || 'pepper'}.`);
+      steps.push(`Air fry at ${ribs ? 180 : 200}°C for ${t} minutes${batches}, turning halfway.`);
+      steps.push(`${sp.main === 'chicken-wings' ? `Toss in ${kit.sauce || flavour} straight away.` : `Brush with ${kit.sauce || flavour} and air fry 3–5 minutes more until sticky.`}`);
+      if (base && !form) steps.push(baseStep); else if (potato) steps.push(potato);
+      if (veg.length) steps.push(`Serve with the ${vn(veg)}.`);
+      roastMins = t + 8; gearDone = true;
+    } else if (sp.method === 'roast' && J) {
+      const mins = Math.round((jointG / 1000 * 32 + 10) / 5) * 5;
+      steps.push(`Rub the chicken with oil, salt and ${rub || 'pepper'}. Put half a lemon and some garlic inside.`);
+      steps.push(`Air fry breast-side down at 180°C for 30 minutes, flip, then ${mins - 30} minutes more until the juices run clear (75°C in the thickest part).`);
+      if (base && sp.base === 'potato') steps.push(`Meanwhile boil chunks of potato for 10 minutes, then roast in the oven or air fry at 200°C for 20 minutes once the chicken is resting.`);
+      const boil = [...hard, ...firm.filter(v => !['onion', 'red-onion'].includes(v)), ...quick, ...leafy];
+      if (boil.length) steps.push(`Steam or boil the ${vn(boil)} while it rests.`);
+      steps.push(`Rest 10 minutes, then carve.`);
+      roastMins = mins + 15; gearDone = true;
+    } else if (sp.method === 'panfry') {
+      mainCook = `Air fry the ${mN} at 200°C for ${t} minutes, turning halfway, until cooked through.`;
+    }
+  } else if (sp.gear === 'sc') {
+    const low = main.grp === 'chicken' && !J ? '5–6 hours on low (3 on high)' : '8 hours on low (5 on high)';
+    if (sp.method === 'pulled') {
+      steps.push(`In the morning: put a sliced onion in the slow cooker. Rub the ${mN} with ${rub || 'salt, smoked paprika and garlic'}, sit it on top and add a small mug of water${main.grp === 'beef' ? ' or stock' : ''}.`);
+      steps.push(`Cook ${low}, until it falls apart.`);
+      steps.push(`Shred with two forks, discarding fat and bones. Skim the fat off the juices and stir back in with ${kit.sauce || flavour || 'a little of the juices'}.`);
+      if (base) steps.push(base.how || baseStep || `Serve with the ${base.n}.`);
+      if (veg.length) steps.push(`Serve with the ${vn(veg)}.`);
+    } else {
+      const late = [...quick, ...leafy];
+      steps.push(`In the morning: season the ${mN}${['braise'].includes(sp.method) || J ? ' (brown it in a pan first if you have 5 minutes — tastier)' : ''} and put it in the slow cooker with a chopped onion${[...hard, ...firm].filter(v => v !== 'onion').length ? ` and the ${vn([...hard, ...firm].filter(v => v !== 'onion'))}` : ''}.`);
+      steps.push(`Add ${flavour || 'a tin of tomatoes'}${sp.method === 'curry' ? '' : ' and a little stock'}, stir, put the lid on and cook ${low}.`);
+      if (late.length) steps.push(`When you're home, stir in the ${vn(late)} and give it 15 minutes on high.`);
+      if (base && !form) steps.push(baseStep); else if (potato) steps.push(potato);
+      if (J) steps.push(`Lift out the meat, carve or pull into chunks and spoon over the sauce.`);
+    }
+    roastMins = /chicken/.test(low) && !J ? 330 : 480; handsOn = 20; gearDone = true;
+  }
+  if (!gearDone) switch (sp.method) {
     case 'traybake': {
+      { const LATE = ['broccoli', 'cauliflower']; quick.push(...hard.filter(v => LATE.includes(v))); const h2 = hard.filter(v => !LATE.includes(v)); hard.splice(0, hard.length, ...h2); }
       const roastVeg = [...(form === 'roast' ? [base.n] : []), ...hard.map(vegName), ...firm.map(vegName)];
       steps.push(`Heat the oven to 200°C.`);
       steps.push(`Chop ${roastVeg.length ? 'the ' + join(roastVeg) : 'some onion'} into chunks, toss on a big tray with oil and salt${hard.length || form === 'roast' ? ' and roast for 15 minutes' : ''}.`);
@@ -537,18 +590,22 @@ export function buildMeal(state, sp, serves, stock) {
   const stirIn = addOther.filter(a => STIR.has(a)), tops = addOther.filter(a => !STIR.has(a));
   if (stirIn.length) { const verb = ['flatbread', 'quesadilla', 'loaded', 'salad', 'traybake', 'bowl', 'wraps'].includes(sp.method) ? 'Scatter over' : 'Stir in'; const txt = `${verb} the ${join(stirIn.map(a => ITEM[a].n.toLowerCase().replace('olives & antipasti', 'olives').replace('tinned ', '')))}.`; const late = ['bake', 'pie', 'flatbread', 'quesadilla', 'frittata', 'shakshuka', 'soup', 'risotto', 'loaded', 'traybake'].includes(sp.method); if (late && steps.length > 1) steps.splice(steps.length - 1, 0, txt); else steps.push(txt); }
   for (const a of tops) steps.push(ADDIN_TEXT[a] ? ADDIN_TEXT[a] : `Add the ${ITEM[a].n.toLowerCase()}.`);
+  if (GR.airfryer) for (let i = 0; i < steps.length; i++) steps[i] = steps[i].replace('Bake the oven chips.', 'Air fry the chips at 200°C for 15–18 minutes, shaking halfway.').replace(/toss with oil and salt and roast at 200°C for 35 minutes\./, 'toss with oil and salt and air fry at 200°C for 20–25 minutes, shaking halfway.');
+  if (!GR.microwave) for (let i = 0; i < steps.length; i++) steps[i] = steps[i].replace(/microwave 10–12 minutes until soft \(crisp in a hot oven for 10 more if you have time\)/, GR.airfryer ? 'rub with oil and salt and air fry at 190°C for 40–45 minutes' : 'bake at 200°C for an hour until crisp');
+  { const ft = finishingTouch(state, sp, kit, stock, chefCheck(sp, kit)); if (ft) { const u = ITEM[ft.id].u; add(ft.id, u === 'pc' ? 0.25 : u === 'g' ? 5 : 5, u === 'pc' ? '' : u, ITEM[ft.id].n.toLowerCase()); steps.push(ft.text); } }
   // Time and name
   let time = (meth.t || 30) + (sp.method === 'traybake' ? Math.max(0, (main.roast || 25) - 25) : 0) + (main.slow ? 90 : 0) + (form === 'mash' || form === 'wedges' ? 5 : 0);
   if (main.ready && ['wraps', 'bowl', 'burgers'].includes(sp.method)) time = Math.min(time, 25);
-  if (roastMins) time = roastMins + (sp.method === 'roast' ? 25 : 0);
+  if (roastMins) time = roastMins + (sp.method === 'roast' && !sp.gear ? 25 : 0);
   let leftover = null;
   if (J && main.leftover && ITEM[main.leftover]) { const spare = jointG - main.pp * serves; if (spare >= main.pp * 0.8) { const g = Math.round(spare * 0.65 / 50) * 50; leftover = { item: main.leftover, g, portions: Math.max(1, Math.floor(spare / main.pp)), feeds: Math.floor(jointG / main.pp) }; } }
   const named = NAMED.find(x => x.main.includes(sp.main) && x.kit.split(' ').includes(sp.kit) && x.method.split(' ').includes(sp.method) && (!x.base || x.base.includes(sp.base)));
-  const title = named ? named.n : madeUpName(sp, main, base, kit, veg);
+  const title = (named ? named.n : madeUpName(sp, main, base, kit, veg)) + (sp.gear === 'af' ? ' (air fryer)' : sp.gear === 'sc' ? ' (slow cooker)' : '');
   const id = 'g2:' + specKey(sp).replace(/[^a-z0-9|+-]/gi, '') + (jointG ? '|' + jointG : '');
   const r = C.normalizeRecipe({ id, src: 'built', title, serves, time, cat: 'Built', area: kit.feel || '', ings, steps: steps.filter(Boolean), spec: { ...sp, veg }, named: !!named, nice: niceToAdd });
   if (leftover) { r.leftover = leftover; r.wholeJoint = jointG; }
   if (J || sp.method === 'sticky' || sp.method === 'braise') r.slow = time > 75;
+  if (sp.gear) { r.gear = sp.gear; if (handsOn) r.handsOn = handsOn; }
   return r;
 }
 const fmtMins = m => m < 60 ? m + ' minutes' : `${Math.floor(m / 60)} hr${m >= 120 ? 's' : ''}${m % 60 ? ' ' + (m % 60) + ' min' : ''}`;
@@ -598,9 +655,103 @@ export function likeThis(state, r) {
 }
 
 /* ================= Scoring & choosing ================= */
+/* ---------- Your kitchen kit ---------- */
+export const gearOf = state => ({ oven: true, hob: true, microwave: true, airfryer: false, slowcooker: false, ...(state.gear || {}) });
+// air fryer minutes at 200°C for each main (from raw)
+export const AFT = { 'chicken-thigh': 18, 'chicken-breast': 15, 'chicken-drum': 24, 'chicken-wings': 22, sausages: 12, salmon: 10, 'white-fish': 10, 'frozen-fish': 14, 'fish-cakes': 12, halloumi: 8, chickpeas: 14, 'pork-chop': 13, 'pork-fillet': 18, 'lamb-chops': 10, 'turkey-breast': 15, nuggets: 10, tofu: 14, prawns: 7, burgers: 11, 'pork-belly': 25, 'pork-ribs': 30, gnocchi: 12, 'sweet-potato': 18 };
+const OVEN_ONLY = new Set(['bake', 'pie', 'flatbread', 'roast', 'traybake', 'sticky', 'braise']);
+function afOk(meth, mid, stock) {
+  if (meth === 'traybake' || meth === 'panfry') return !!AFT[mid] && !['pork-belly', 'pork-ribs'].includes(mid);
+  if (meth === 'sticky') return ['chicken-wings', 'chicken-drum', 'pork-belly', 'pork-ribs'].includes(mid);
+  if (meth === 'roast') return mid === 'whole-chicken' && ((stock && stock.get(mid)) || 1500) <= 1900;
+  return meth === 'loaded';
+}
+const scOk = (meth, m) => meth === 'pulled' || meth === 'braise' || (['simmer', 'curry'].includes(meth) && !!m.slow);
 const okMethod = (m, opts) => { const t = METHODS[m].t; if (opts.maxTime && t > opts.maxTime + 5) return false; if (opts.methods && !opts.methods.includes(m)) return false; return true; };
 const FEEL2FAM = { American: 'american', Mediterranean: 'med', Thai: 'thai', Chinese: 'asian', Japanese: 'asian', Mexican: 'mex', Italian: 'italian', French: 'french', Indian: 'indian', British: 'british', Irish: 'british', Portuguese: 'med', Greek: 'med', Moroccan: 'mideast', 'Middle Eastern': 'mideast', Asian: 'asian' };
 const DEFAULT_VEG = ['onion', 'pepper', 'carrot', 'broccoli', 'spinach', 'peas', 'frozen-veg', 'courgette', 'mushroom', 'cherry-tomato', 'salad', 'green-beans', 'sweetcorn'];
+/* ---------- Flavour pairing map: what genuinely goes with what ---------- */
+const PAIR_SRC = [
+  'g:pork apple mustard honey sage dried-thyme dried-rosemary cabbage carrot onion bbq-sauce soy-sauce five-spice ginger fennel paprika garlic cider leek potato',
+  'g:beef onion mushroom garlic worcestershire mustard carrot pepper chilli-powder cumin soy-sauce ginger thyme dried-thyme stock gravy tomato-puree chopped-tomatoes bbq-sauce potato',
+  'g:lamb mint rosemary dried-rosemary garlic lemon cumin yogurt feta aubergine chickpeas peas potato onion tomato-puree ground-coriander',
+  'g:chicken lemon garlic thyme dried-thyme paprika honey soy-sauce ginger mushroom leek bacon cream pesto peri-spice cajun-spice curry-paste coconut-milk sweetcorn pepper tarragon',
+  'g:fish lemon lime garlic dill parsley capers butter chilli ginger soy-sauce spring-onion potato peas cherry-tomato spinach fennel olives',
+  'salmon soy-sauce honey ginger lime sesame-oil broccoli asparagus potato spinach cream-cheese teriyaki dill',
+  'prawns garlic chilli lime coconut-milk spring-onion pepper sweet-chilli tomato-puree chorizo',
+  'eggs bacon spinach cheddar feta mushroom potato tomato chorizo spring-onion soy-sauce chilli-flakes peppers',
+  'halloumi lemon honey chilli mint pepper courgette red-onion chickpeas couscous cherry-tomato',
+  'chickpeas spinach cumin tomato-puree lemon feta curry-paste coconut-milk sweet-potato harissa',
+  'tofu soy-sauce ginger garlic sesame-oil chilli spring-onion broccoli peanut-butter',
+  'mushroom garlic thyme cream parmesan spinach soy-sauce',
+  'spinach garlic feta nutmeg cream lemon',
+  'broccoli garlic lemon chilli-flakes soy-sauce cheddar parmesan',
+  'cauliflower cumin turmeric cheddar curry-paste',
+  'sweet-potato chilli lime cumin feta black-beans',
+  'butternut sage feta chilli',
+  'courgette lemon feta mint garlic',
+  'cabbage bacon butter caraway',
+  'potato rosemary dried-rosemary garlic cheddar bacon',
+  'tomato basil garlic mozzarella olives',
+  'pepper chorizo paprika onion',
+  'carrot honey cumin ginger',
+  'peas mint bacon',
+  'leek cream cheddar mustard',
+];
+const PAIR = {};
+for (const line of PAIR_SRC) { const [a, ...bs] = line.split(' '); for (const b of bs) { (PAIR[a] = PAIR[a] || new Set()).add(b); (PAIR[b] = PAIR[b] || new Set()).add(a); } }
+const keyOf = id => [id, MAINS[id] ? 'g:' + MAINS[id].grp : null].filter(Boolean);
+export function pairScore(ids) {
+  let n = 0; const ks = ids.map(keyOf);
+  for (let i = 0; i < ks.length; i++) for (let j = i + 1; j < ks.length; j++) if (ks[i].some(a => ks[j].some(b => PAIR[a] && PAIR[a].has(b)))) n++;
+  return n;
+}
+const pairWith = (v, ids) => ids.reduce((a, id) => a + (keyOf(id).some(k => PAIR[k] && PAIR[k].has(v)) ? 1 : 0), 0);
+
+/* ---------- The chef's rulebook: catch dishes a cook wouldn't make ---------- */
+const STARCH = new Set(['rice', 'basmati', 'pasta', 'spaghetti', 'gnocchi', 'noodles', 'potato', 'sweet-potato', 'chips', 'couscous', 'risotto-rice']);
+const RICH = new Set(['cream', 'double-cream', 'creme-fraiche', 'cream-cheese', 'cheddar', 'mozzarella', 'parmesan', 'coconut-milk', 'butter', 'pesto', 'peanut-butter', 'mayo', 'sour-cream']);
+const SWEET = new Set(['honey', 'bbq-sauce', 'ketchup', 'sweet-chilli', 'syrup', 'sugar']);
+const ACID = new Set(['lemon', 'lime', 'vinegar', 'capers', 'jalapenos', 'salsa', 'olives', 'chopped-tomatoes', 'passata', 'yogurt', 'feta', 'pickles', 'red-onion']);
+const FRESH = new Set(['coriander', 'parsley', 'basil', 'mint', 'spring-onion', 'salad', 'cherry-tomato', 'avocado', 'cucumber', 'rocket', 'coleslaw']);
+const CRUNCH = new Set(['nuts', 'spring-onion', 'breadcrumbs', 'coleslaw', 'cucumber', 'red-onion', 'salad', 'crisps']);
+const CLASH = [['soy-sauce', 'parmesan'], ['soy-sauce', 'mozzarella'], ['soy-sauce', 'feta'], ['fish-sauce', 'cream'], ['fish-sauce', 'cheddar'], ['curry-paste', 'pesto'], ['curry-paste', 'mozzarella'], ['pesto', 'bbq-sauce'], ['mint-sauce', 'g:fish'], ['bbq-sauce', 'g:fish'], ['peanut-butter', 'cheddar'], ['coconut-milk', 'cheddar'], ['coconut-milk', 'parmesan'], ['cinnamon', 'g:fish'], ['honey', 'cheddar'], ['sweet-chilli', 'parmesan'], ['oyster-sauce', 'cheddar'], ['five-spice', 'cheddar'], ['salsa', 'parmesan']];
+const CLASHSET = new Set(CLASH.flatMap(([a, b]) => [a + '|' + b, b + '|' + a]));
+export function chefCheck(sp, kit) {
+  const ids = [sp.main, sp.base, ...(sp.veg || []), ...(sp.add || []), ...kit.core.map(c => c[0]), ...kit.extra.map(c => c[0])].filter(Boolean);
+  const keys = ids.flatMap(keyOf), why = [];
+  let fail = false, score = 0;
+  for (let i = 0; i < keys.length; i++) for (let j = i + 1; j < keys.length; j++) if (CLASHSET.has(keys[i] + '|' + keys[j])) { fail = true; why.push('clash ' + keys[i] + '+' + keys[j]); }
+  // one starch is plenty (pasta + potatoes, rice + chips...)
+  if (ids.filter(id => STARCH.has(id)).length > 1) { fail = true; why.push('two starches'); }
+  // too sweet / too rich
+  if (ids.filter(id => SWEET.has(id)).length > 2) { fail = true; why.push('too sweet'); }
+  const rich = ids.filter(id => RICH.has(id)).length + (kit.tags.includes('fl:creamy') ? 1 : 0);
+  if (rich > 3) { fail = true; why.push('too rich'); } else if (rich === 3) score -= 1;
+  // cheese and fish mostly don't mix (tuna melts, smoked salmon & cream cheese are fine)
+  const g = MAINS[sp.main] && MAINS[sp.main].grp;
+  if (g === 'fish' && !['tuna', 'smoked-salmon'].includes(sp.main) && !['bake', 'pie'].includes(sp.method) && (sp.add || []).some(a => ['cheddar', 'mozzarella', 'parmesan', 'halloumi'].includes(a))) { score -= 2; why.push('fish & cheese'); }
+  // a plate needs balance: richness wants something sharp or fresh, soft dishes want a bit of crunch
+  const hasAcid = ids.some(id => ACID.has(id)), hasFresh = ids.some(id => FRESH.has(id)) || !!kit.finish;
+  if (rich >= 2 && !hasAcid) score -= 0.8;
+  if (hasAcid) score += 0.3; if (hasFresh) score += 0.3;
+  if ((sp.veg || []).length > 4) score -= 1;
+  if ((sp.veg || []).length === 0 && !['burgers', 'pulled', 'sticky'].includes(sp.method) && g !== 'veg') score -= 0.7;
+  // pairings that are known to work
+  score += Math.min(4, pairScore([sp.main, ...(sp.veg || []), ...(sp.add || []), ...kit.core.map(c => c[0])])) * 0.45;
+  return { fail, score, why, rich, hasAcid, hasFresh };
+}
+// The finishing touch: fix balance with what's in the kitchen
+function finishingTouch(state, sp, kit, stock, ck) {
+  const inSt = id => (stock.get(id) || 0) > 0 && okItem(state, id), used = new Set([sp.main, sp.base, ...(sp.veg || []), ...(sp.add || []), ...kit.core.map(c => c[0]), ...kit.extra.map(c => c[0])]);
+  const fam = kit.fam || FEEL2FAM[kit.feel] || 'british';
+  const pick = list => list.find(([id, f]) => !used.has(id) && inSt(id) && (!f || f.split(' ').includes(fam)));
+  if (ck.rich >= 2 && !ck.hasAcid) { const p = pick([['lemon', 'italian med british french mideast american indian'], ['lime', 'thai asian mex indian'], ['vinegar', 'british american asian'], ['pickles', 'american british']]); if (p) return { id: p[0], text: `Finish with a squeeze of ${ITEM[p[0]].n.toLowerCase()} — it cuts through the richness.` }; }
+  if (['curry', 'simmer', 'pasta', 'bake', 'risotto', 'soup', 'braise', 'pulled', 'pie'].includes(sp.method) && !ck.hasFresh) { const p = pick([['coriander', 'indian thai mex asian mideast'], ['parsley', 'med french british italian mideast'], ['basil', 'italian med'], ['spring-onion', 'asian thai mex american'], ['mint', 'mideast indian med']]); if (p) return { id: p[0], text: `Scatter over some ${ITEM[p[0]].n.toLowerCase().replace('fresh ', '')} for freshness.` }; }
+  if (['curry', 'simmer', 'risotto', 'soup', 'bowl', 'pasta'].includes(sp.method) && !(sp.veg || []).concat(sp.add || []).some(id => CRUNCH.has(id))) { const p = pick([['nuts', 'asian thai indian med mideast'], ['breadcrumbs', 'italian british french'], ['spring-onion', 'asian thai']]); if (p) return { id: p[0], text: p[0] === 'breadcrumbs' ? 'For crunch, toast a handful of breadcrumbs in a little oil and garlic and scatter over.' : p[0] === 'nuts' ? 'Toast a handful of nuts in a dry pan and scatter over for crunch.' : 'Slice spring onion over the top for crunch.' }; }
+  return null;
+}
+
 export function candidates(state, opts = {}) {
   // opts: stock (Map id->qty), serves, priority, used (week history), want: {main, kit, base, method, veg[], tag}, exclude: Set, maxTime, kids, protein, quick, mood, useStock, compose
   const T = partTaste(state), serves = opts.serves || 2, stock = opts.stock || new Map(), used = opts.used || { kit: {}, method: {}, main: {}, base: {}, lastMain: null };
@@ -616,8 +767,8 @@ export function candidates(state, opts = {}) {
   for (const [mid, m] of Object.entries(MAINS)) {
     if (want.main && want.main !== mid && !(Array.isArray(want.main) && want.main.includes(mid))) continue;
     if (ex.has(mid) || !okItem(state, mid)) continue;
+    if (['cooked-pork', 'cooked-beef', 'cooked-lamb'].includes(mid) && !inSt(mid) && !want.main) continue;
     const typed = !!want.main && (want.main === mid || (Array.isArray(want.main) && want.main.includes(mid)));
-    if (m.slow && !opts.allowSlow && !typed) continue;
     if (opts.vegOnly && m.grp !== 'veg') continue;
     if (opts.protein && !['chicken', 'beef', 'pork', 'lamb', 'fish'].includes(m.grp) && mid !== 'halloumi') continue;
     const mainHave = has(mid, m.pp * serves);
@@ -625,8 +776,16 @@ export function candidates(state, opts = {}) {
     for (const meth of m.methods) {
       if (!METHODS[meth]) continue;
       if (want.method && want.method !== meth) continue;
-      if (!okMethod(meth, typed ? { ...opts, maxTime: null } : opts)) continue;
-      if (METHODS[meth].slow && !opts.allowSlow && !typed && !m.slow) continue;
+      const GR = gearOf(state);
+      // slow cooker: 15 minutes in the morning counts as a weeknight meal
+      const gear = GR.slowcooker && scOk(meth, m) ? 'sc' : GR.airfryer && afOk(meth, mid, stock) && (meth !== 'panfry' || Math.random() < 0.5 || !GR.hob) ? 'af' : null;
+      if (!GR.oven && OVEN_ONLY.has(meth) && gear !== 'af' && gear !== 'sc') continue;
+      if (!GR.hob && !GR.oven && gear !== 'af' && gear !== 'sc') continue;
+      if (gear !== 'sc') {
+        if (m.slow && !opts.allowSlow && !typed) continue;
+        if (!okMethod(meth, typed ? { ...opts, maxTime: null } : gear === 'af' ? { ...opts, maxTime: opts.maxTime ? opts.maxTime + 15 : null } : opts)) continue;
+        if (METHODS[meth].slow && !opts.allowSlow && !typed) continue;
+      }
       // eligible flavours for this main + method
       let kits = [];
       for (const [kid, k] of kitList) {
@@ -639,7 +798,7 @@ export function candidates(state, opts = {}) {
         if (want.tag && !k.tags.includes(want.tag) && want.tag !== 'fl:spicy') continue;
         if (opts.spicy && k.spice < 1) continue;
         if (k.core.some(([id]) => ex.has(id))) continue;
-        const coreHave = k.core.filter(([id]) => inSt(id) || (ITEM[id] && ITEM[id].staple)).length / k.core.length;
+        const coreHave = k.core.filter(([id]) => inSt(id) || C.stapleHave(state, id)).length / k.core.length;
         kits.push([sq(T.kit[kid]) + (k.composed ? sq(T.kit[k.fam]) * 0.3 : 0) + coreHave * (useStock ? 3 : 1) + Math.random() * 1.5, kid, k]);
       }
       if (kits.length > 6) { kits.sort((a, b) => b[0] - a[0]); kits = kits.slice(0, 4).concat(kits.slice(4).sort(() => Math.random() - 0.5).slice(0, 2)); }
@@ -656,7 +815,7 @@ export function candidates(state, opts = {}) {
         const kinds = VEG_FOR[meth] || ['firm', 'quick'];
         const prefs = k.vegPref && k.vegPref.length ? k.vegPref : DEFAULT_VEG;
         let vegC = Object.keys(VEG).filter(v => kinds.includes(VEG[v].kind) && !ex.has(v) && okItem(state, v) && v !== base && !(v === 'sweet-potato' && ['sweet-potato', 'potato'].includes(base)) && (prefs.includes(v) || inSt(v) || (want.veg && want.veg.includes(v))));
-        const vScore = v => (inSt(v) ? (useStock ? (prefs.includes(v) ? 6 : 2.5) : 3) : 0) + sq(T.veg[v]) * 0.4 + (want.veg && want.veg.includes(v) ? 5 : 0) + (['onion', 'pepper'].includes(v) && ['wraps', 'stirfry', 'simmer', 'curry', 'pasta', 'friedrice', 'panfry', 'soup', 'shakshuka', 'quesadilla'].includes(meth) ? 0.8 : 0) + (VEG[v].kind === 'side' && meth === 'burgers' && v === 'salad' ? 1 : 0) + Math.random() * 1.4 + (C.likeOf(state, { item: v, name: ITEM[v].n }) > 0 ? 1 : 0) + (k.extra.some(e => e[0] === v) ? 1 : 0) + (prefs.length - Math.max(0, prefs.indexOf(v))) * 0.1 + (opts.healthy ? 0.5 : 0);
+        const vScore = v => (inSt(v) ? (useStock ? (prefs.includes(v) ? 6 : 2.5) : 3) : 0) + sq(T.veg[v]) * 0.4 + (want.veg && want.veg.includes(v) ? 5 : 0) + (['onion', 'pepper'].includes(v) && ['wraps', 'stirfry', 'simmer', 'curry', 'pasta', 'friedrice', 'panfry', 'soup', 'shakshuka', 'quesadilla'].includes(meth) ? 0.8 : 0) + (VEG[v].kind === 'side' && meth === 'burgers' && v === 'salad' ? 1 : 0) + Math.random() * 1.4 + (C.likeOf(state, { item: v, name: ITEM[v].n }) > 0 ? 1 : 0) + (k.extra.some(e => e[0] === v) ? 1 : 0) + pairWith(v, [mid, ...k.core.map(c => c[0])]) * 0.9 + (prefs.length - Math.max(0, prefs.indexOf(v))) * 0.1 + (opts.healthy ? 0.5 : 0);
         const ranked = vegC.map(v => [vScore(v), v]).sort((a, b) => b[0] - a[0]);
         const stockVeg = ranked.filter(([, v]) => inSt(v)).length;
         const nVeg = meth === 'burgers' ? 1 : meth === 'friedrice' ? 2 : useStock ? Math.min(3, Math.max(2, stockVeg)) : opts.healthy ? 3 : 2 + (Math.random() < 0.3 ? 1 : 0);
@@ -664,13 +823,16 @@ export function candidates(state, opts = {}) {
         // extras from your kitchen that suit the flavour and dish
         const addC = addPool.filter(a => a !== mid && !veg.includes(a) && !k.core.some(c => c[0] === a) && !k.extra.some(c => c[0] === a) && !(a === 'kidney-beans' && mid === 'kidney-beans') && (ADDIN_FAM[a] || '').split(' ').includes(fam) && (!ADDIN_METHODS[a] || ADDIN_METHODS[a].split(' ').includes(meth)) && !(a === 'eggs' && mid === 'eggs') && !(MAINS[a] && MAINS[a].grp !== 'veg' && (m.grp === 'veg' && opts.vegOnly)));
         const nAdd = useStock ? (Math.random() < 0.5 ? 2 : 1) : 1;
-        const adds = addC.sort(() => Math.random() - 0.5).slice(0, Math.random() < (useStock ? 0.85 : 0.35) ? nAdd : 0);
+        const adds = addC.map(a => [pairWith(a, [mid, ...veg, ...k.core.map(c => c[0])]) + Math.random() * 1.2, a]).sort((x, y) => y[0] - x[0]).map(x => x[1]).slice(0, Math.random() < (useStock ? 0.85 : 0.35) ? nAdd : 0);
         if (['quesadilla', 'flatbread'].includes(meth) && !adds.some(a => ['cheddar', 'mozzarella', 'feta'].includes(a))) adds.push(fam === 'italian' ? 'mozzarella' : fam === 'med' ? 'feta' : 'cheddar');
         const sp = { main: mid, base, kit: kid, method: meth, veg, add: adds };
+        if (gear) sp.gear = gear;
+        if (!GR.oven && !GR.airfryer && ['chips'].includes(base)) continue;
         if (typed && want.qty && m.joint) sp.qty = want.qty;
+        const ck = chefCheck(sp, k); if (ck.fail) { if (!(sp.add || []).length) continue; sp.add = []; const ck2 = chefCheck(sp, k); if (ck2.fail) continue; }
         // score
         const items = [mid, base, ...veg, ...adds, ...k.core.map(c => c[0])].filter(Boolean);
-        const fresh = [...new Set(items.filter(id => ITEM[id] && !ITEM[id].staple))];
+        const fresh = [...new Set(items.filter(id => ITEM[id] && !(ITEM[id].staple && C.stapleHave(state, id))))];
         const inStock = fresh.filter(id => inSt(id)).length, extras = fresh.length - inStock;
         let s = sq(T.kit[kid]) * 1.1 + sq(T.method[meth]) * 0.8 + sq(T.main[mid]) * 0.7 + sq(T.grp[m.grp]) * 0.5 + sq(T.base[base]) * 0.3;
         if (k.composed) s += sq((T.kit[k.fam] || 0)) * 0.3 + Object.entries(KITS).filter(([, kk]) => kk.feel === k.feel).reduce((a, [id]) => a + sq(T.kit[id]), 0) * 0.15;
@@ -688,6 +850,8 @@ export function candidates(state, opts = {}) {
         if (opts.healthy) s += (k.tags.includes('fl:creamy') || k.tags.includes('fl:cheesy') ? -1.2 : 0.3) + (m.grp === 'fish' || m.grp === 'veg' ? 0.4 : 0);
         if (opts.cheap) s += ['chickpeas', 'kidney-beans', 'lentils', 'eggs', 'sausages', 'chicken-thigh', 'beef-mince', 'pork-mince', 'butter-beans'].includes(mid) ? 1.2 : -0.6;
         if (want.veg && want.veg.length) s += want.veg.filter(v => VEG[v] && kinds.includes(VEG[v].kind)).length * 2.5 - (m.slow || METHODS[meth].slow ? 2 : 0);
+        s += chefCheck(sp, k).score;
+        if (gear === 'af' && opts.maxTime) s += 0.8; if (gear === 'sc') s += opts.allowSlow ? 0 : 0.3 - (used.gear || 0) * 1.5;
         if (want.kit === kid) s += 3; if (want.main === mid) s += 3; if (want.method === meth) s += 2;
         if (opts.seen && opts.seen.has(specKey(sp))) s -= 6;
         out.push({ sp, s: s + Math.random() * (opts.noise ?? 1.2), mainHave, inStock, extras });
@@ -744,6 +908,34 @@ export function learnReaction(state, sp, verdict) {
 
 /* ================= Plan a week around what you're buying ================= */
 // basket: [{item, packs}] ; returns { picks:[{date, recipe, leftover?}], unused:[item], extras:[item] }
+const packPrice = (state, id) => { const bp = C.bestPrice(state, id); return bp && bp.unit ? +(bp.unit * ITEM[id].packs[0]).toFixed(2) : ITEM[id].p; };
+// Buy one thing, unlock the most meals: which single purchase turns what you have into the most good dinners
+export function unlockers(state, n = 5, opts = {}) {
+  const real = pantryStock(state);
+  const shoppable = id => ITEM[id] && !/^(cooked-pork|cooked-beef|cooked-lamb|other-)/.test(id) && !['ham', 'pudding', 'game', 'smoked-salmon'].includes(id) && okItem(state, id);
+  const has = id => (real.get(id) || 0) > 0 || (ITEM[id] && ITEM[id].staple && C.stapleHave(state, id));
+  const by = {}, ready = new Set();
+  for (let pass = 0; pass < 3; pass++) {
+    const cands = candidates(state, { ...opts, stock: real, useStock: true, noise: 1.5, compose: 30, allowSlow: true });
+    for (const c of cands) {
+      const k = kitOf(c.sp.kit); if (!k) continue;
+      const items = [...new Set([c.sp.main, c.sp.base, ...(c.sp.veg || []), ...k.core.map(x => x[0])].filter(Boolean))];
+      const miss = items.filter(id => !has(id)), key = c.sp.main + '|' + c.sp.kit + '|' + c.sp.method;
+      if (!miss.length) { ready.add(key); continue; }
+      if (miss.length !== 1 || !shoppable(miss[0])) continue;
+      const b = by[miss[0]] || (by[miss[0]] = { item: miss[0], keys: new Set(), score: 0, eg: [] });
+      if (b.keys.has(key)) continue; b.keys.add(key); b.score += Math.max(0.3, Math.min(3, c.s / 4));
+      if (b.eg.length < 3 && !b.eg.some(e => e.main === c.sp.main && e.kit === c.sp.kit) && !b.eg.some(e => e.kit === c.sp.kit && e.method === c.sp.method)) b.eg.push({ ...c.sp, add: (c.sp.add || []).filter(has) });
+    }
+  }
+  for (const id of Object.keys(by)) if (ready.size && [...by[id].keys].every(k => ready.has(k))) delete by[id];
+  const total = Object.values(by).reduce((a, b) => a + b.keys.size, 0) + ready.size;
+  const basics = Object.values(by).filter(b => b.keys.size > Math.max(25, total * 0.3)).map(b => b.item);
+  for (const id of basics) delete by[id];
+  const out = Object.values(by).filter(b => b.keys.size >= 2).map(b => ({ item: b.item, meals: b.keys.size, price: packPrice(state, b.item), score: b.score / Math.max(0.8, Math.sqrt(packPrice(state, b.item))) * (MAINS[b.item] && [...real.keys()].some(id => MAINS[id] && id !== b.item && MAINS[id].grp === MAINS[b.item].grp && MAINS[id].grp !== 'veg') ? 0.45 : 1), examples: b.eg.map(sp => buildMeal(state, sp, opts.serves || 2, new Map([...real, [b.item, 99999]])).title) }))
+    .sort((a, b) => b.score - a.score).slice(0, n);
+  out.basics = basics; out.ready = ready.size; return out;
+}
 // What to do with the rest of a joint
 export function leftoverIdeas(state, r, n = 3) {
   if (!r || !r.leftover) return [];
@@ -783,6 +975,7 @@ export function planWeek(state, dates, basket, opts = {}) {
     if (cook > serves && next) { picks.push({ date: next, recipe: r, serves, leftover: d }); cover.add(next); }
     for (const i of r.ings) if (i.item && stock.has(i.item)) stock.set(i.item, Math.max(0, stock.get(i.item) - (C.toBase(i.q, i.u, ITEM[i.item]) || 0)));
     if (r.leftover) addStock(r.leftover.item, r.leftover.g); // the rest of the joint becomes quick meals later in the week
+    if (r.gear === 'sc') used.gear = (used.gear || 0) + 1;
     used.kit[ch.sp.kit] = (used.kit[ch.sp.kit] || 0) + 1; used.method[ch.sp.method] = (used.method[ch.sp.method] || 0) + 1; used.main[ch.sp.main] = (used.main[ch.sp.main] || 0) + 1; used.base[ch.sp.base] = (used.base[ch.sp.base] || 0) + 1; used.lastMain = ch.sp.main; used.titles[r.title] = 1; for (const tg of kitOf(ch.sp.kit).tags) used.tags[tg] = (used.tags[tg] || 0) + 1;
   }
   const usedItems = new Set(picks.flatMap(p => p.recipe.ings.map(i => i.item)));

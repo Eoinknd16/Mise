@@ -19,6 +19,7 @@ const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const fmtDay = d => new Date(d + 'T12:00').toLocaleDateString('en-IE', { weekday: 'short', day: 'numeric', month: 'short' });
 const fmtShort = d => new Date(d + 'T12:00').toLocaleDateString('en-IE', { day: 'numeric', month: 'short' });
 const ICON = {
+  scan: '<svg viewBox="0 0 24 24"><path d="M4 7V5a1 1 0 011-1h2M17 4h2a1 1 0 011 1v2M20 17v2a1 1 0 01-1 1h-2M7 20H5a1 1 0 01-1-1v-2M8 8v8M11 8v8M14 8v8M17 8v8"/></svg>',
   check: '<svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg>',
   x: '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',
   more: '<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>',
@@ -104,7 +105,7 @@ function dayRow(d) {
   }
   return es.map((e, i) => {
     const r = R[e.rid]; if (!r) return '';
-    const meta = e.leftover ? 'Leftovers' : e.fromFreezer ? 'From the freezer' : `${C.effort(r).slow ? hm(r.time) + ' · mostly hands-off' : '≈ ' + C.effort(r).total + ' min all in'}${e.serves > M.servesFor(S, d) && C.isBatch(S, r) ? ' · makes extra' : ''}${e.wildcard ? ' · something new' : ''}`;
+    const meta = e.leftover ? 'Leftovers' : e.fromFreezer ? 'From the freezer' : `${timeLabel(r)}${e.serves > M.servesFor(S, d) && C.isBatch(S, r) ? ' · makes extra' : ''}${e.wildcard ? ' · something new' : ''}`;
     return `<div class="day2${e.cooked ? ' done' : ''}${e.leftover || e.fromFreezer ? ' left' : ''}">${i ? '<div class="dl"></div>' : label}<button class="mealbtn grow" data-act="openRecipe" data-key="${esc(e.rid)}" data-date="${d}" data-idx="${i}">${thumb(r)}<div class="grow"><div class="t">${esc(r.title)}</div><div class="tiny muted">${meta}</div></div></button><button class="tick${e.cooked ? ' on' : ''}" data-act="${e.cooked ? 'uncook' : 'cook'}" data-date="${d}" data-idx="${i}" aria-label="${e.cooked ? 'Mark not cooked' : 'Mark cooked'}">${ICON.check}</button></div>`;
   }).join('');
 }
@@ -113,7 +114,7 @@ function tonightCard() {
   if (idx >= 0) {
     const e = es[idx], r = R[e.rid]; if (!r) return '';
     const img = imgSrc(r), tips = M.tipsFor(S, r, t).slice(0, 1);
-    return `<div class="tonight" data-tour="tonight">${img ? `<img src="${esc(img)}" alt="" onerror="this.remove()">` : ''}<div class="tb"><div class="eyebrow">Tonight${e.leftover ? ' · leftovers' : e.fromFreezer ? ' · from the freezer' : ''}</div><h2>${esc(r.title)}</h2><div class="small muted">${e.serves} serving${e.serves > 1 ? 's' : ''}${e.leftover || e.fromFreezer ? ' · just heat it up' : ` · ${C.effort(r).slow ? hm(r.time) + ' · mostly hands-off' : '≈ ' + C.effort(r).total + ' min all in'}`}</div>${tips.length ? `<div class="tiny" style="margin-top:4px">${esc(tips[0])}</div>` : ''}
+    return `<div class="tonight" data-tour="tonight">${img ? `<img src="${esc(img)}" alt="" onerror="this.remove()">` : ''}<div class="tb"><div class="eyebrow">Tonight${e.leftover ? ' · leftovers' : e.fromFreezer ? ' · from the freezer' : ''}</div><h2>${esc(r.title)}</h2><div class="small muted">${e.serves} serving${e.serves > 1 ? 's' : ''}${e.leftover || e.fromFreezer ? ' · just heat it up' : ` · ${timeLabel(r)}`}</div>${tips.length ? `<div class="tiny" style="margin-top:4px">${esc(tips[0])}</div>` : ''}
       <div class="row" style="margin-top:10px"><button class="btn primary grow" data-act="${e.leftover || e.fromFreezer ? 'cook' : 'cookMode'}" data-date="${t}" data-idx="${idx}">${e.leftover || e.fromFreezer ? 'Ate it' : 'Start cooking'}</button><button class="btn" data-act="mood" data-tour="mood">Change</button></div></div></div>`;
   }
   if (es.length) return `<div class="tonight plain"><div class="tb"><div class="eyebrow">Tonight</div><h2>Done. Nice one.</h2></div></div>`;
@@ -141,7 +142,7 @@ function viewRecipes() {
 }
 function card(r) {
   const rt = S.ratings[r.id];
-  return `<button class="rcard" data-act="openRecipe" data-key="${esc(r.id)}"><div class="img">${imgSrc(r, true) ? `<img src="${esc(imgSrc(r, true))}" onerror="this.onerror=null;this.src='${esc(C.photoOf(S, r))}'" alt="" loading="lazy">` : esc(r.title[0])}</div><div class="b"><div class="t">${esc(r.title)}</div><div class="tiny muted">${r.stub ? (r.cat || 'Online') : `${C.effort(r).slow ? hm(r.time) + ' · mostly hands-off' : '≈ ' + C.effort(r).total + ' min all in'} · ${esc(r.area || r.cat || '')}`}${rt && rt.r ? ' · ' + '★'.repeat(rt.r) : ''}</div>${!r.stub && r.ings && C.ruledOut(S, r) ? '<span class="tag warn">has things you avoid</span>' : ''}</div></button>`;
+  return `<button class="rcard" data-act="openRecipe" data-key="${esc(r.id)}"><div class="img">${imgSrc(r, true) ? `<img src="${esc(imgSrc(r, true))}" onerror="this.onerror=null;this.src='${esc(C.photoOf(S, r))}'" alt="" loading="lazy">` : esc(r.title[0])}</div><div class="b"><div class="t">${esc(r.title)}</div><div class="tiny muted">${r.stub ? (r.cat || 'Online') : `${timeLabel(r)} · ${esc(r.area || r.cat || '')}`}${rt && rt.r ? ' · ' + '★'.repeat(rt.r) : ''}</div>${!r.stub && r.ings && C.ruledOut(S, r) ? '<span class="tag warn">has things you avoid</span>' : ''}</div></button>`;
 }
 async function getRecipe(id) {
   if (R[id]) return R[id];
@@ -174,7 +175,7 @@ function renderRecipeSheet() {
   if (lo.length) h += `<div class="tag" style="white-space:normal;padding:8px 10px;margin-bottom:8px;font-size:13px">Leave out the ${esc(lo.map(i => i.name).join(', '))}. You don't like ${lo.length > 1 ? 'them' : 'it'}.</div>`;
   if (bad.length) h += `<div class="tag ${bad.some(i => C.likeOf(S, i) <= -9) ? 'deal' : 'warn'}" style="white-space:normal;padding:8px 10px;margin-bottom:8px;font-size:13px">Contains ${esc(bad.map(i => i.name).join(', '))}, which you marked as ${bad.some(i => C.likeOf(S, i) <= -9) ? "can't eat" : "don't like"}.</div>`;
   h += `<h2>${esc(r.title)}</h2>
-  <div class="row wrap small muted" style="gap:6px;margin:6px 0 10px"><span class="tag">${(() => { const ef = C.effort(r); return ef.slow ? `${hm(r.time)} (mostly hands-off)` : `≈ ${ef.total} min all in`; })()}</span>${C.effort(r).easy ? '<span class="tag yours">Easy</span>' : ''}${r.area ? `<span class="tag">${esc(r.area)}</span>` : ''}${r.cat && r.cat !== 'Easy' && r.cat !== 'Built' ? `<span class="tag">${esc(r.cat)}</span>` : ''}<span class="tag yours">≈ ${C.eur(cost.perServe)} a serving</span>${r.src === 'builder' ? '<span class="tag">Built by you</span>' : r.src === 'ai' ? '<span class="tag">AI recipe</span>' : r.src === 'mealdb' ? '<span class="tag">TheMealDB</span>' : ''}</div>
+  <div class="row wrap small muted" style="gap:6px;margin:6px 0 10px"><span class="tag">${(() => { const ef = C.effort(r); return r.handsOn ? timeLabel(r) : ef.slow ? `${hm(r.time)} (mostly hands-off)` : `≈ ${ef.total} min all in`; })()}</span>${r.gear ? `<span class="tag yours">${r.gear === 'af' ? 'Air fryer' : 'Slow cooker'}</span>` : ''}${C.effort(r).easy ? '<span class="tag yours">Easy</span>' : ''}${r.area ? `<span class="tag">${esc(r.area)}</span>` : ''}${r.cat && r.cat !== 'Easy' && r.cat !== 'Built' ? `<span class="tag">${esc(r.cat)}</span>` : ''}<span class="tag yours">≈ ${C.eur(cost.perServe)} a serving</span>${r.src === 'builder' ? '<span class="tag">Built by you</span>' : r.src === 'ai' ? '<span class="tag">AI recipe</span>' : r.src === 'mealdb' ? '<span class="tag">TheMealDB</span>' : ''}</div>
   ${(() => { if (r.stub) return ''; const w = C.whyRecipe(S, r); return w.length ? `<div class="why">${w.map(([v, t]) => `<span class="${v < 0 ? 'neg' : ''}">${v < 0 ? '−' : '+'} ${esc(t)}</span>`).join('')}</div>` : ''; })()}
   ${(() => { if (r.stub || !S.settings.health) return ''; const n = M.nutrition(S, r, serves); return n ? `<div class="small muted" style="margin:-4px 0 8px">≈ ${n.kcal} kcal · ${n.protein} g protein a serving</div>` : ''; })()}
   ${(() => { if (r.stub) return ''; const tp = M.tipsFor(S, r, ctx && ctx.date); return tp.map(t => `<div class="tag" style="white-space:normal;display:block;margin-bottom:6px;font-size:13px">${esc(t)}</div>`).join(''); })()}
@@ -274,6 +275,96 @@ function listText() {
 }
 
 /* ================= Pantry & what can I make ================= */
+/* ================= Spice rack, kitchen kit, buy-one-thing, barcode scanner ================= */
+const GEAR = [['oven', 'Oven'], ['hob', 'Hob'], ['microwave', 'Microwave'], ['airfryer', 'Air fryer'], ['slowcooker', 'Slow cooker']];
+function gearSummary() { const g = G.gearOf(S), x = [g.airfryer && 'air fryer', g.slowcooker && 'slow cooker', !g.oven && 'no oven'].filter(Boolean); return x.length ? ' · ' + x.join(', ') : ''; }
+function rackSheet() {
+  const have = (ui.rackDraft = ui.rackDraft || { ...(S.rack && S.rack.have || {}) });
+  return `<h2>Spice rack</h2><p class="small muted">Tap what's in your cupboard. Mise cooks with these, and puts anything else a meal needs on your list.</p>
+  ${C.RACK.map(([n, ids]) => `<div class="small" style="font-weight:700;margin:10px 0 4px">${n}</div><div class="chips wrap">${ids.map(id => `<button class="chip" data-act="rackTog" data-val="${id}" aria-pressed="${!!have[id]}">${esc(ITEM[id].n)}</button>`).join('')}</div>`).join('')}
+  <div class="row" style="margin-top:14px"><button class="btn grow" data-act="rackAll">Tick all</button><button class="btn grow" data-act="rackNone">Clear</button><button class="btn primary grow" data-act="rackDone">Done</button></div>`;
+}
+function gearSheet() {
+  const g = G.gearOf(S);
+  return `<h2>Kitchen kit</h2><p class="small muted">What you cook with. An air fryer makes weeknights quicker, and a slow cooker means 15 minutes in the morning and dinner's ready when you're home.</p>
+  <div class="chips wrap">${GEAR.map(([k, n]) => `<button class="chip" data-act="gearTog" data-val="${k}" aria-pressed="${!!g[k]}">${n}</button>`).join('')}</div><button class="btn primary block" style="margin-top:14px" data-act="closeSheet">Done</button>`;
+}
+function unlockSheet(res) {
+  if (!res) return `<h2>One thing to buy</h2><p class="muted">Working out what unlocks the most meals…</p>`;
+  const row = x => `<div class="pi" style="align-items:flex-start"><div class="grow"><b>${esc(ITEM[x.item].n)}</b> <span class="small muted">≈ ${C.eur(x.price)}</span><div class="small" style="color:var(--accent);font-weight:700">+${x.meals} meal${x.meals > 1 ? 's' : ''} with what you have</div><div class="tiny muted">${esc(x.examples.join(' · '))}</div></div><button class="btn sm" data-act="unlockAdd" data-val="${x.item}">${S.list.extras.some(e => e.item === x.item) ? 'On list' : 'Add to list'}</button></div>`;
+  return `<h2>One thing to buy</h2><p class="small muted">The single item that turns what you've got into the most dinners.${res.ready ? ` You can already make about ${res.ready} without buying anything.` : ''}</p>
+  ${res.basics.length ? `<div class="tag warn" style="white-space:normal;display:block;padding:8px 10px;margin-bottom:8px;font-size:13px"><b>You're out of ${esc(res.basics.map(id => ITEM[id].n.toLowerCase()).join(' and '))}</b>, which goes in most meals. <button class="btn sm" data-act="unlockAdd" data-val="${res.basics[0]}" style="margin-left:6px">Add</button></div>` : ''}
+  ${res.length ? `<div class="card flat">${res.map(row).join('')}</div>` : `<p class="muted">Add a few more things to your kitchen and Mise can work this out.</p>`}`;
+}
+/* Barcode scanner: camera + Open Food Facts (free) + what you've taught it */
+const SC = {};
+function scanSheet() {
+  return `<h2>Scan</h2><div class="scanbox"><video id="scanVid" playsinline muted autoplay></video><div class="scanline"></div></div>
+  <p class="small muted" id="scanMsg" style="margin:8px 0">Point the camera at a barcode.</p><div id="scanRes"></div>
+  <form class="row" data-form="scanCode" style="margin-top:8px"><input id="scanCode" inputmode="numeric" placeholder="Or type the barcode number" autocomplete="off" aria-label="Barcode number"><button class="btn" type="submit">Look up</button></form>`;
+}
+async function scanStart() {
+  scanStop(); SC.busy = false; SC.last = null;
+  try { SC.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 } }, audio: false }); }
+  catch (e) { const m = $('#scanMsg'); if (m) m.textContent = "Couldn't open the camera. Allow camera access, or type the number below."; return; }
+  const v = $('#scanVid'); if (!v) { scanStop(); return; } v.srcObject = SC.stream; try { await v.play(); } catch (e) {}
+  if ('BarcodeDetector' in window) {
+    try { const det = new window.BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
+      SC.timer = setInterval(async () => { if (SC.busy || !v.videoWidth) return; try { const r = await det.detect(v); if (r && r[0]) scanFound(r[0].rawValue); } catch (e) {} }, 250); return; } catch (e) {}
+  }
+  try {
+    if (!window.ZXing) await new Promise((ok, no) => { const sc = document.createElement('script'); sc.src = 'vendor/zxing.min.js'; sc.onload = ok; sc.onerror = no; document.head.appendChild(sc); });
+    SC.reader = new window.ZXing.BrowserMultiFormatReader();
+    SC.reader.decodeFromStream(SC.stream, v, res => { if (res && !SC.busy) scanFound(res.getText()); });
+  } catch (e) { const m = $('#scanMsg'); if (m) m.textContent = "This phone can't read barcodes from the camera. Type the number below."; }
+}
+function scanStop() {
+  if (SC.timer) clearInterval(SC.timer); SC.timer = null;
+  try { if (SC.reader) SC.reader.reset(); } catch (e) {} SC.reader = null;
+  if (SC.stream) for (const t of SC.stream.getTracks()) t.stop(); SC.stream = null;
+}
+function offQty(p, it) {
+  if (!it) return 1;
+  if (it.u === 'pc') { const m = /(\d+)\s*(x|pcs?|pieces?|eggs?|pack|stk|st)?\b/i.exec(p.quantity || ''); return m && +m[1] < 100 ? +m[1] : it.packs[0]; }
+  const q = +p.product_quantity, u = String(p.product_quantity_unit || '').toLowerCase();
+  if (q > 0) return u === 'kg' || u === 'l' ? q * 1000 : q;
+  const m = /([\d.,]+)\s*(kg|g|ml|l|cl)\b/i.exec(p.quantity || ''); if (m) { const n = parseFloat(m[1].replace(',', '.')), uu = m[2].toLowerCase(); return uu === 'kg' || uu === 'l' ? n * 1000 : uu === 'cl' ? n * 10 : n; }
+  return it.packs[0];
+}
+async function scanFound(code) {
+  code = String(code).replace(/\D/g, ''); if (!code || code === SC.last) return;
+  SC.busy = true; SC.last = code; if (navigator.vibrate) navigator.vibrate(60);
+  const msg = $('#scanMsg'), box = $('#scanRes'); if (msg) msg.textContent = 'Looking up ' + code + '…';
+  const known = (S.barcodes || {})[code];
+  let prod = null, item = null, qty = null;
+  if (known) { item = known.item; qty = known.qty; prod = { product_name: known.name }; }
+  else {
+    try { const r = await fetch(`https://world.openfoodfacts.org/api/v2/product/${code}.json?fields=product_name,product_name_en,generic_name,brands,quantity,product_quantity,product_quantity_unit,categories_tags`); const j = await r.json(); if (j && j.status === 1) prod = j.product; } catch (e) {}
+    if (prod) {
+      const tries = [prod.product_name_en, prod.product_name, prod.generic_name, ...(prod.categories_tags || []).slice().reverse().map(t => t.replace(/^[a-z]{2}:/, '').replace(/-/g, ' '))].filter(Boolean);
+      for (const t of tries) { const id = C.matchIngredient(t); if (id) { item = id; break; } }
+      qty = offQty(prod, ITEM[item]);
+    }
+  }
+  SC.cur = { code, item, qty, name: prod ? [prod.product_name_en || prod.product_name, prod.brands && prod.brands.split(',')[0]].filter(Boolean).join(' · ') : '' };
+  if (msg) msg.textContent = prod ? (SC.cur.name || 'Found it') + (prod.quantity ? ' · ' + prod.quantity : '') : `Not in the free product database (${code}).`;
+  if (box) box.innerHTML = scanResult();
+}
+function scanResult() {
+  const c = SC.cur; if (!c) return '';
+  const it = ITEM[c.item];
+  return `<div class="card flat" style="margin:0">${it ? `<div class="row between"><div><div class="tiny muted">Adds as</div><b>${esc(it.n)}</b> <span class="small muted">${C.fmtQty(c.qty || it.packs[0], it.u)}</span></div><button class="btn primary" data-act="scanAdd">Add</button></div>` : `<p class="small" style="margin:0 0 6px">What is it?</p>`}
+  <form class="row" data-form="scanFix" style="margin-top:8px"><input id="scanFix" placeholder="${it ? 'Not right? Type what it is' : 'e.g. chicken thighs'}" autocomplete="off" aria-label="What is it"><button class="btn" type="submit">${it ? 'Fix' : 'Add'}</button></form>
+  <button class="btn block" style="margin-top:8px" data-act="scanNext">Scan another</button></div>`;
+}
+function scanSave(item, qty, name) {
+  const c = SC.cur; if (!c) return;
+  S.barcodes = S.barcodes || {}; S.barcodes[c.code] = { item, qty, name: c.name || name };
+  C.addPantry(S, item, qty, ITEM[item] ? ITEM[item].n : name); save(); render();
+  toast(`Added ${ITEM[item] ? ITEM[item].n.toLowerCase() : name}`);
+  SC.cur = null; SC.busy = false; const box = $('#scanRes'); if (box) box.innerHTML = ''; const m = $('#scanMsg'); if (m) m.textContent = 'Point the camera at the next barcode.';
+  setTimeout(() => { SC.last = null; }, 1500);
+}
 function viewPantry() {
   const t = C.today(), tab = ui.pantryTab || 'have';
   let h = `<div class="seg" role="group" data-tour="pantryTabs">${[['have', 'In the kitchen'], ['freezer', 'Freezer']].map(([k, n]) => `<button data-act="pantryTab" data-val="${k}" aria-pressed="${tab === k}">${n}${k === 'freezer' && M.freezer(S).length ? ` (${M.freezer(S).length})` : ''}</button>`).join('')}</div>`;
@@ -288,7 +379,8 @@ function viewPantry() {
   const longLife = items.filter(p => !soon.includes(p) && (!p.exp || C.daysBetween(t, p.exp) > 60));
   const rest = items.filter(p => !soon.includes(p) && !longLife.includes(p));
   h += `<div class="quick3 two"><a href="#builder" data-act="togetherGo" data-tour="make">${ICON.pot}<b>What can I make?</b><span>${soon.length ? `${soon.length} thing${soon.length > 1 ? 's' : ''} to use soon` : 'From what you have'}</span></a><button data-act="snapFridge" data-tour="snap">${ICON.receipt}<b>Snap your fridge</b><span>AI adds what it sees</span></button></div>
-  <form class="row" data-form="addPantry" data-tour="addPantry"><input id="pantryName" placeholder="Add something you have" autocomplete="off" aria-label="Pantry item"><button class="btn primary" type="submit">Add</button></form>${dymBox('pantry')}<input type="file" id="fridgePhoto" accept="image/*" capture="environment" hidden data-change="fridgePhoto">`;
+  <form class="row" data-form="addPantry" data-tour="addPantry"><input id="pantryName" placeholder="Add something you have" autocomplete="off" aria-label="Pantry item"><button class="btn icon" type="button" data-act="scanOpen" aria-label="Scan a barcode" data-tour="scan">${ICON.scan}</button><button class="btn primary" type="submit">Add</button></form>${dymBox('pantry')}
+  <div class="chips wrap" style="margin-top:-2px"><button class="chip" data-act="rackOpen" data-tour="rack">Spice rack${C.rackOn(S) ? ` · ${Object.values(S.rack.have).filter(Boolean).length}` : ''}</button><button class="chip" data-act="gearOpen">Kitchen kit${gearSummary()}</button><button class="chip" data-act="unlockOpen">One thing to buy</button></div><input type="file" id="fridgePhoto" accept="image/*" capture="environment" hidden data-change="fridgePhoto">`;
   if (!items.length) return h + `<div class="empty"><h3>Nothing tracked yet</h3><p>Scan a receipt, finish a shopping trip, or add things here.</p><a class="btn" href="#receipts">Scan a receipt</a></div>`;
   const sec = (title, arr) => arr.length ? `<section class="card flat"><div class="shop-h"><b>${title}</b><span class="small muted">${arr.length}</span></div>${arr.map(p => { const d = p.exp ? C.daysBetween(t, p.exp) : null; const cls = d == null ? 'none' : d < 0 ? 'hot' : d <= 3 ? 'warn' : ''; return `<div class="pi" data-act="pantryItem" data-key="${p.key}" style="cursor:pointer"><span class="dot ${cls}"></span><div class="grow"><div style="font-weight:700">${esc(p.name)}</div><div class="tiny muted">${p.item ? C.fmtQty(p.qty, p.unit) : ''}${d != null ? ` · ${d < 0 ? 'past its date' : d === 0 ? 'use today' : d === 1 ? '1 day left' : d > 60 ? 'keeps for ages' : d + ' days left'}` : ''}</div></div><span class="small muted">›</span></div>`; }).join('')}</section>` : '';
   return h + sec('Use soon', soon) + sec('Fridge & cupboard', rest) + sec('Long-life', longLife);
@@ -373,10 +465,11 @@ function viewBuilder() {
   const B = ui.make || (ui.make = { text: '', chips: S.pantry.filter(p => p.item && ITEM[p.item] && !ITEM[p.item].staple).length >= 6 ? ['have'] : [], res: null });
   let h = `<div class="card" data-tour="bDesc"><textarea id="makeText" placeholder="What do you fancy? e.g. chicken and rice, something creamy, beef tacos, salmon no mushrooms" style="min-height:76px">${esc(B.text)}</textarea>
     <div class="chips wrap">${MAKE_CHIPS.map(([k, n]) => `<button class="chip" data-act="makeChip" data-val="${k}" aria-pressed="${B.chips.includes(k)}">${n}</button>`).join('')}</div>
-    <div class="row" data-tour="bGo"><button class="btn primary grow" data-act="makeGo">Show me</button><button class="btn" data-act="makeSurprise">Surprise me</button></div></div>`;
+    <div class="row" data-tour="bGo"><button class="btn primary grow" data-act="makeGo">Show me</button><button class="btn" data-act="makeSurprise">Surprise me</button></div></div>
+    ${S.pantry.length >= 4 ? `<button class="btn block ghost" data-act="unlockOpen" style="margin-bottom:10px">What one thing should I buy?</button>` : ''}`;
   if (B.res) h += B.res.length ? B.res.map((r, k) => { const like = G.likeThis(S, r), c = C.recipeCost(S, r, r.serves), why = C.whyRecipe(S, r).filter(w => w[0] > 0).slice(0, 2);
-    const fresh = [...new Set(r.ings.map(i => i.item).filter(id => id && ITEM[id] && !ITEM[id].staple))], haveN = fresh.filter(id => C.pantryQty(S, id) > 0), buy = fresh.filter(id => !haveN.includes(id));
-    return `<div class="card fs"><button class="mealbtn" data-act="makeOpen" data-idx="${k}" style="width:100%"><div class="grow"><div class="eyebrow">${esc(G.METHODS[r.spec.method].n)} · ${C.effort(r).slow ? hm(r.time) + ', mostly hands-off' : '≈ ' + C.effort(r).total + ' min all in'} · ${C.eur(c.perServe)} each</div><h3 style="margin:2px 0 0;white-space:normal">${esc(r.title)}</h3>${like ? `<div class="tiny muted">Like the ${esc(like)} you liked</div>` : ''}</div></button>
+    const fresh = [...new Set(r.ings.map(i => i.item).filter(id => id && ITEM[id] && !(ITEM[id].staple && C.stapleHave(S, id))))], haveN = fresh.filter(id => C.pantryQty(S, id) > 0), buy = fresh.filter(id => !haveN.includes(id));
+    return `<div class="card fs"><button class="mealbtn" data-act="makeOpen" data-idx="${k}" style="width:100%"><div class="grow"><div class="eyebrow">${esc(G.METHODS[r.spec.method].n)} · ${timeLabel(r)} · ${C.eur(c.perServe)} each</div><h3 style="margin:2px 0 0;white-space:normal">${esc(r.title)}</h3>${like ? `<div class="tiny muted">Like the ${esc(like)} you liked</div>` : ''}</div></button>
       ${r.leftover ? `<div class="small"><b>Feeds ${r.leftover.feeds}.</b> Leaves ~${r.leftover.g} g for ${r.leftover.portions} more portion${r.leftover.portions > 1 ? 's' : ''}</div>` : ''}
       <p class="small muted" style="margin:0">${esc(r.ings.filter(i => i.u !== 'taste' && !(ITEM[i.item] || {}).staple).slice(0, 8).map(i => i.name).join(' · '))}</p>
       ${S.pantry.length ? `<div class="small"><b style="color:var(--accent)">Uses ${haveN.length} thing${haveN.length !== 1 ? 's' : ''} you have</b> · ${buy.length ? `buy: ${esc(buy.map(id => ITEM[id].n.toLowerCase()).join(', '))}` : 'nothing to buy'}</div>` : ''}${why.length ? `<div class="why" style="margin:0">${why.map(w => `<span>+ ${esc(w[1])}</span>`).join('')}</div>` : ''}
@@ -425,7 +518,7 @@ function viewBuilderIdeas() {
   if (ui.ideas) {
     const I = ui.ideas;
     h += `<section class="card" data-tour="ideas" id="ideasCard"><div class="row between"><h2>Ideas</h2><button class="btn sm" data-act="bIdeas">Shuffle</button></div>${(I.notes || []).map(n => `<span class="tag warn" style="white-space:normal">${esc(n)}</span>`).join('')}
-      ${I.built.map((r, k) => { const c = C.recipeCost(S, r, r.serves); return `<button class="meal" style="width:100%;border:1px solid var(--line);border-radius:12px;background:${b && b.id === r.id ? 'var(--accent-soft)' : 'var(--card)'};cursor:pointer;color:inherit;text-align:left" data-act="pickIdea" data-val="${k}"><div class="thumb">${esc(r.title[0])}</div><div class="grow"><div class="t">${esc(r.title)}</div><div class="small muted">${C.effort(r).slow ? hm(r.time) + ' · mostly hands-off' : '≈ ' + C.effort(r).total + ' min all in'} · ≈ ${C.eur(c.perServe)} a serving</div></div></button>`; }).join('')}
+      ${I.built.map((r, k) => { const c = C.recipeCost(S, r, r.serves); return `<button class="meal" style="width:100%;border:1px solid var(--line);border-radius:12px;background:${b && b.id === r.id ? 'var(--accent-soft)' : 'var(--card)'};cursor:pointer;color:inherit;text-align:left" data-act="pickIdea" data-val="${k}"><div class="thumb">${esc(r.title[0])}</div><div class="grow"><div class="t">${esc(r.title)}</div><div class="small muted">${timeLabel(r)} · ≈ ${C.eur(c.perServe)} a serving</div></div></button>`; }).join('')}
       ${I.library.length ? `<div class="small muted" style="font-weight:700;margin-top:6px">Already in your recipes</div>` + I.library.map(x => `<button class="meal" style="width:100%;border:1px solid var(--line);border-radius:12px;background:var(--card);cursor:pointer;color:inherit;text-align:left" data-act="openRecipe" data-key="${esc(x.r.id)}">${thumb(x.r)}<div class="grow"><div class="t">${esc(x.r.title)}</div><div class="small muted">${x.r.time} min</div></div></button>`).join('') : ''}
       ${ui.ideasWeb === 'loading' ? '<div class="small muted row"><span class="spinner"></span> Looking online…</div>' : (ui.ideasWeb || []).length ? `<div class="small muted" style="font-weight:700;margin-top:6px">Online recipes</div>` + ui.ideasWeb.slice(0, 6).map(r => `<button class="meal" style="width:100%;border:1px solid var(--line);border-radius:12px;background:var(--card);cursor:pointer;color:inherit;text-align:left" data-act="openRecipe" data-key="${esc(r.id)}">${thumb(r)}<div class="grow"><div class="t">${esc(r.title)}</div><div class="small muted">${esc(r.area || r.cat || 'Online')}</div></div></button>`).join('') : ''}
       <div class="row wrap"><button class="btn sm grow" data-act="bAI">Ask AI for this</button><a class="btn sm grow" href="#add" data-act="newRecipe">Write my own</a></div></section>`;
@@ -542,7 +635,7 @@ function setSheet(html) { $('#sheetBody').innerHTML = `<button class="sheet-x" d
 let afterClose = null;
 function closeSheet(fromPop, then) {
   const w = $('#sheet'); if (w.hidden) { if (then) then(); return; }
-  w.hidden = true; document.body.style.overflow = ''; ui.sheetCtx = null;
+  w.hidden = true; document.body.style.overflow = ''; ui.sheetCtx = null; scanStop();
   if (!fromPop && history.state && history.state.sheet) { afterClose = then || null; history.back(); } else if (then) then();
 }
 function go(hash) { closeSheet(false, () => { if (location.hash !== '#' + hash) location.hash = hash; else render(true); }); }
@@ -634,6 +727,18 @@ const A = {
   showCovered: () => setSheet(`<h2>Already in your pantry</h2><p class="small">${C.buildList(S, C.weekDates(ui.listWeek)).covered.map(c => esc(c.name)).join(', ')}</p>`),
   addUsual: el => { const it = ITEM[el.dataset.key]; S.list.extras.push({ item: it.id, name: it.n, qty: it.packs[0] }); save(); render(); toast(`${it.n} added`); },
   pantryTab: el => { ui.pantryTab = el.dataset.val; render(); },
+  rackOpen: () => { ui.rackDraft = null; openSheet(rackSheet()); },
+  rackTog: el => { const id = el.dataset.val; ui.rackDraft[id] = !ui.rackDraft[id]; el.setAttribute('aria-pressed', !!ui.rackDraft[id]); },
+  rackAll: () => { for (const [, ids] of C.RACK) for (const id of ids) ui.rackDraft[id] = true; setSheet(rackSheet()); },
+  rackNone: () => { ui.rackDraft = {}; setSheet(rackSheet()); },
+  rackDone: () => { S.rack = { set: true, have: Object.fromEntries(Object.entries(ui.rackDraft || {}).filter(([, v]) => v)) }; ui.rackDraft = null; ui.loIdeas = {}; save(); closeSheet(); render(); toast('Spice rack saved'); },
+  gearOpen: () => openSheet(gearSheet()),
+  gearTog: el => { const k = el.dataset.val, g = G.gearOf(S); g[k] = !g[k]; S.gear = g; save(); el.setAttribute('aria-pressed', !!g[k]); render(); },
+  unlockOpen: () => { openSheet(unlockSheet(null)); setTimeout(() => { ui.unlock = G.unlockers(S, 6, { serves: S.settings.household || 2 }); setSheet(unlockSheet(ui.unlock)); }, 30); },
+  unlockAdd: el => { const id = el.dataset.val; if (!S.list.extras.some(x => x.item === id)) S.list.extras.push({ item: id, name: ITEM[id].n, qty: ITEM[id].packs[0] }); save(); toast(ITEM[id].n + ' added to your list'); if (ui.unlock) setSheet(unlockSheet(ui.unlock)); },
+  scanOpen: () => { openSheet(scanSheet()); scanStart(); },
+  scanAdd: () => { const c = SC.cur; if (c && c.item) scanSave(c.item, c.qty || ITEM[c.item].packs[0]); },
+  scanNext: () => { SC.cur = null; SC.busy = false; SC.last = null; const b = $('#scanRes'); if (b) b.innerHTML = ''; const m = $('#scanMsg'); if (m) m.textContent = 'Point the camera at a barcode.'; },
   freezerDel: el => { S.freezer = M.freezer(S).filter(f => f.id !== el.dataset.key); save(); render(); },
   togetherGo: () => { ui.make = { text: '', chips: ['have'], res: null }; makeRun(false); location.hash = 'builder'; },
   snapFridge: () => { if (S.settings.ai !== 'puter') { openSheet(`<h2>Snap your fridge</h2><p class="muted">This uses free AI (Puter) to spot what's in the photo and add it to your pantry. You sign in to a free Puter account once.</p><div class="row"><button class="btn grow" data-act="closeSheet">Not now</button><button class="btn primary grow" data-act="fridgeEnable">Turn on AI</button></div>`); return; } $('#fridgePhoto').click(); },
@@ -793,7 +898,7 @@ const A = {
     const m = el.dataset.val;
     if (m === 'takeaway') { const t = C.today(), es = (S.plan[t] || []).filter(e => !e.cooked); S.plan[t] = (S.plan[t] || []).filter(e => e.cooked); let moved = null; for (const d of C.weekDates(0).filter(d => d > t)) if (!(S.plan[d] || []).length && M.cooksOn(S, d) && es.length) { S.plan[d] = es; moved = d; break; } save(); closeSheet(false, () => render()); toast(moved ? `Enjoy! Moved tonight's dinner to ${fmtDay(moved)}.` : 'Enjoy your takeaway!'); return; }
     const opts = moodOptions(m); ui.moodOpts = opts;
-    setSheet(`<h2>${esc(MOODS.find(x => x[0] === m)[1])}</h2><div class="card flat">${opts.map(r => `<button class="meal" style="width:100%;border:0;background:none;cursor:pointer;color:inherit;text-align:left;border-top:1px solid var(--line)" data-act="moodTake" data-key="${esc(r.id)}">${thumb(r)}<div class="grow"><div class="t">${esc(r.title)}</div><div class="small muted">${C.effort(r).slow ? hm(r.time) + ' · mostly hands-off' : '≈ ' + C.effort(r).total + ' min all in'}${C.whyRecipe(S, r).filter(w => w[0] > 0)[0] ? ' · ' + esc(C.whyRecipe(S, r).filter(w => w[0] > 0)[0][1]) : ''}</div></div></button>`).join('')}</div><div class="row"><button class="btn grow" data-act="moodGo" data-val="${m}">Show others</button><button class="btn grow" data-act="mood">Back</button></div>`);
+    setSheet(`<h2>${esc(MOODS.find(x => x[0] === m)[1])}</h2><div class="card flat">${opts.map(r => `<button class="meal" style="width:100%;border:0;background:none;cursor:pointer;color:inherit;text-align:left;border-top:1px solid var(--line)" data-act="moodTake" data-key="${esc(r.id)}">${thumb(r)}<div class="grow"><div class="t">${esc(r.title)}</div><div class="small muted">${timeLabel(r)}${C.whyRecipe(S, r).filter(w => w[0] > 0)[0] ? ' · ' + esc(C.whyRecipe(S, r).filter(w => w[0] > 0)[0][1]) : ''}</div></div></button>`).join('')}</div><div class="row"><button class="btn grow" data-act="moodGo" data-val="${m}">Show others</button><button class="btn grow" data-act="mood">Back</button></div>`);
   },
   moodTake: el => { const r = (ui.moodOpts || []).find(x => x.id === el.dataset.key) || R[el.dataset.key]; saveBuilt(r); setTonight(r.id, r); closeSheet(false, () => render()); toast(`Tonight: ${r.title}`); },
   freezerPick: () => { const fz = M.freezer(S); setSheetOrOpen(`<h2>From the freezer</h2><div class="card flat">${fz.map(f => `<button class="pi" style="width:100%;border:0;background:none;text-align:left;cursor:pointer;color:inherit" data-act="freezerUse" data-key="${f.id}"><div class="grow"><b>${esc(f.title)}</b><div class="tiny muted">${f.portions} portion${f.portions > 1 ? 's' : ''} · frozen ${M.freezerAge(f)} days ago${M.freezerAge(f) > 90 ? ' · eat soon' : ''}</div></div><span class="small muted">Tonight ›</span></button>`).join('')}</div>`); },
@@ -963,6 +1068,8 @@ document.addEventListener('change', ev => {
 document.addEventListener('submit', ev => {
   const f = ev.target.dataset.form; if (!f) return; ev.preventDefault();
   if (f === 'addExtra') { addTyped('extra', '#extraName', (id, txt) => S.list.extras.push({ item: id, name: id ? ITEM[id].n : txt }), true); return; }
+  if (f === 'scanCode') { const v = ($('#scanCode') || {}).value || ''; if (v.trim()) { SC.last = null; scanFound(v.trim()); } return; }
+  if (f === 'scanFix') { const v = (($('#scanFix') || {}).value || '').trim(); if (!v) return; const id = C.matchIngredient(v); const c = SC.cur; if (!c) return; if (id) scanSave(id, c.item === id && c.qty ? c.qty : ITEM[id].packs[0]); else { C.addPantry(S, null, 1, v); save(); toast('Added ' + v); SC.cur = null; SC.busy = false; $('#scanRes').innerHTML = ''; } return; }
   if (f === 'addPantry') { addTyped('pantry', '#pantryName', (id, txt) => C.addPantry(S, id, id ? ITEM[id].packs[0] : 1, id ? ITEM[id].n : txt), true); return; }
   if (f === 'fixPrice') { const r = ui.menuRow, v = parseFloat($('#fixPriceIn').value); if (!(v > 0)) return; S.prices.push({ item: r.item, shop: S.settings.defaultShop, price: v, qty: r.size || ITEM[r.item].packs[0], date: C.today(), src: 'manual' }); save(); closeSheet(false, () => render()); toast('Price saved. Mise will use it from now on.'); return; }
   if (f === 'bkAdd') { addTyped('bk', '#bkName', id => { if (!id) return; const wk = M.weekKey(C.weekDates(ui.weekOffset)[0]); const bk = S.baskets[wk]; const ex = bk.find(b => b.item === id); if (ex) ex.packs++; else bk.push({ item: id, packs: 1 }); }, false); return; }
@@ -1091,6 +1198,8 @@ const TOUR = [
   { route: 'list', sel: '[data-tour=share]', title: 'More list options', text: 'Send the list (WhatsApp, text), get a smarter list from your receipts, see what you already have, or clear it.' },
   { route: 'pantry', sel: '[data-tour=make]', title: 'What can I make?', text: 'Pick what you have and Mise gives you a rough way to cook it. No recipe needed.' },
   { route: 'pantry', sel: '[data-tour=snap]', title: 'Snap your fridge', text: 'Take a photo and the optional free AI adds what it sees to your pantry.' },
+  { route: 'pantry', sel: '[data-tour=scan]', title: 'Scan barcodes', text: 'Scan packets to add them. Mise looks them up for free and remembers anything you correct.' },
+  { route: 'pantry', sel: '[data-tour=rack]', title: 'Spice rack', text: 'Tick the spices and sauces you have once. Mise cooks with those and lists anything else a meal needs.' },
   { route: 'pantry', sel: '[data-tour=pantryTabs]', title: 'Freezer', text: 'Frozen leftovers and spare portions live in the Freezer tab. Mise slots them into busy nights as free dinners.' },
   { route: 'pantry', sel: '[data-tour=addPantry]', title: 'Your pantry', text: 'Add things you have here. Receipts and "Done shopping" fill it automatically. Tap any item to change the amount or date, mark it used, or mark it binned (which helps Mise suggest smaller packs).' },
   { route: 'receipts', sel: '[data-tour=receiptAdd]', title: 'Scan a receipt', text: 'Pick the shop and date, then "Take a photo" of a paper receipt, "Choose screenshot" (a Lidl Plus digital receipt screenshot works best) or paste the text. The reading happens on your phone.' },
@@ -1318,6 +1427,7 @@ function leftBox(r) {
   const ideas = (ui.loIdeas = ui.loIdeas || {})[r.id] || (ui.loIdeas[r.id] = G.leftoverIdeas(S, r).map(x => x.title));
   return `<div class="tag yours" style="white-space:normal;display:block;padding:8px 10px;margin:8px 0;font-size:13px"><b>Cooks the whole ${r.wholeJoint >= 1000 ? (r.wholeJoint / 1000).toFixed(1).replace(/\.0$/, '') + ' kg' : r.wholeJoint + ' g'} joint. Feeds ${r.leftover.feeds}.</b> About ${r.leftover.g} g left over goes into your kitchen when you tick it cooked, ready for quick meals${ideas.length ? `: ${esc(ideas.join(', '))}` : ''}.</div>`;
 }
+const timeLabel = r => r.handsOn ? `${r.handsOn} min in the morning · ready when you're home` : C.effort(r).slow ? hm(r.time) + ' · mostly hands-off' : '≈ ' + C.effort(r).total + ' min all in';
 const hm = m => m < 90 ? m + ' min' : `${Math.floor(m / 60)} hr${m % 60 ? ' ' + (m % 60) : ''}`;
 function builtExtras(r, ctx) {
   const like = G.likeThis(S, r);
