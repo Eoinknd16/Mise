@@ -1,6 +1,7 @@
 // Mise meal engine: builds dinners from parts (main + base + veg + flavour kit + way of cooking) to suit your tastes and what you're buying.
 import { ITEM } from './data.js';
 import * as C from './core.js';
+import * as F from './flavour.js';
 const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
 
 /* ================= Parts ================= */
@@ -598,6 +599,17 @@ export function buildMeal(state, sp, serves, stock) {
   for (const a of tops) steps.push(ADDIN_TEXT[a] ? ADDIN_TEXT[a] : `Add the ${ITEM[a].n.toLowerCase()}.`);
   if (GR.airfryer) for (let i = 0; i < steps.length; i++) steps[i] = steps[i].replace('Bake the oven chips.', 'Air fry the chips at 200°C for 15–18 minutes, shaking halfway.').replace(/toss with oil and salt and roast at 200°C for 35 minutes\./, 'toss with oil and salt and air fry at 200°C for 20–25 minutes, shaking halfway.');
   if (!GR.microwave) for (let i = 0; i < steps.length; i++) steps[i] = steps[i].replace(/microwave 10–12 minutes until soft \(crisp in a hot oven for 10 more if you have time\)/, GR.airfryer ? 'rub with oil and salt and air fry at 190°C for 40–45 minutes' : 'bake at 200°C for an hour until crisp');
+  if (sp.flair && ITEM[sp.flair] && FLAIR[sp.flair]) {
+    const id = sp.flair, n = ITEM[id].n.toLowerCase().replace(/^fresh /, ''), kind = FLAIR[id][1], u = ITEM[id].u;
+    const sharp = ['lime', 'lemon'].find(x => (stock.get(x) || 0) > 0) || null;
+    add(id, u === 'pc' ? (kind === 'salsa' || kind === 'beet' ? 0.5 : 0.25) : kind === 'salsa' ? 60 : kind === 'crumble' || kind === 'dot' ? 25 : kind === 'choc' ? 5 : 30, u === 'pc' ? '' : u, n);
+    const T = { salsa: `Quick ${n.replace(/s$/, '')} salsa: dice it small and mix with ${sharp ? `a squeeze of ${sharp}` : 'a splash of vinegar'}, a pinch of salt and a little chopped chilli or spring onion if you have it. Spoon over to serve.`,
+      scatter: `Scatter over the ${n}.`, roastfruit: `Add the ${n} to the pan or tray for the last 10 minutes so they blister and go jammy.`, crumble: `Crumble a little ${n} over at the end.`, dot: `Dot the ${n} over and let it soften in the heat.`,
+      kimchi: `Serve with kimchi on the side (or fry it with the ${sp.method === 'friedrice' ? 'rice' : 'veg'} for a minute for a tangy kick).`, hummus: `Spread a spoon of hummus on each plate${sp.method === 'wraps' ? ' or wrap' : ''} and pile everything on top.`,
+      pickle: `Quick pickle: slice the cucumber thinly, toss with a pinch of salt, sugar and a splash of vinegar, and serve on the side.`, beet: `Slice the beetroot and serve alongside.`, dates: `Stir in a few chopped dates for a sweet edge.`,
+      choc: `Stir a square of dark chocolate into the sauce at the end. It deepens it without tasting sweet.`, swirl: `Swirl in a spoon of ${n} before serving.`, avo: `Slice the avocado over the top with a pinch of salt.` };
+    steps.push(T[kind] || `Add the ${n}.`);
+  }
   { const ft = finishingTouch(state, sp, kit, stock, chefCheck(sp, kit)); if (ft) { const u = ITEM[ft.id].u; add(ft.id, u === 'pc' ? 0.25 : u === 'g' ? 5 : 5, u === 'pc' ? '' : u, ITEM[ft.id].n.toLowerCase()); steps.push(ft.text); } }
   // Time and name
   let time = (meth.t || 30) + (sp.method === 'traybake' ? Math.max(0, (main.roast || 25) - 25) : 0) + (main.slow ? 90 : 0) + (form === 'mash' || form === 'wedges' ? 5 : 0);
@@ -606,7 +618,9 @@ export function buildMeal(state, sp, serves, stock) {
   let leftover = null;
   if (J && main.leftover && ITEM[main.leftover]) { const spare = jointG - main.pp * serves; if (spare >= main.pp * 0.8) { const g = Math.round(spare * 0.65 / 50) * 50; leftover = { item: main.leftover, g, portions: Math.max(1, Math.floor(spare / main.pp)), feeds: Math.floor(jointG / main.pp) }; } }
   const named = NAMED.find(x => x.main.includes(sp.main) && x.kit.split(' ').includes(sp.kit) && x.method.split(' ').includes(sp.method) && (!x.base || x.base.includes(sp.base)));
-  const title = dedupeWords(named ? named.n : madeUpName(sp, main, base, kit, veg)) + (sp.gear === 'af' ? ' (air fryer)' : sp.gear === 'sc' ? ' (slow cooker)' : '');
+  const flairName = sp.flair && FLAIR[sp.flair] ? ({ salsa: ITEM[sp.flair].n.toLowerCase().replace(/s$/, '') + ' salsa', crumble: 'blue cheese', dot: "goat's cheese", kimchi: 'kimchi', pickle: 'quick pickles', hummus: 'hummus', roastfruit: 'roast ' + ITEM[sp.flair].n.toLowerCase(), avo: 'avocado' })[FLAIR[sp.flair][1]] : null;
+  const baseTitle = dedupeWords(named ? named.n : madeUpName(sp, main, base, kit, veg));
+  const title = (flairName && !baseTitle.toLowerCase().includes(flairName.split(' ')[0]) ? baseTitle + (/ with /.test(baseTitle) ? ' & ' : ' with ') + flairName : baseTitle) + (sp.gear === 'af' ? ' (air fryer)' : sp.gear === 'sc' ? ' (slow cooker)' : '');
   const id = 'g2:' + specKey(sp).replace(/[^a-z0-9|+-]/gi, '') + (jointG ? '|' + jointG : '');
   const r = C.normalizeRecipe({ id, src: 'built', title, serves, time, cat: 'Built', area: kit.feel || '', ings, steps: steps.filter(Boolean), spec: { ...sp, veg }, named: !!named, nice: niceToAdd });
   if (leftover) { r.leftover = leftover; r.wholeJoint = jointG; }
@@ -725,7 +739,7 @@ const CRUNCH = new Set(['nuts', 'spring-onion', 'breadcrumbs', 'coleslaw', 'cucu
 const CLASH = [['soy-sauce', 'parmesan'], ['soy-sauce', 'mozzarella'], ['soy-sauce', 'feta'], ['fish-sauce', 'cream'], ['fish-sauce', 'cheddar'], ['curry-paste', 'pesto'], ['curry-paste', 'mozzarella'], ['pesto', 'bbq-sauce'], ['mint-sauce', 'g:fish'], ['bbq-sauce', 'g:fish'], ['peanut-butter', 'cheddar'], ['coconut-milk', 'cheddar'], ['coconut-milk', 'parmesan'], ['cinnamon', 'g:fish'], ['honey', 'cheddar'], ['sweet-chilli', 'parmesan'], ['oyster-sauce', 'cheddar'], ['five-spice', 'cheddar'], ['salsa', 'parmesan']];
 const CLASHSET = new Set(CLASH.flatMap(([a, b]) => [a + '|' + b, b + '|' + a]));
 export function chefCheck(sp, kit) {
-  const ids = [sp.main, sp.base, ...(sp.veg || []), ...(sp.add || []), ...kit.core.map(c => c[0]), ...kit.extra.map(c => c[0])].filter(Boolean);
+  const ids = [sp.main, sp.base, sp.flair, ...(sp.veg || []), ...(sp.add || []), ...kit.core.map(c => c[0]), ...kit.extra.map(c => c[0])].filter(Boolean);
   const keys = ids.flatMap(keyOf), why = [];
   let fail = false, score = 0;
   for (let i = 0; i < keys.length; i++) for (let j = i + 1; j < keys.length; j++) if (CLASHSET.has(keys[i] + '|' + keys[j])) { fail = true; why.push('clash ' + keys[i] + '+' + keys[j]); }
@@ -768,10 +782,34 @@ export function urgencyMap(state, date) {
 const urgBonus = (d, big) => d == null ? 0 : d <= 1 ? big : d <= 3 ? big * 0.6 : d <= 5 ? big * 0.25 : 0;
 // Ideas you've already been shown recently count against them, so Make keeps moving
 const recentKey = sp => sp.main + '|' + sp.kit + '|' + sp.method;
+const spItems = sp => { const k = kitOf(sp.kit); return [...new Set([sp.main, sp.base, ...(sp.veg || []), ...(sp.add || []), sp.flair, ...(k ? k.core.map(c => c[0]) : [])].filter(Boolean))]; };
+export const recentUse = (state, id) => { const e = (state.makeUse || {})[id]; return e ? e.n * Math.pow(0.6, C.daysBetween(e.d, C.today())) : 0; };
 export function noteShown(state, sps) {
-  const t = C.today(), m = state.makeSeen = state.makeSeen || {};
+  const t = C.today(), m = state.makeSeen = state.makeSeen || {}, u = state.makeUse = state.makeUse || {};
+  for (const sp of sps) for (const id of spItems(sp)) { const e = u[id]; u[id] = { n: (e ? e.n * Math.pow(0.6, C.daysBetween(e.d, t)) : 0) + 1, d: t }; }
   for (const sp of sps) { const k = recentKey(sp), e = m[k]; m[k] = { n: (e ? e.n * Math.pow(0.6, C.daysBetween(e.d, t)) : 0) + 1, d: t }; }
   const keys = Object.keys(m); if (keys.length > 600) for (const k of keys.sort((a, b) => m[a].d.localeCompare(m[b].d)).slice(0, keys.length - 500)) delete m[k];
+}
+/* ---------- Pantry flair: the odd things in your kitchen (fruit, kimchi, blue cheese...) as a finishing component ---------- */
+const FRUITM = 'bowl wraps burgers traybake panfry salad sticky roast pulled loaded quesadilla';
+export const FLAIR = {
+  apple: [FRUITM, 'salsa'], pears: [FRUITM, 'salsa'], orange: [FRUITM + ' stirfry', 'salsa'], mango: [FRUITM + ' curry stirfry', 'salsa'], pineapple: [FRUITM + ' stirfry friedrice curry', 'salsa'], berries: ['salad bowl', 'scatter'], strawberries: ['salad bowl wraps', 'salsa'], grapes: ['salad roast traybake', 'roastfruit'], plums: ['roast traybake panfry sticky', 'roastfruit'], kiwi: ['bowl wraps salad', 'salsa'], melon: ['salad', 'scatter'], pomegranate: ['salad bowl curry traybake wraps flatbread braise', 'scatter'],
+  'blue-cheese': ['panfry salad burgers loaded pasta traybake', 'crumble'], 'goats-cheese': ['salad traybake pasta flatbread frittata bowl roast', 'dot'], kimchi: ['bowl friedrice burgers wraps noodlesoup stirfry quesadilla', 'kimchi'], hummus: ['wraps flatbread bowl traybake salad panfry', 'hummus'],
+  cucumber: ['curry bowl wraps burgers stirfry salad sticky pulled noodlesoup', 'pickle'], beetroot: ['salad bowl traybake wraps burgers roast', 'beet'], dates: ['curry braise simmer', 'dates'], 'dark-chocolate': ['simmer braise', 'choc'], 'creme-fraiche': ['soup curry simmer pasta pie loaded', 'swirl'], 'sour-cream': ['wraps loaded quesadilla bowl soup', 'swirl'], avocado: ['wraps bowl burgers salad quesadilla', 'avo'], pickles: ['burgers wraps loaded pulled sticky', 'scatter'], gherkins: ['burgers wraps loaded pulled', 'scatter']
+};
+const FLAIR_FAM = { salsa: 'mex american thai asian med', kimchi: 'asian thai american mex', crumble: 'american british french italian', dot: 'med italian french british', hummus: 'mideast med', beet: 'british med mideast american', dates: 'mideast indian', roastfruit: 'british french med italian american', avo: 'mex american med' };
+function pickFlair(state, sp, k, pool) {
+  const used = new Set(spItems(sp)); let best = null, bv = 0.6;
+  for (const id of pool) {
+    if (used.has(id) || !FLAIR[id][0].split(' ').includes(sp.method)) continue;
+    const fam = k.fam || FEEL2FAM[k.feel] || 'british', okFam = FLAIR_FAM[FLAIR[id][1]]; if (okFam && !okFam.split(' ').includes(fam)) continue;
+    if (id === 'dark-chocolate' && !['chilli', 'smokybbq', 'moroccan'].includes(sp.kit)) continue;
+    if (FLAIR[id][1] === 'swirl' && (k.tags.includes('fl:creamy') || used.has('cream') || used.has('coconut-milk'))) continue;
+    const core = k.core.map(c => c[0]);
+    const v = F.affinity(sp.main, id).s * 0.8 + Math.max(0, ...core.map(c => F.affinity(c, id).s)) * 0.5 + (F.pairUsual(sp.main, id) ? 0.4 : 0) + (F.contrastOf(sp.main, id)) * 0.3 - recentUse(state, id) * 0.15 + Math.random() * 0.35;
+    if (v > bv && !chefCheck({ ...sp, flair: id }, k).fail) { bv = v; best = id; }
+  }
+  return best;
 }
 export function candidates(state, opts = {}) {
   // opts: stock (Map id->qty), serves, priority, used (week history), want: {main, kit, base, method, veg[], tag}, exclude: Set, maxTime, kids, protein, quick, mood, useStock, compose
@@ -784,6 +822,7 @@ export function candidates(state, opts = {}) {
   const kitList = Object.entries(KITS).concat(composed.map(k => [k.id, k]));
   for (const id of stock.keys()) { if (!['hot-dogs', 'deli-meat', 'other-meat', 'other-fish', 'frozen-burgers'].includes(id)) ensureMain(id); ensureVeg(id); }
   const urg = opts.urgent || urgencyMap(state, opts.date), seenM = opts.recent ? (state.makeSeen || {}) : null, tday = C.today();
+  const flairPool = useStock ? [...stock.keys()].filter(id => FLAIR[id] && okItem(state, id) && !ex.has(id)) : [];
   const addPool = Object.keys(ADDIN_PP).filter(a => ITEM[a] && inSt(a) && okItem(state, a) && !ex.has(a));
   const out = [];
   for (const [mid, m] of Object.entries(MAINS)) {
@@ -837,7 +876,7 @@ export function candidates(state, opts = {}) {
         const kinds = VEG_FOR[meth] || ['firm', 'quick'];
         const prefs = k.vegPref && k.vegPref.length ? k.vegPref : DEFAULT_VEG;
         let vegC = Object.keys(VEG).filter(v => kinds.includes(VEG[v].kind) && !ex.has(v) && okItem(state, v) && v !== base && !(v === 'sweet-potato' && ['sweet-potato', 'potato'].includes(base)) && (prefs.includes(v) || inSt(v) || (want.veg && want.veg.includes(v))));
-        const vScore = v => (inSt(v) ? (useStock ? (prefs.includes(v) ? 6 : 2.5) : 3) : 0) + sq(T.veg[v]) * 0.4 + (want.veg && want.veg.includes(v) ? 5 : 0) + (['onion', 'pepper'].includes(v) && ['wraps', 'stirfry', 'simmer', 'curry', 'pasta', 'friedrice', 'panfry', 'soup', 'shakshuka', 'quesadilla'].includes(meth) ? 0.8 : 0) + (VEG[v].kind === 'side' && meth === 'burgers' && v === 'salad' ? 1 : 0) + Math.random() * 1.4 + (C.likeOf(state, { item: v, name: ITEM[v].n }) > 0 ? 1 : 0) + (k.extra.some(e => e[0] === v) ? 1 : 0) + pairWith(v, [mid, ...k.core.map(c => c[0])]) * 0.9 + (prefs.length - Math.max(0, prefs.indexOf(v))) * 0.1 + (opts.healthy ? 0.5 : 0);
+        const vScore = v => (inSt(v) ? (useStock ? (prefs.includes(v) ? 4.5 : 3.6) : 3) : 0) - (opts.recent ? Math.min(3, recentUse(state, v) * 0.6) : 0) + sq(T.veg[v]) * 0.4 + (want.veg && want.veg.includes(v) ? 5 : 0) + (['onion', 'pepper'].includes(v) && ['wraps', 'stirfry', 'simmer', 'curry', 'pasta', 'friedrice', 'panfry', 'soup', 'shakshuka', 'quesadilla'].includes(meth) ? 0.8 : 0) + (VEG[v].kind === 'side' && meth === 'burgers' && v === 'salad' ? 1 : 0) + Math.random() * 1.4 + (C.likeOf(state, { item: v, name: ITEM[v].n }) > 0 ? 1 : 0) + (k.extra.some(e => e[0] === v) ? 1 : 0) + pairWith(v, [mid, ...k.core.map(c => c[0])]) * 0.9 + (prefs.length - Math.max(0, prefs.indexOf(v))) * 0.1 + (opts.healthy ? 0.5 : 0);
         const ranked = vegC.map(v => [vScore(v), v]).sort((a, b) => b[0] - a[0]);
         const stockVeg = ranked.filter(([, v]) => inSt(v)).length;
         const nVeg = meth === 'burgers' ? 1 : meth === 'friedrice' ? 2 : useStock ? Math.min(3, Math.max(2, stockVeg)) : opts.healthy ? 3 : 2 + (Math.random() < 0.3 ? 1 : 0);
@@ -848,12 +887,13 @@ export function candidates(state, opts = {}) {
         const adds = addC.map(a => [pairWith(a, [mid, ...veg, ...k.core.map(c => c[0])]) + Math.random() * 1.2, a]).sort((x, y) => y[0] - x[0]).map(x => x[1]).slice(0, Math.random() < (useStock ? 0.85 : 0.35) ? nAdd : 0);
         if (['quesadilla', 'flatbread'].includes(meth) && !adds.some(a => ['cheddar', 'mozzarella', 'feta'].includes(a))) adds.push(fam === 'italian' ? 'mozzarella' : fam === 'med' ? 'feta' : 'cheddar');
         const sp = { main: mid, base, kit: kid, method: meth, veg, add: adds };
+        if (useStock && flairPool.length && Math.random() < 0.65) { const f = pickFlair(state, sp, k, flairPool); if (f) sp.flair = f; }
         if (gear) sp.gear = gear;
         if (!GR.oven && !GR.airfryer && ['chips'].includes(base)) continue;
         if (typed && want.qty && m.joint) sp.qty = want.qty;
         const ck = chefCheck(sp, k); if (ck.fail) { if (!(sp.add || []).length) continue; sp.add = []; const ck2 = chefCheck(sp, k); if (ck2.fail) continue; }
         // score
-        const items = [mid, base, ...veg, ...adds, ...k.core.map(c => c[0])].filter(Boolean);
+        const items = [mid, base, sp.flair, ...veg, ...adds, ...k.core.map(c => c[0])].filter(Boolean);
         const fresh = [...new Set(items.filter(id => ITEM[id] && !(ITEM[id].staple && C.stapleHave(state, id))))];
         const inStock = fresh.filter(id => inSt(id)).length, extras = fresh.length - inStock;
         let s = sq(T.kit[kid]) * 1.1 + sq(T.method[meth]) * 0.8 + sq(T.main[mid]) * 0.7 + sq(T.grp[m.grp]) * 0.5 + sq(T.base[base]) * 0.3;
@@ -898,7 +938,10 @@ export function options(state, opts = {}, n = 3) {
   const titles = opts.seenTitles || new Set();
   while (picked.length < n && pool.length) {
     let best = null, bv = -1e9;
-    for (const x of pool.slice(0, 400)) { const pen = picked.reduce((a, p) => a + simSp(x.sp, p.sp), 0); const v = x.s - pen * 1.6; if (v > bv) { bv = v; best = x; } }
+    const usedNow = new Map(); for (const p of picked) for (const id of spItems(p.sp)) usedNow.set(id, (usedNow.get(id) || 0) + 1);
+    for (const x of pool.slice(0, 400)) { const pen = picked.reduce((a, p) => a + simSp(x.sp, p.sp), 0); let v = x.s - pen * 1.6;
+      if (opts.useStock && opts.stock) for (const id of spItems(x.sp)) { if (!(opts.stock.get(id) > 0) || ['garlic', 'onion'].includes(id) || (ITEM[id] && ITEM[id].staple)) continue; const n = usedNow.get(id) || 0; v += n ? -0.9 * n : 0.7 / (1 + (opts.recent ? recentUse(state, id) * 0.7 : 0)); }
+      if (v > bv) { bv = v; best = x; } }
     pool = pool.filter(x => x !== best);
     const r = buildMeal(state, best.sp, opts.serves, opts.stock);
     if (titles.has(r.title)) continue; titles.add(r.title); seen.add(specKey(best.sp)); best.r = r; picked.push(best);

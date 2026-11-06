@@ -38,7 +38,7 @@ def('onion red-onion', 'Sv3 Ca1', 's'); def('garlic', 'Sv3', ''); def('spring-on
 def('potato', 'Ea2 Sv1 R1', ''); def('sweet-potato butternut', 'Ca2 Ea1 Fl1', 's'); def('carrot', 'Fl2 Pi1 Ea1', 's'); def('parsnip', 'Ca1 Ea1 Sp1', 's'); def('beetroot', 'Ea3 Ca1', 's');
 def('mushroom', 'Ea3 Um2 Sv1', ''); def('pepper', 'Ea2 Gr2 Fr1', 's'); def('tomato cherry-tomato chopped-tomatoes passata tomato-puree', 'Gr2 Ca2 Fr1 Um2', 'sa');
 def('cucumber', 'Gr3', ''); def('peas', 'Gr2', 's'); def('sweetcorn', 'Sv1 Ca1', 's'); def('courgette green-beans', 'Gr2', ''); def('spinach kale', 'Ea1 Gr1', 'b'); def('aubergine', 'Ea1', 'b'); def('fennel', 'An3 Gr1', 's');
-def('olives', 'Fr1 Gr1', 'lb'); def('capers', 'Sv1 Gr1', 'la'); def('kimchi', 'Sv2 Fr1 Fu1', 'ah'); def('chilli', 'Gr1', 'h'); def('jalapenos', 'Gr2', 'ha');
+def('olives', 'Fr1 Gr1', 'lb'); def('hummus', 'Ea2 R1 Ci1', 'f'); def('pickles gherkins', 'Gr1 Sv1', 'a'); def('capers', 'Sv1 Gr1', 'la'); def('kimchi', 'Sv2 Fr1 Fu1', 'ah'); def('chilli', 'Gr1', 'h'); def('jalapenos', 'Gr2', 'ha');
 // herbs
 def('basil', 'An2 Ci1 Sp1 Gr1 Fl1', ''); def('coriander', 'Gr2 Ci1', ''); def('mint', 'Pi2 Gr1', ''); def('rosemary dried-rosemary', 'Pi3 Sp1', ''); def('sage', 'Pi2 Ea1 Sp1', '');
 def('thyme dried-thyme', 'Sp2 Pi1 Ea1', ''); def('dill', 'Gr2 An1 Ci1', ''); def('parsley', 'Gr3 Pi1', ''); def('tarragon', 'An3 Gr1', ''); def('lemongrass', 'Ci3', ''); def('ginger', 'Ci2 Sp1 Pi1', 'h');
@@ -256,3 +256,5 @@ export function rateExperiment(state, r, v) {
   const ids = [r.exp.hero, ...r.exp.with];
   for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) { const k = [ids[i], ids[j]].sort().join('|'); state.lab.pairs[k] = Math.max(-2, Math.min(2, (state.lab.pairs[k] || 0) + v)); }
 }
+export const pairUsual = (a, b) => usual(a, b);
+export const contrastOf = (a, b) => contrast(a, b);
