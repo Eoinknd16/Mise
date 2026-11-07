@@ -163,6 +163,50 @@ coconut: lime chilli curry coriander ginger prawns chicken lemongrass mango pine
 curry: coconut onion garlic ginger tomato chickpeas chicken lamb spinach yogurt coriander lemon potato cauliflower
 garlic: butter olive_oil lemon parsley chilli ginger soy_sauce rosemary thyme tomato mushroom prawns bread potato spinach
 butter: garlic sage lemon parsley potato bread mushroom fish corn-cob honey ~miso ~soy_sauce
+strawberries: ~basil ~black-pepper ~vinegar ~goats-cheese ~tomato ~cucumber ~avocado ~mint ~rhubarb ~chilli ~feta ~thyme
+chocolate: ~blue-cheese ~chilli ~salt ~olive_oil ~beetroot ~bacon ~rosemary ~miso ~tahini ~avocado ~black-pepper ~cardamom ~mint ~sesame
+dark-chocolate: ~blue-cheese ~chilli ~salt ~olive_oil ~beetroot ~bacon ~rosemary ~miso ~tahini ~duck-breast ~lamb ~cardamom
+coffee: ~beef ~lamb ~pork-belly ~orange ~cardamom ~dates ~mushroom ~chipotle ~bacon ~tahini ~beetroot
+mango: ~black-pepper ~mint ~fish-sauce ~chilli ~salt ~cardamom ~prawns ~avocado ~pork-belly ~basil
+pineapple: ~black-pepper ~basil ~rosemary ~mint ~chilli ~cinnamon ~blue-cheese ~pork-belly ~soy_sauce
+melon: ~black-pepper ~ham ~feta ~mint ~chilli ~basil ~cucumber ~lime
+pears: ~rosemary ~black-pepper ~parmesan ~chocolate ~ginger ~bacon ~star-anise
+apple: ~fennel ~pudding ~celery ~thyme ~rosemary ~mustard ~black-pepper ~miso ~blue-cheese
+beetroot: ~chocolate ~orange ~mustard ~mackerel ~horseradish ~dill ~cumin ~coffee ~raspberries ~tahini
+carrot: ~cardamom ~orange ~star-anise ~miso ~tahini ~chilli ~coriander ~dates
+mushroom: ~miso ~blue-cheese ~tarragon ~brie ~coffee ~sherry ~egg ~beef ~soy_sauce
+tomato: ~strawberries ~vanilla ~cinnamon ~plums ~watermelon ~ginger
+salmon: ~beetroot ~miso ~orange ~rhubarb ~fennel ~vanilla ~horseradish
+prawns: ~mango ~chorizo ~bacon ~vanilla ~orange ~melon ~pork-belly ~peanut-butter
+lamb: ~anchovies ~coffee ~dark-chocolate ~apricot ~orange ~dates ~cinnamon ~rhubarb
+pork: ~coffee ~rhubarb ~kimchi ~plums ~peach ~chocolate ~fennel-seeds ~star-anise ~apricot
+duck: ~chocolate ~cherries ~coffee ~beetroot ~star-anise ~pears
+cauliflower: ~raisin ~tahini ~pomegranate ~anchovies ~dates ~turmeric ~capers
+broccoli: ~anchovies ~blue-cheese ~miso ~chilli ~tahini
+banana: ~bacon ~curry ~miso ~tahini ~black-pepper ~cardamom
+parsnip: ~vanilla ~maple ~cardamom ~orange ~ginger
+sweetcorn: ~miso ~vanilla ~chilli ~bacon ~coconut
+butternut: ~vanilla ~miso ~blue-cheese ~chilli ~maple ~star-anise
+avocado: ~chocolate ~strawberries ~orange ~miso ~sesame
+peas: ~chorizo ~mint ~feta ~wasabi
+blue-cheese: ~honey ~dark-chocolate ~pears ~figs ~dates ~walnuts ~beef
+parmesan: ~pears ~honey ~vinegar ~figs ~black-pepper ~apple
+goats-cheese: ~beetroot ~strawberries ~honey ~figs ~cherries ~walnuts
+feta: ~melon ~honey ~mint ~strawberries ~oregano ~black-pepper
+miso: ~caramel ~chocolate ~butter ~honey ~banana ~sweetcorn ~aubergine
+tahini: ~chocolate ~honey ~banana ~dates ~lemon
+black-pepper: ~strawberries ~pineapple ~mango ~melon ~pears
+chilli: ~chocolate ~mango ~melon ~pineapple ~strawberries ~honey ~lime
+vanilla: ~tomato ~prawns ~parsnip ~butternut ~salmon ~olive_oil
+basil: ~strawberries ~peach ~melon ~pineapple ~lemon
+mint: ~peas ~chocolate ~melon ~strawberries ~feta ~lamb
+rosemary: ~chocolate ~orange ~pears ~honey ~lemon ~apple
+cardamom: ~coffee ~carrot ~mango ~chocolate ~orange ~pears
+star-anise: ~tomato ~carrot ~pears ~pork-belly ~beef
+fennel: ~orange ~apple ~salmon ~pork ~olives
+ginger: ~rhubarb ~chocolate ~carrot ~pears ~lemon
+honey: ~blue-cheese ~feta ~chilli ~thyme ~black-pepper ~goats-cheese
+olive_oil: ~chocolate ~vanilla ~orange ~ice-cream
 `;
 const AVOID = `fish: !cheddar !mozzarella !parmesan !bbq_sauce !mint-sauce !jam !custard !chocolate !ketchup
 shrimp: !jam !custard !chocolate !cheddar
@@ -176,7 +220,7 @@ yogurt: !parmesan !soy_sauce
 coconut: !parmesan !cheddar !mustard
 `;
 export const PAIRS = new Map(), BOLD = new Set(), AVOIDS = new Set(), POS = new Map();
-const ALIAS = { walnuts: 'nuts', almonds: 'nuts', 'pine-nuts': 'nuts', chestnuts: 'nuts', maple: 'syrup', cranberry: 'jam', cranberries: 'jam', cherries: 'berries', blackberries: 'berries', gooseberry: 'berries', figs: 'dried-fruit', apricot: 'dried-fruit', raisin: 'dried-fruit', prosciutto: 'deli-meat', chives: 'spring-onion', 'pak-choi': 'cabbage', 'sea-salt': 'salt', red_wine: 'wine', white_wine: 'wine', cider: 'apple', horseradish: 'mustard', hoisin: 'oyster-sauce', gochujang: 'chilli', 'ras-el-hanout': 'cumin', harissa: 'chilli', teriyaki: 'soy_sauce', 'mango-chutney': 'mango', caramel: 'sugar', 'white-chocolate': 'chocolate', stuffing: 'sage', sprouts: 'cabbage', peppercorn: 'black-pepper', chimichurri: 'parsley', yorkshire: 'gravy', tartare: 'capers', 'black-beans': 'kidney-beans', allspice: 'cinnamon', cloves: 'nutmeg', waffles: 'syrup', beer: 'stout', grapes: 'grapes', lemongrass: 'lemongrass', peach: 'plums', ricotta: 'cream-cheese', truffle: 'mushroom', wasabi: 'mustard', juniper: 'gin', gin: 'gin', rum: 'rum', rose: 'rose', lavender: 'lavender', whiskey: 'whiskey', chutney: 'jam', 'black-pudding': 'pudding', custard: 'custard', salt: 'salt', scallops: 'prawns', squid: 'prawns', prunes: 'dried-fruit', peppers: 'pepper', watermelon: 'melon', saffron: 'cumin', balsamic: 'vinegar', caraway: 'cumin', grapefruit: 'orange', rocket: 'salad', pear: 'pears', pancakes: 'flour' };
+const ALIAS = { walnuts: 'nuts', almonds: 'nuts', 'pine-nuts': 'nuts', chestnuts: 'nuts', maple: 'syrup', cranberry: 'jam', cranberries: 'jam', cherries: 'berries', blackberries: 'berries', gooseberry: 'berries', figs: 'dried-fruit', apricot: 'dried-fruit', raisin: 'dried-fruit', prosciutto: 'deli-meat', chives: 'spring-onion', 'pak-choi': 'cabbage', 'sea-salt': 'salt', red_wine: 'wine', white_wine: 'wine', cider: 'apple', horseradish: 'mustard', hoisin: 'oyster-sauce', gochujang: 'chilli', 'ras-el-hanout': 'cumin', harissa: 'chilli', teriyaki: 'soy_sauce', 'mango-chutney': 'mango', caramel: 'sugar', 'white-chocolate': 'chocolate', stuffing: 'sage', sprouts: 'cabbage', peppercorn: 'black-pepper', chimichurri: 'parsley', yorkshire: 'gravy', tartare: 'capers', 'black-beans': 'kidney-beans', allspice: 'cinnamon', cloves: 'nutmeg', waffles: 'syrup', beer: 'stout', grapes: 'grapes', lemongrass: 'lemongrass', peach: 'plums', ricotta: 'cream-cheese', truffle: 'mushroom', wasabi: 'mustard', juniper: 'gin', gin: 'gin', rum: 'rum', rose: 'rose', lavender: 'lavender', whiskey: 'whiskey', chutney: 'jam', 'black-pudding': 'pudding', custard: 'custard', salt: 'salt', sherry: 'wine', egg: 'eggs', scallops: 'prawns', squid: 'prawns', prunes: 'dried-fruit', peppers: 'pepper', watermelon: 'melon', saffron: 'cumin', balsamic: 'vinegar', caraway: 'cumin', grapefruit: 'orange', rocket: 'salad', pear: 'pears', pancakes: 'flour' };
 const al = x => ALIAS[x] || x;
 const k2 = (a, b) => (a < b ? a + '|' + b : b + '|' + a);
 for (const line of SRC.trim().split('\n')) {

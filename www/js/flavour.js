@@ -7,51 +7,9 @@ import * as C from './core.js';
 import * as G from './builder.js';
 import * as K from './chef.js';
 
-// Aroma families (plain-English names shown in the app)
-export const NOTES = {
-  R: 'roasted, toasty', Ca: 'caramel', Sv: 'savoury, oniony', Gr: 'fresh, green', Ci: 'citrusy', Pi: 'piney, herbal',
-  Fr: 'fruity', Cr: 'creamy, buttery', Sp: 'warm spice', Sm: 'smoky', Ea: 'earthy', Fl: 'floral', Fu: 'funky, cheesy',
-  Um: 'savoury umami', Me: 'meaty', An: 'aniseed'
-};
-// Tastes for contrast: s sweet, a sour, l salty, b bitter, f fat, h heat
-const A = {};
-const def = (ids, notes, taste = '') => { for (const id of ids.split(' ')) A[id] = { n: Object.fromEntries(notes.split(' ').filter(Boolean).map(x => [x.replace(/\d/, ''), +(x.match(/\d/) || [2])[0]])), t: taste }; };
-// meat & fish
-def('pork-chop pork-fillet pork-roast pork-mince pork-ribs cooked-pork', 'Me3 R2 Cr1 Ca1', 'f');
-def('pork-belly', 'Me3 R2 Cr2 Ca1', 'f'); def('gammon ham', 'Me2 Sm2', 'l'); def('bacon', 'Sm3 Me2 R1', 'lf'); def('chorizo', 'Sm3 Sp2 Me1', 'lfh'); def('sausages', 'Me2 Sp1 Pi1', 'lf');
-def('steak beef-roast diced-beef beef-mince beef-brisket cooked-beef burgers', 'Me3 R2 Um1', 'f');
-def('lamb lamb-leg lamb-chops cooked-lamb', 'Me3 R2 Fu1 Pi1', 'f');
-def('chicken-thigh chicken-breast chicken-drum chicken-wings whole-chicken turkey-breast turkey-mince cooked-chicken nuggets', 'Me2 R2 Cr1', 'f');
-def('duck-breast', 'Me3 R2 Fr1 Cr1', 'f');
-def('salmon smoked-salmon', 'Cr2 Fr1 Gr1 R1', 'f'); def('mackerel', 'Gr1 Fr1 Sm1', 'f'); def('white-fish frozen-fish fish-cakes', 'Gr1 Cr1', ''); def('prawns', 'Ca2 Sv1 Fr1', 's'); def('tuna', 'Me1 Um1', 'l');
-def('anchovies', 'Um3 Fu1 Me1', 'l');
-// veg-ish mains
-def('eggs', 'Sv2 Cr2', 'f'); def('halloumi', 'Fu1 Cr1', 'l'); def('tofu', 'Gr1 Cr1', ''); def('chickpeas', 'Ea2 R1', ''); def('lentils', 'Ea2', ''); def('kidney-beans butter-beans', 'Ea1 Cr1', '');
-// cheese & dairy
-def('parmesan', 'Fu3 Fr2 Um3 R1', 'l'); def('cheddar', 'Fu2 Cr1 Um1', 'lf'); def('blue-cheese', 'Fu3 Ea1 Cr1', 'lf'); def('feta', 'Fu1 Cr1', 'la'); def('goats-cheese', 'Fu2 Cr1 Ea1', 'af'); def('mozzarella', 'Cr2', 'f');
-def('cream double-cream butter cream-cheese creme-fraiche', 'Cr3', 'f'); def('yogurt sour-cream', 'Cr2', 'a'); def('coconut-milk', 'Cr3 Fr1', 'fs');
-// fruit
-def('strawberries', 'Fr3 Ca2 Gr1 Fl1 Fu1', 'sa'); def('raspberries', 'Fl3 Fr2 Ca1', 'sa'); def('blueberries berries', 'Fr2 Gr1 Fl1 Sp1', 'sa');
-def('apple', 'Fr3 Gr2 Fl1', 'sa'); def('pears', 'Fr3 Gr1 Fl1', 's'); def('banana', 'Fr3 Sp1 Gr1', 's'); def('pineapple', 'Fr3 Ca2 Fu1', 'sa'); def('mango', 'Fr2 Pi2 Ci1 Cr1', 's');
-def('orange', 'Ci3 Fr1 Fl1', 'sa'); def('lemon', 'Ci3 Pi1', 'a'); def('lime', 'Ci3 Pi1', 'a'); def('kiwi', 'Gr2 Fr2', 'a'); def('melon', 'Gr2 Fr2', 's'); def('grapes', 'Fr2 Fl1', 's');
-def('pomegranate', 'Fr2', 'sa'); def('rhubarb', 'Gr2 Fr1', 'a'); def('dates', 'Ca3', 's'); def('plums tinned-fruit', 'Fr2 Ca1', 'sa'); def('avocado', 'Gr1 Cr2', 'f');
-// veg
-def('onion red-onion', 'Sv3 Ca1', 's'); def('garlic', 'Sv3', ''); def('spring-onion leek', 'Sv2 Gr1', ''); def('cabbage broccoli cauliflower', 'Sv2 Gr1 Ea1', 'b'); def('asparagus', 'Sv2 Gr1', ''); def('tenderstem', 'Sv2 Gr2 Ea1', 'b');
-def('potato', 'Ea2 Sv1 R1', ''); def('sweet-potato butternut', 'Ca2 Ea1 Fl1', 's'); def('carrot', 'Fl2 Pi1 Ea1', 's'); def('parsnip', 'Ca1 Ea1 Sp1', 's'); def('beetroot', 'Ea3 Ca1', 's');
-def('mushroom', 'Ea3 Um2 Sv1', ''); def('pepper', 'Ea2 Gr2 Fr1', 's'); def('tomato cherry-tomato chopped-tomatoes passata tomato-puree', 'Gr2 Ca2 Fr1 Um2', 'sa');
-def('cucumber', 'Gr3', ''); def('peas', 'Gr2', 's'); def('sweetcorn', 'Sv1 Ca1', 's'); def('courgette green-beans', 'Gr2', ''); def('spinach kale', 'Ea1 Gr1', 'b'); def('aubergine', 'Ea1', 'b'); def('fennel', 'An3 Gr1', 's');
-def('olives', 'Fr1 Gr1', 'lb'); def('hummus', 'Ea2 R1 Ci1', 'f'); def('pickles gherkins', 'Gr1 Sv1', 'a'); def('capers', 'Sv1 Gr1', 'la'); def('kimchi', 'Sv2 Fr1 Fu1', 'ah'); def('chilli', 'Gr1', 'h'); def('jalapenos', 'Gr2', 'ha');
-// herbs
-def('basil', 'An2 Ci1 Sp1 Gr1 Fl1', ''); def('coriander', 'Gr2 Ci1', ''); def('mint', 'Pi2 Gr1', ''); def('rosemary dried-rosemary', 'Pi3 Sp1', ''); def('sage', 'Pi2 Ea1 Sp1', '');
-def('thyme dried-thyme', 'Sp2 Pi1 Ea1', ''); def('dill', 'Gr2 An1 Ci1', ''); def('parsley', 'Gr3 Pi1', ''); def('tarragon', 'An3 Gr1', ''); def('lemongrass', 'Ci3', ''); def('ginger', 'Ci2 Sp1 Pi1', 'h');
-// spices & cupboard
-def('coffee', 'R3 Ca2 Sm1 Ea1', 'b'); def('cocoa dark-chocolate', 'R3 Ca2 Fl1 Fr1 Sm1', 'b'); def('chocolate', 'R2 Ca2 Cr2', 'sf'); def('vanilla', 'Sm2 Ca1 Fl1 Cr1', 's');
-def('cinnamon', 'Sp3 Ca1', 's'); def('star-anise fennel-seeds', 'An3 Sp1', ''); def('cardamom', 'Pi2 Ci2 Fl1', ''); def('ground-coriander', 'Ci2 Fl2 Pi1', ''); def('cumin', 'Ea2 Sp1 Sm1', '');
-def('paprika', 'Sm2 Ca1', ''); def('chipotle', 'Sm3 Fr1', 'h'); def('chilli-powder chilli-flakes cayenne', 'Sm1', 'h'); def('black-pepper', 'Pi2 Ci1 Sp1', 'h'); def('nutmeg', 'Sp3 Pi1', ''); def('curry-powder garam-masala', 'Sp2 Ea1 Ci1', 'h');
-def('turmeric', 'Ea2', 'b'); def('five-spice', 'An2 Sp2', ''); def('honey', 'Ca2 Fl2 Fr1', 's'); def('syrup', 'Ca3 Sm1', 's'); def('sugar', 'Ca1', 's');
-def('soy-sauce', 'Um3 R2 Ca1', 'l'); def('miso', 'Um3 R1 Fr1 Fu1', 'l'); def('fish-sauce', 'Um3 Fu2', 'l'); def('worcestershire', 'Um2 Sp1 Sv1', 'la'); def('mustard', 'Sv2', 'h');
-def('tahini', 'R3', 'bf'); def('peanut-butter', 'R3 Cr1', 'f'); def('nuts', 'R2 Cr1', 'f'); def('sesame-oil', 'R3', 'f'); def('olive-oil', 'Gr2 Fr1', 'f');
-def('vinegar', 'Fr1', 'a'); def('bbq-sauce', 'Sm2 Ca2', 'sa'); def('sweet-chilli', 'Ca1', 'sh'); def('sriracha hot-sauce', 'Sv1', 'ha'); def('curry-paste', 'Sp2 Ci1', 'h'); def('pesto', 'An1 Gr2 Fu1', 'f');
+// Aroma families, tastes and weights live in aromas.js
+import { A, NOTES } from './aromas.js';
+export { NOTES };
 
 export const aroma = id => A[id] || (id && ITEM[id] && ITEM[id].standin ? A[ITEM[id].standin] || null : null);
 const CAT = id => {
@@ -93,20 +51,38 @@ function contrast1(a, b) { const ta = (A[a] || {}).t || '', tb = (A[b] || {}).t 
 const learnt = (state, a, b) => ((state.lab || {}).pairs || {})[[a, b].sort().join('|')] || 0;
 // Partners for one ingredient, grouped: classic, surprising, wild
 const REP = { chilli: 'chilli', tomato: 'tomato', onion: 'onion', soy_sauce: 'soy-sauce', curry: 'curry-powder', beef: 'steak', pork: 'pork-chop', fish: 'white-fish', sausage: 'sausages', coconut: 'coconut-milk', chicken: 'chicken-thigh', basil: 'basil', ginger: 'ginger', mint: 'mint', oregano: 'oregano', thyme: 'thyme', rosemary: 'rosemary', coriander: 'coriander', cheese: 'blue-cheese', feta: 'feta', bread: 'bread', potato: 'potato', carrot: 'carrot', spinach: 'spinach', cabbage: 'cabbage', lettuce: 'salad', honey: 'honey', sugar: 'sugar', raisin: 'dates', apple: 'apple' };
+// products and ready-made things aren't flavour partners
+const NOPART = new Set('choc-spread hot-choc scones cake biscuits popcorn crisps cream-spray croissants puff-pastry salmon-tin frozen-burgers nuggets fish-fingers fish-cakes coleslaw cooking-sauce pasta-sauce fruit-yogurt frozen-fruit frozen-veg tinned-fruit garlic-bread cereal cereal-bars hash-browns chips hot-dogs cheese-slices crackers crumpets soda-bread buns baguette pizza-dough wraps pitta naan bread breadcrumbs ice-cream custard brown-sauce salad-cream gravy stock sugar icing-sugar brown-sugar onion-granules garlic-granules dried-basil dried-rosemary dried-thyme mixed-herbs milk oat-milk spread beer wine'.split(' '));
+// rare aroma families say more than common ones: sharing 'mushroomy' means more than sharing 'roasted'
+const IDF = (() => { const df = {}, n = Object.keys(A).length; for (const v of Object.values(A)) for (const k of Object.keys(v.n)) df[k] = (df[k] || 0) + 1; const o = {}; for (const k in df) o[k] = Math.log(n / df[k]); return o; })();
+const cosAB = (a, b) => { const x = (A[a] || {}).n, y = (A[b] || {}).n; if (!x || !y) return 0; let d = 0, na = 0, nb = 0; for (const k of new Set([...Object.keys(x), ...Object.keys(y)])) { const w = IDF[k] || 1, p = (x[k] || 0) * w, q = (y[k] || 0) * w; d += p * q; na += p * p; nb += q * q; } return na && nb ? d / Math.sqrt(na * nb) : 0; };
+// sauces and blends: fine partners, never a discovery
+const SAUCY = new Set('ketchup salsa sweet-chilli bbq-sauce baked-beans mayo sriracha hot-sauce stout vinegar pesto curry-paste cajun-spice fajita-mix peri-spice worcestershire mint-sauce jam passata chopped-tomatoes tomato-puree garam-masala curry-powder five-spice chilli-powder'.split(' '));
+const meatish = id => ['meat', 'fish'].includes((ITEM[id] || {}).cat);
 export function partners(state, id, opts = {}) {
-  const out = [], fam = new Map(), catA = CAT(sdi(id));
+  const out = [], fam = new Map(), h = sdi(id), catA = CAT(h), wA = (A[h] || {}).w || 2, famA = K.ready() ? K.keyOf(h) : null;
   for (const b of Object.keys(A)) {
-    if (b === id || b === sdi(id) || !ITEM[b] || !G.okItem(state, b)) continue;
+    if (b === id || b === h || NOPART.has(b) || !ITEM[b] || !G.okItem(state, b)) continue;
     if (opts.vegOnly && CAT(b) === 'protein' && G.MAINS[b] && G.MAINS[b].grp !== 'veg') continue;
     const f = pairFit(id, b), l = learnt(state, id, b); if (f.kn === -1) continue;
-    const catB = CAT(b), us = f.kn > 0 || (CLASSIC[sdi(id)] && CLASSIC[sdi(id)].has(b)), ev = !us && usual(sdi(id), b);
-    if (catA === 'protein' && catB === 'protein' && !us) continue; // another meat isn't a partner
-    const cross = catA !== catB && ['fruit', 'sweet', 'dry'].some(c => [catA, catB].includes(c)) && [catA, catB].some(c => ['protein', 'cheese', 'veg', 'umami'].includes(c));
-    const kind = us || ev ? 'classic' : cross && f.af.s >= 0.3 ? 'wild' : f.af.s >= 0.3 || f.ct >= 0.5 ? 'surprising' : null;
-    if (!kind || (f.s + l * 0.4 < 0.35 && !us && !ev)) continue;
-    const rk = f.kn > 0 ? PR.rank(sdi(id), b, K.keyOf) : 99, score = f.s + l * 0.4 + (f.kn === 2 ? 0.15 : f.kn === 1 ? 0.05 : us ? 0.12 : 0) + (rk < 99 ? 0.12 * Math.max(0, 1 - rk / 25) : 0);
-    // one per family: chicken thighs, not six cuts of chicken
-    const fk = (K.ready() && K.keyOf(b)) || b, prev = fam.get(fk), sc = score + (b === fk || REP[fk] === b ? 0.06 : 0);
+    const catB = CAT(b), fk = (K.ready() && K.keyOf(b)) || b, cs = cosAB(h, b);
+    if (famA && fk === famA) continue; // other cuts of the same thing
+    const us = f.kn > 0 || (CLASSIC[h] && CLASSIC[h].has(b)), ev = !us && usual(h, b);
+    if (((catA === 'protein' && catB === 'protein') || (meatish(h) && meatish(b))) && !us) continue; // another meat isn't a partner
+    const cross = ['fruit', 'sweet', 'dry'].some(c => [catA, catB].includes(c)) && [catA, catB].some(c => ['protein', 'cheese', 'veg', 'umami'].includes(c));
+    // bold pairings chefs use are the discoveries; classics are what everyone already does
+    let kind = f.kn === 1 ? (cross ? 'wild' : 'surprising') : us || ev ? 'classic' : null;
+    if (!kind) {
+      if (G.BASES[b]) continue; // rice and pasta aren't discoveries
+      if (catA === catB || cs > 0.85 || SAUCY.has(b)) continue;  // berries with berries isn't a discovery
+      if (Math.abs(wA - ((A[b] || {}).w || 2)) >= 2 && cs < 0.6) continue; // a bold partner would flatten a delicate one
+      if (cross && cs >= 0.55) kind = 'wild';
+      else if (cs >= 0.6 || (f.ct >= 0.5 && cs >= 0.45)) kind = 'surprising';
+    }
+    if (!kind) continue;
+    const rk = f.kn > 0 ? PR.rank(h, b, K.keyOf) : 99;
+    const score = (kind === 'classic' || f.kn === 1 ? f.s + (f.kn === 2 ? 0.15 : f.kn === 1 ? 0.05 : us ? 0.12 : 0) + (rk < 99 ? 0.12 * Math.max(0, 1 - rk / 25) : 0) : cs + f.ct * 0.2) + l * 0.4;
+    const prev = fam.get(fk), sc = score + (b === fk || REP[fk] === b ? 0.06 : 0);
     if (prev && prev.score >= sc) continue;
     const x = { id: b, kind, score: sc, why: whyPair(id, b, f.af, f.ct) }; if (prev) out.splice(out.indexOf(prev), 1); fam.set(fk, x); out.push(x);
   }

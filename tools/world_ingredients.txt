@@ -238,3 +238,12 @@ almonds; flaked almonds; cashews; walnuts; pecans; hazelnuts; pistachios; macada
 peanuts | nuts
 sesame seeds; pumpkin seeds; sunflower seeds; chia seeds; flaxseed; linseed | nuts
 desiccated coconut | nuts
+## Grains, greens and meats Mise's catalog used to lump together
+quinoa; red quinoa; black quinoa | couscous
+bulgur; bulgar; cracked wheat | couscous
+pearl barley; barley | couscous
+polenta; cornmeal | couscous
+pak choi; pak choy; bok choy; bok choi; choy sum | cabbage
+goat; diced goat; goat meat; mutton; diced mutton | lamb
+rabbit; diced rabbit | chicken-thigh
+veal; veal escalope | pork-chop

@@ -1,6 +1,7 @@
 // Mise chef intelligence: pairing maths from real dish compositions (USDA FNDDS) plus Mise's own aroma map,
 // and the recipe grammar (sauce, texture and finishing blocks) with compatibility rules.
 // Data: www/data/chefdb.json (built by tools/build_chefdb.py from public-domain USDA data). Commercially usable.
+import { SHORT } from './aromas.js';
 import { ITEM } from './data.js';
 import { CATKEY } from './chefmap.js';
 import * as FL from './flavour.js';
@@ -63,7 +64,7 @@ export function pair(idA, idB, tech) {
   const out = { s, rec: r, comp: aro, fam: aro, n: 0, known: kn };
   cache.set(k, out); return out;
 }
-const NOTE = { R: 'roasted', Ca: 'caramel', Sv: 'savoury', Gr: 'green', Ci: 'citrus', Pi: 'herbal', Fr: 'fruity', Cr: 'creamy', Sp: 'warm-spice', Sm: 'smoky', Ea: 'earthy', Fl: 'floral', Fu: 'tangy', Um: 'umami', Me: 'meaty', An: 'aniseed' };
+const NOTE = SHORT;
 export function sharedFams(idA, idB, tech) {
   const A = vec(idA, tech), B = vec(idB, tech); if (!A || !B) return [];
   return Object.keys(A).filter(k => B[k]).sort((x, y) => Math.min(B[y], A[y]) - Math.min(B[x], A[x]));

@@ -231,7 +231,7 @@ aubergine|Aubergine|fruitveg|pc|1|0.89|7|veg|eggplant|
 beetroot|Beetroot|fruitveg|g|250|0.99|21|veg|cooked beetroot|
 parsnip|Parsnips|fruitveg|g|500|0.89|21|veg|parsnip;turnip;swede|
 butternut|Butternut squash|fruitveg|pc|1|1.29|30|veg|squash;pumpkin|
-kale|Kale|fruitveg|g|200|1.29|5|veg|cavolo nero;pak choi;bok choy;spring greens|
+kale|Kale|fruitveg|g|200|1.29|5|veg|cavolo nero;spring greens|
 asparagus|Asparagus|fruitveg|g|250|2.49|4|veg||
 sugar-snap|Mangetout & sugar snaps|fruitveg|g|150|1.29|5|veg|mange tout;sugar snap peas;baby corn|
 corn-cob|Corn on the cob|fruitveg|pc|2|1.29|5|veg|corn cobs;sweetcorn cobs|
@@ -261,7 +261,7 @@ duck-breast|Duck breasts|meat|g|350|6.99|4|meat|duck;duck breast;duck breasts;du
 cooked-pork|Leftover cooked pork|meat|g|300|0|3|meat|leftover pork;cooked pork;pulled pork leftovers;roast pork leftovers|p:pork
 cooked-beef|Leftover cooked beef|meat|g|300|0|3|meat|leftover beef;cooked beef;roast beef leftovers;leftover roast beef|p:beef
 cooked-lamb|Leftover cooked lamb|meat|g|300|0|3|meat|leftover lamb;cooked lamb;roast lamb leftovers|p:lamb
-game|Venison & game|meat|g|500|8.99|4|meat|venison;rabbit;pheasant;goat;veal;mutton;wild boar;game;goose|p:beef
+game|Venison & game|meat|g|500|8.99|4|meat|venison;pheasant;wild boar;game;goose|p:beef
 pork-belly|Pork belly|meat|g|600|4.49|3|meat|pork belly;belly pork;pork belly slices;pork belly joint|p:pork
 mackerel|Mackerel & sardines|fish|g|125|1.19|365|fish|mackerel;sardines;tinned mackerel;kippers|p:fish
 fish-cakes|Fish cakes|fish|pc|4|2.49|4|fish|fishcakes;crab sticks|p:fish
@@ -298,7 +298,7 @@ bread-soda|Bread soda|pantry|g|200|0.89|700|pantry|bicarbonate of soda;bicarb;br
 yeast|Dried yeast|pantry|g|56|1.49|365|pantry|yeast;dried yeast;fast action yeast;instant yeast|s|tsp:3;sachet:7
 breadcrumbs|Breadcrumbs|pantry|g|200|0.79|300|pantry|panko|s
 dried-fruit|Dried fruit, nuts & seeds|pantry|g|200|1.49|300|pantry|raisins;sultanas;dried apricots;seeds;chia;flaxseed;ground almonds;flaked almonds|
-grains|Quinoa & grains|pantry|g|500|1.79|700|pantry|quinoa;bulgur;pearl barley;polenta|
+grains|Grains|pantry|g|500|1.79|700|pantry|freekeh mix|
 gnocchi|Gnocchi|pantry|g|500|1.29|60|pantry||
 lasagne|Lasagne sheets|pantry|g|500|0.99|700|pantry|lasagne sheets;cannelloni|
 tinned-fruit|Tinned fruit|pantry|g|410|0.89|700|fruit|peaches tin;pineapple chunks;fruit cocktail;mandarins tin|

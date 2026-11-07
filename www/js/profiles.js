@@ -37,7 +37,7 @@ const RULES = [
   [/guinea fowl/, { tip: 'Guinea fowl is leaner than chicken: cover the breast with bacon or baste it often so it doesn\'t dry out.', taste: 'Like a more flavourful chicken.' }],
   [/turkey (thigh|leg|drumstick)/, { t: 20, tip: 'Turkey legs are bigger than chicken thighs: give them about 20 minutes longer, until 75°C in the thickest part.', taste: 'Dark, rich meat.' }],
   [/hare|rabbit/, { only: 'braise stew pie simmer curry indian', t: 60, tip: 'Rabbit and hare are lean: cook them slowly in liquid for 1½–2 hours, or they go tough.', taste: 'Lean and gamey.' }],
-  [/goat/, { only: 'braise pulled stew curry indian simmer', t: 60, tip: 'Goat is lean and firm: give it at least 2 hours of slow cooking, until it falls apart.', taste: 'Like a deeper, leaner lamb.' }],
+  [/goat|mutton/, { only: 'braise pulled stew curry indian simmer', t: 60, tip: 'Goat and mutton are firm: give it at least 2 hours of slow cooking, until it falls apart.', taste: 'Like a deeper, leaner lamb.' }],
   [/shank|neck of lamb|lamb neck|lamb breast|foreshank|ossobuco|osso buco/, { only: 'braise stew pulled curry indian simmer', tip: 'This cut needs long, slow cooking (2½–3 hours) to go tender.', taste: 'Rich and gelatinous after slow cooking.' }],
   [/skirt|flank|bavette|hanger/, { only: 'panfry stirfry wraps bowl salad quesadilla', tip: 'Cuts like this are best cooked hot and fast and never past medium, and always sliced across the grain, or they\'ll be chewy.', taste: 'Big beefy flavour with a loose grain.' }],
   [/venison|deer|elk|reindeer/, { tip: 'Venison is very lean: steaks are best pink and rested; diced venison needs slow cooking.', taste: 'Rich, dark and gamey with almost no fat.' }],

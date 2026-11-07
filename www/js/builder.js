@@ -158,6 +158,8 @@ export const KITS = {
   burger: K('Classic burger', 'classic', { feel: 'American', tags: ['fl:cheesy'], core: [['cheese-slices', 1, ''], ['ketchup', 15, 'g']], extra: [['mayo', 10, 'g'], ['salad', 20, 'g']], sauce: 'ketchup and mayo', methods: 'burgers wraps', mains: 'beef-mince chicken-breast halloumi pork-mince turkey-mince fish-fingers nuggets', bases: 'buns chips wraps potato', vegPref: 'salad coleslaw', words: 'burger cheeseburger smash' }),
   stew: K('Rich stew', 'rich', { feel: 'Irish', tags: [], core: [['stock', 0.5, ''], ['tomato-puree', 10, 'g']], extra: [['thyme', 1, 'g'], ['worcestershire', 3, 'ml']], sauce: 'stock, a squeeze of tomato purée and a dash of Worcestershire', methods: 'braise pie soup simmer', mains: 'beef-brisket beef-roast lamb lamb-leg pork-roast diced-beef chorizo butter-beans diced-beef sausages chicken-thigh beef-mince lentils', bases: 'potato bread puff-pastry bread potato bread rice', vegPref: 'carrot onion leek', words: 'stew casserole hotpot coddle irish' })
 };
+// grain bowls: couscous (and quinoa, bulgur, freekeh through it) suits any bowl, salad or traybake that takes rice
+for (const k of Object.values(KITS)) if (k.methods.some(m => ['bowl', 'salad', 'traybake'].includes(m)) && k.bases.includes('rice') && !k.bases.includes('couscous')) k.bases.push('couscous');
 
 
 /* ================= Cupboard flavours: invented from what you have ================= */
@@ -1067,17 +1069,19 @@ export function options(state, opts = {}, n = 3) {
   const picked = [], w = { ...(opts.want || {}) }, seen = opts.seen || new Set();
   let pool = candidates(state, { ...opts, want: w });
   const lock = w.lock && w.main, vegLock = (w.veg || []).length > 0;
-  for (const drop of ['tag', 'base', 'veg', 'method', 'kit', 'main']) { if ((drop === 'main' && lock) || (drop === 'veg' && vegLock)) continue; if (pool.filter(x => !seen.has(specKey(x.sp))).length >= n * 2) break; if (opts.vegOnly && drop === 'main' && w.main && MAINS[w.main] && MAINS[w.main].grp !== 'veg') { delete w.main; } if (!w[drop] || (Array.isArray(w[drop]) && !w[drop].length)) continue; delete w[drop]; pool = pool.concat(candidates(state, { ...opts, want: w })); }
+  for (const drop of (w.base && !w.main ? ['tag', 'veg', 'method', 'kit', 'base', 'main'] : ['tag', 'base', 'veg', 'method', 'kit', 'main'])) { if ((drop === 'main' && lock) || (drop === 'veg' && vegLock)) continue; if (pool.filter(x => !seen.has(specKey(x.sp))).length >= n * 2) break; if (opts.vegOnly && drop === 'main' && w.main && MAINS[w.main] && MAINS[w.main].grp !== 'veg') { delete w.main; } if (!w[drop] || (Array.isArray(w[drop]) && !w[drop].length)) continue; delete w[drop]; pool = pool.concat(candidates(state, { ...opts, want: w })); }
   if (pool.filter(x => !seen.has(specKey(x.sp))).length < n) pool = pool.concat(candidates(state, { ...opts, want: lock || vegLock ? { main: lock ? w.main : undefined, qty: w.qty, veg: w.veg, lock: w.lock } : {}, allowSlow: lock ? true : opts.allowSlow, quick: false, spicy: false, mood: null, onlyStockMains: false, maxTime: opts.maxTime ? opts.maxTime + 20 : null }));
   { const sc = pool.map(x => x.s).sort((a, b) => b - a), ref = sc.length ? sc[0] - 4 : 4;
     let pc = []; try { if (!opts.noProc && (w.proc || (!w.kit && !w.method && !w.tag && !opts.methods))) pc = P.candidates(state, { ...opts, want: w }, ref); } catch (e) { console.warn('process', e); }
+    // asked for a base (quinoa, couscous, noodles...): a process dish only counts if it's built on it
+    if (w.base && !w.proc) { const bs = [].concat(w.base); pc = pc.filter(x => x.r.ings.some(i => bs.includes(C.standinOf(i.item)))); }
     if (pc.length) pool = pool.concat(pc).sort((a, b) => b.s - a.s); }
   pool = pool.filter(x => !seen.has(specKey(x.sp)));
   const titles = opts.seenTitles || new Set();
   while (picked.length < n && pool.length) {
     let best = null, bv = -1e9;
     const usedNow = new Map(); for (const p of picked) for (const id of spItems(p.sp)) usedNow.set(id, (usedNow.get(id) || 0) + 1);
-    for (const x of pool.slice(0, 400)) { const pen = picked.reduce((a, p) => a + simSp(x.sp, p.sp), 0); let v = x.s - pen * 1.6;
+    for (const x of pool.slice(0, 400)) { const pen = picked.reduce((a, p) => a + simSp(x.sp, p.sp), 0); let v = x.s - pen * 1.6 + (w.base && !w.proc && [].concat(w.base).includes(x.sp.base) ? 3 : 0);
       if (opts.useStock && opts.stock) for (const id of spItems(x.sp)) { if (!(opts.stock.get(id) > 0) || ['garlic', 'onion'].includes(id) || (ITEM[id] && ITEM[id].staple)) continue; const n = usedNow.get(id) || 0; v += n ? -0.9 * n : 0.7 / (1 + (opts.recent ? recentUse(state, id) * 0.7 : 0)); }
       if (v > bv) { bv = v; best = x; } }
     pool = pool.filter(x => x !== best);
