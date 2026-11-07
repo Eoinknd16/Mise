@@ -135,7 +135,8 @@ export const eur = n => '€' + (Math.round(n * 100) / 100).toFixed(2);
 
 /* ================= Ingredient matching ================= */
 const DESCRIPTORS = new Set('fresh chopped diced sliced finely roughly thinly minced crushed grated peeled large small medium ripe boneless skinless organic lean extra cold warm hot softened melted beaten dried cooked uncooked raw frozen tinned canned drained rinsed halved quartered torn shredded to serve for of a an the and or into pieces piece chunks cubed approx about handful pack packet tin tins can cans jar bunch good quality plus more few some little splash'.split(' '));
-const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+// every writing system works: Latin accents are dropped (jalapeño = jalapeno), other scripts are kept
+const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').normalize('NFC').replace(/[^\p{L}\p{M}\p{N} ]+/gu, ' ').replace(/\s+/g, ' ').trim();
 const sing = w => w.length > 3 && w.endsWith('ies') ? w.slice(0, -3) + 'y' : w.length > 4 && /(oes|ches|shes)$/.test(w) ? w.slice(0, -2) : w.length > 3 && w.endsWith('s') && !w.endsWith('ss') ? w.slice(0, -1) : w;
 const PHRASES = []; // [normalized phrase, itemId]
 for (const it of CATALOG) if (!it.id.startsWith('other-')) for (const p of [it.n, it.id.replace(/-/g, ' '), ...it.al]) { const n = norm(p); if (n) PHRASES.push([n, it.id], [n.split(' ').map(sing).join(' '), it.id]); }
@@ -152,10 +153,12 @@ export function ensureWorld(id, name, syn) {
   ITEM[id] = { ...b, id, n: nm, al: syn || [], standin: sid, world: true, staple: false, tags: [], conv: { ...b.conv }, prof: profileOf(nm, sid) };
   return id;
 }
-export function loadWorld(json) {
-  WORLD.exact.clear(); WORLD.phr = []; WORLD.byId = new Map();
+// append: add another file of world ingredients (the Wikidata set) to what's loaded. Appended names
+// match whole names only ("cortland apple"), never as words inside other text, so the long tail can't misfire.
+export function loadWorld(json, append = false) {
+  if (!append || !WORLD.byId) { WORLD.exact.clear(); WORLD.phr = []; WORLD.byId = new Map(); }
   for (const [n, sid, syn] of json.items || []) { if (!ITEM[sid]) continue; const id = 'w:' + sid + ':' + slug(n), e = { id, n, sid, syn: syn || [] }; WORLD.byId.set(id, e);
-    for (const p of [n, ...(syn || [])]) { const k = norm(p); if (!k) continue; for (const v of [k, k.split(' ').map(sing).join(' ')]) if (!WORLD.exact.has(v) && !EXACT.has(v)) { WORLD.exact.set(v, e); WORLD.phr.push([v, e]); } } }
+    for (const p of [n, ...(syn || [])]) { const k = norm(p); if (!k) continue; for (const v of [k, k.split(' ').map(sing).join(' ')]) if (!WORLD.exact.has(v) && !EXACT.has(v)) { WORLD.exact.set(v, e); if (!append) WORLD.phr.push([v, e]); } } }
   WORLD.phr.sort((a, b) => b[0].length - a[0].length); WORLD.ready = true;
 }
 // Your own names for things ("it's like…"), kept in your data
@@ -163,6 +166,10 @@ export function customWorld(state) { for (const [k, c] of Object.entries(state.c
 export function learnLike(state, name, sid) { const k = norm(name); if (!k || !ITEM[sid]) return null; state.custom = state.custom || {}; state.custom[k] = { n: name.trim().replace(/^./, c => c.toUpperCase()), sid }; customWorld(state); return 'w:' + sid + ':' + slug(name); }
 export const standinOf = id => (id && ITEM[id] && ITEM[id].standin && !(ITEM[id].prof && ITEM[id].prof.off)) ? ITEM[id].standin : id;
 
+// Names in other languages (and extra English names): name -> catalog id or world id
+export const NAMES = new Map(), NAMEPACKS = new Set();
+export function loadNames(json) { if (!json || !json.names) return 0; NAMEPACKS.add(json.lang); let n = 0; for (const [k, t] of json.names) if (!NAMES.has(k)) { NAMES.set(k, t); n++; } return n; }
+const nameTarget = t => t && (t.startsWith('w:') ? ensureWorld(t) : ITEM[t] ? t : null);
 export function matchIngredient(name) {
   const n = norm(name);
   if (!n) return null;
@@ -170,6 +177,7 @@ export function matchIngredient(name) {
   const variants = [n, n.split(' ').map(sing).join(' '), n.split(' ').filter(w => !DESCRIPTORS.has(w)).map(sing).join(' ')];
   for (const v of variants) { const id = EXACT.get(v); if (id) return id; }
   for (const v of variants) { const w = WORLD.exact.get(v); if (w) return ensureWorld(w.id, w.n, w.syn); }
+  for (const v of variants) { const t = nameTarget(NAMES.get(v)); if (t) return t; }
   for (const v of variants) {
     const padded = ' ' + v + ' ';
     let cat = null; for (const [p, id] of PHRASES) if (padded.includes(' ' + p + ' ')) { cat = [p, id]; break; }
@@ -177,6 +185,10 @@ export function matchIngredient(name) {
     if (wl) return ensureWorld(wl.id, wl.n, wl.syn);
     if (cat) return cat[1];
   }
+  // word endings change in Polish, Irish, Lithuanian...: ziemniaki -> ziemniak, prataí -> prata, cebulę -> cebula
+  if (NAMES.size && n.length >= 5) { const ws = n.split(' '), last = ws.pop(), pre = ws.length ? ws.join(' ') + ' ' : '';
+    for (const cut of [1, 2]) { if (last.length - cut < 4) break; const stem = pre + last.slice(0, -cut); const t = nameTarget(NAMES.get(stem)); if (t) return t;
+      for (const end of ['a', 'e', 'i', 'o', 'y', 'as', 'is', 'us', 'ai', 'ak', 'ek']) { const t2 = nameTarget(NAMES.get(stem + end)); if (t2) return t2; } } }
   return null;
 }
 

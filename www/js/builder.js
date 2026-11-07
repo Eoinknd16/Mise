@@ -6,7 +6,8 @@ import * as Chef from './chef.js';
 import * as Tech from './techniques.js';
 import * as P from './process.js';
 import { suits } from './profiles.js';
-const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+// every writing system works: Latin accents are dropped (jalapeño = jalapeno), other scripts are kept
+const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').normalize('NFC').replace(/[^\p{L}\p{M}\p{N} ]+/gu, ' ').replace(/\s+/g, ' ').trim();
 
 /* ================= Parts ================= */
 // pp = per person in the catalog's unit (g, ml or pieces)
@@ -374,7 +375,7 @@ function worldSwap(state, r) {
     const w = i.item && sw.get(i.item); if (!w) continue;
     const pf = ITEM[w].prof; if (pf && !suits(pf, mk)) { r.unsuited = ITEM[w].n; continue; }
     if (pf && (pf.tip || pf.prep || pf.t)) notes.push([ITEM[w].n, pf]);
-    const from = ITEM[i.item], to = ITEM[w].n.toLowerCase(), names = [...new Set([from.n, i.name, from.n.replace(/s$/, ''), String(i.name || '').replace(/s$/, ''), MAINS[from.id] && MAINS[from.id].n, MAINS[from.id] && MAINS[from.id].short, VSHORT[from.id], BASES[from.id] && BASES[from.id].n].filter(x => x && x.length > 2).map(x => x.toLowerCase()))].sort((a, b) => b.length - a.length);
+    const from = ITEM[i.item], to = /\s[A-ZÀ-Þ]/.test(ITEM[w].n) ? ITEM[w].n : ITEM[w].n.toLowerCase(), names = [...new Set([from.n, i.name, from.n.replace(/s$/, ''), String(i.name || '').replace(/s$/, ''), MAINS[from.id] && MAINS[from.id].n, MAINS[from.id] && MAINS[from.id].short, VSHORT[from.id], BASES[from.id] && BASES[from.id].n].filter(x => x && x.length > 2).map(x => x.toLowerCase()))].sort((a, b) => b.length - a.length);
     const rx = new RegExp('\\b(' + names.map(escRe).join('|') + ')s?\\b', 'gi'), rep = m => m[0] === m[0].toUpperCase() ? to.charAt(0).toUpperCase() + to.slice(1) : to;
     i.item = w; i.name = to; i.raw = (i.raw || '').replace(rx, rep);
     r.title = r.title.replace(rx, rep); if (r.steps) r.steps = r.steps.map(st => st.replace(rx, rep));

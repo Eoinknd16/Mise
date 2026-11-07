@@ -1,0 +1,730 @@
+# Everyday ingredient names in the languages most spoken in Ireland, written for Mise.
+# "## lang" starts a language; each line: catalog id: name; name; ...
+# These take priority over names found in Wikidata.
+
+## ga
+onion: oinniún; oinniúin
+red-onion: oinniún dearg; oinniúin dhearga
+garlic: gairleog
+potato: práta; prátaí
+sweet-potato: práta milis; prátaí milse
+carrot: cairéad; cairéid
+celery: soilire
+pepper: piobar cloigín; piobar
+courgette: cúirséad; cúirséid
+broccoli: brocailí
+cauliflower: cóilis
+spinach: spionáiste
+salad: leitís; duilleoga sailéid
+tomato: tráta; trátaí
+cherry-tomato: trátaí silíní
+cucumber: cúcamar
+mushroom: muisiriún; muisiriúin; beacáin
+leek: cainneann
+cabbage: cabáiste
+green-beans: pónairí glasa
+avocado: abhacád
+lemon: líomóid; líomóidí
+lime: líoma
+ginger: sinséar
+chilli: cilí
+coriander: lus an choire
+parsley: peirsil
+basil: basal
+spring-onion: oinniún earraigh
+apple: úll; úlla
+banana: banana; bananaí
+orange: oráiste; oráistí
+strawberries: sú talún
+raspberries: sú craobh
+blueberries: fraocháin
+rhubarb: biabhóg
+fennel: finéal
+sage: sáiste
+thyme: tím
+rosemary: rós Muire
+mint: mismín
+bread: arán; builín
+chicken-breast: cíoch sicín; sicín
+chicken-thigh: ceathrúna sicín
+whole-chicken: sicín iomlán
+beef-mince: mairteoil mhionaithe
+steak: stéig
+diced-beef: mairteoil
+pork-chop: gríscín muiceola; gríscíní muiceola
+sausages: ispíní; ispín
+bacon: slisíní bagúin; bagún
+lamb: uaineoil
+ham: liamhás
+salmon: bradán
+white-fish: iasc bán; trosc
+prawns: cloicheáin; séacla
+mackerel: ronnach
+milk: bainne
+butter: im
+cheddar: cáis cheddar; cáis
+cream: uachtar
+yogurt: iógart
+eggs: uibheacha; ubh
+rice: rís
+flour: plúr
+sugar: siúcra
+honey: mil
+salt: salann
+black-pepper: piobar dubh
+oats: coirce; leite
+vinegar: fínéagar
+oil: ola
+olive-oil: ola olóige
+kidney-beans: pónairí duánacha
+baked-beans: pónairí bácáilte
+peas: piseanna
+sweetcorn: arbhar milis
+beetroot: biatas
+parsnip: meacan bán; meacain bhána
+kale: cál
+cinnamon: cainéal
+nutmeg: noitmig
+cumin: cuimín
+jam: subh
+chocolate: seacláid
+nuts: cnónna
+duck-breast: lacha; cíoch lachan
+turkey-breast: turcaí
+pudding: putóg dhubh; putóg bhán; putóg
+fish-fingers: méara éisc
+chips: sceallóga
+crisps: brioscáin
+soda-bread: arán sóide
+pears: piorraí; piorra
+plums: plumaí
+grapes: fíonchaora
+melon: mealbhacán
+pineapple: anann
+cocoa: cócó
+
+## pl
+onion: cebula; cebule
+red-onion: czerwona cebula
+garlic: czosnek
+potato: ziemniak; ziemniaki; kartofle
+sweet-potato: batat; bataty; słodkie ziemniaki
+carrot: marchew; marchewka; marchewki
+celery: seler naciowy; seler
+pepper: papryka
+courgette: cukinia
+broccoli: brokuł; brokuły
+cauliflower: kalafior
+spinach: szpinak
+salad: sałata; liście sałaty
+tomato: pomidor; pomidory
+cherry-tomato: pomidorki koktajlowe
+cucumber: ogórek; ogórki
+mushroom: pieczarki; grzyby
+leek: por
+cabbage: kapusta
+green-beans: fasolka szparagowa
+avocado: awokado
+lemon: cytryna; cytryny
+lime: limonka
+ginger: imbir
+chilli: papryczka chili; chili
+coriander: kolendra
+parsley: pietruszka; natka pietruszki
+basil: bazylia
+spring-onion: dymka; cebulka dymka
+apple: jabłko; jabłka
+banana: banan; banany
+orange: pomarańcza; pomarańcze
+berries: owoce leśne
+strawberries: truskawki
+raspberries: maliny
+blueberries: borówki
+rhubarb: rabarbar
+pomegranate: granat
+fennel: koper włoski
+sage: szałwia
+dill: koperek; koper
+tarragon: estragon
+lemongrass: trawa cytrynowa
+grapes: winogrona
+thyme: tymianek
+rosemary: rozmaryn
+mint: mięta
+bread: chleb
+wraps: tortille
+buns: bułki do burgerów
+baguette: bagietka
+chicken-breast: filet z kurczaka; pierś z kurczaka
+chicken-thigh: udka z kurczaka
+chicken-wings: skrzydełka z kurczaka
+whole-chicken: cały kurczak; kurczak
+beef-mince: mielona wołowina; mięso mielone wołowe
+steak: stek
+diced-beef: wołowina gulaszowa; wołowina
+pork-chop: kotlet schabowy; schab
+pork-mince: mięso mielone wieprzowe
+sausages: kiełbasa; kiełbaski
+bacon: boczek; bekon
+lamb: jagnięcina
+ham: szynka
+salmon: łosoś
+white-fish: dorsz; ryba
+prawns: krewetki
+tuna: tuńczyk
+smoked-salmon: łosoś wędzony
+mackerel: makrela
+milk: mleko
+butter: masło
+cheddar: ser cheddar; ser żółty
+parmesan: parmezan
+feta: ser feta
+cream: śmietana; śmietanka
+double-cream: śmietanka kremówka
+yogurt: jogurt naturalny; jogurt
+buttermilk: maślanka
+eggs: jajka; jaja; jajko
+cream-cheese: serek śmietankowy
+cottage-cheese: twaróg; serek wiejski
+rice: ryż
+pasta: makaron
+noodles: makaron azjatycki
+couscous: kuskus
+oats: płatki owsiane
+flour: mąka
+sugar: cukier
+brown-sugar: cukier trzcinowy
+icing-sugar: cukier puder
+chopped-tomatoes: pomidory krojone
+passata: przecier pomidorowy
+tomato-puree: koncentrat pomidorowy
+coconut-milk: mleko kokosowe
+stock: kostka rosołowa; bulion
+chickpeas: ciecierzyca
+kidney-beans: czerwona fasola
+baked-beans: fasolka w sosie pomidorowym
+lentils: soczewica
+sweetcorn: kukurydza
+olive-oil: oliwa z oliwek; oliwa
+oil: olej
+honey: miód
+mayo: majonez
+ketchup: keczup
+mustard: musztarda
+vinegar: ocet
+salt: sól
+black-pepper: pieprz; czarny pieprz
+paprika: papryka słodka; papryka mielona
+cumin: kmin rzymski; kumin
+cinnamon: cynamon
+turmeric: kurkuma
+nutmeg: gałka muszkatołowa
+bay-leaves: liście laurowe; liść laurowy
+peas: groszek
+chips: frytki
+beetroot: buraki; burak
+parsnip: pasternak
+kale: jarmuż
+asparagus: szparagi
+radish: rzodkiewka; rzodkiewki
+aubergine: bakłażan
+butternut: dynia piżmowa; dynia
+pears: gruszki; gruszka
+plums: śliwki
+pineapple: ananas
+dates: daktyle
+nuts: orzechy
+chocolate: czekolada
+jam: dżem
+soy-sauce: sos sojowy
+dried-fruit: bakalie
+pudding: kaszanka
+pork-belly: boczek wieprzowy
+duck-breast: pierś z kaczki
+turkey-breast: pierś z indyka
+yeast: drożdże
+crisps: chipsy
+cocoa: kakao
+grains: kasza gryczana; kasza; gryka
+
+## ro
+onion: ceapă
+red-onion: ceapă roșie
+garlic: usturoi
+potato: cartofi; cartof
+sweet-potato: cartofi dulci
+carrot: morcov; morcovi
+celery: țelină
+pepper: ardei gras; ardei
+courgette: dovlecel; dovlecei
+cauliflower: conopidă
+spinach: spanac
+salad: salată
+tomato: roșii; roșie; tomate
+cherry-tomato: roșii cherry
+cucumber: castravete; castraveți
+mushroom: ciuperci; ciupercă
+leek: praz
+cabbage: varză
+green-beans: fasole verde
+lemon: lămâie; lămâi
+ginger: ghimbir
+chilli: ardei iute
+coriander: coriandru
+parsley: pătrunjel
+basil: busuioc
+spring-onion: ceapă verde
+apple: măr; mere
+banana: banană; banane
+orange: portocală; portocale
+strawberries: căpșuni
+raspberries: zmeură
+blueberries: afine
+rhubarb: rubarbă
+dill: mărar
+thyme: cimbru
+rosemary: rozmarin
+mint: mentă
+sage: salvie
+bread: pâine
+chicken-breast: piept de pui
+chicken-thigh: pulpe de pui
+chicken-wings: aripioare de pui
+whole-chicken: pui întreg; pui
+beef-mince: carne tocată de vită; carne tocată
+steak: friptură
+diced-beef: carne de vită
+pork-chop: cotlet de porc
+pork-mince: carne tocată de porc
+sausages: cârnați
+bacon: costiță; bacon
+lamb: carne de miel; miel
+ham: șuncă
+salmon: somon
+white-fish: pește alb
+prawns: creveți
+tuna: ton
+mackerel: macrou
+milk: lapte
+butter: unt
+cheddar: cașcaval; brânză cheddar
+cream: smântână
+yogurt: iaurt
+eggs: ouă; ou
+cream-cheese: cremă de brânză
+cottage-cheese: brânză de vaci
+rice: orez
+pasta: paste
+flour: făină
+sugar: zahăr
+honey: miere
+salt: sare
+black-pepper: piper
+oil: ulei
+olive-oil: ulei de măsline
+vinegar: oțet
+mustard: muștar
+chickpeas: năut
+lentils: linte
+kidney-beans: fasole roșie
+peas: mazăre
+sweetcorn: porumb
+beetroot: sfeclă roșie
+aubergine: vânătă; vinete
+parsnip: păstârnac
+cinnamon: scorțișoară
+paprika: boia
+cumin: chimion
+nutmeg: nucșoară
+bay-leaves: foi de dafin
+oats: fulgi de ovăz
+pears: pere
+plums: prune
+grapes: struguri
+nuts: nuci
+chocolate: ciocolată
+jam: gem
+stock: cub de supă
+chopped-tomatoes: roșii tăiate
+tomato-puree: pastă de tomate
+yeast: drojdie
+coconut-milk: lapte de cocos
+soy-sauce: sos de soia
+duck-breast: piept de rață
+turkey-breast: piept de curcan
+pork-belly: burtă de porc
+
+## pt
+onion: cebola; cebolas
+red-onion: cebola roxa
+garlic: alho
+potato: batata; batatas
+sweet-potato: batata-doce; batata doce
+carrot: cenoura; cenouras
+celery: aipo; salsão
+pepper: pimento; pimentão
+courgette: curgete; abobrinha
+broccoli: brócolos; brócolis
+cauliflower: couve-flor
+spinach: espinafre
+salad: alface
+tomato: tomate; tomates
+cherry-tomato: tomate cereja
+cucumber: pepino
+mushroom: cogumelos; cogumelo
+leek: alho-francês; alho-poró
+cabbage: couve; repolho
+green-beans: feijão verde; vagem
+avocado: abacate
+lemon: limão
+lime: lima
+ginger: gengibre
+chilli: malagueta; pimenta
+coriander: coentros; coentro
+parsley: salsa
+basil: manjericão
+spring-onion: cebolinho; cebolinha
+apple: maçã; maçãs
+orange: laranja; laranjas
+strawberries: morangos
+raspberries: framboesas
+blueberries: mirtilos
+dill: endro
+thyme: tomilho
+rosemary: alecrim
+mint: hortelã
+sage: sálvia
+bread: pão
+chicken-breast: peito de frango
+chicken-thigh: coxas de frango
+chicken-wings: asas de frango
+whole-chicken: frango inteiro; frango
+beef-mince: carne picada; carne moída
+steak: bife
+diced-beef: carne de vaca
+pork-chop: costeleta de porco
+sausages: salsichas
+bacon: toucinho
+lamb: borrego; cordeiro
+ham: fiambre; presunto
+chorizo: chouriço
+salmon: salmão
+white-fish: peixe branco
+prawns: camarão; gambas
+tuna: atum
+mackerel: cavala; sarda
+milk: leite
+butter: manteiga
+cheddar: queijo cheddar; queijo
+cream: natas; creme de leite
+yogurt: iogurte natural; iogurte
+eggs: ovos; ovo
+rice: arroz
+pasta: massa; macarrão
+flour: farinha
+sugar: açúcar
+honey: mel
+salt: sal
+black-pepper: pimenta preta
+oil: óleo
+olive-oil: azeite
+vinegar: vinagre
+chickpeas: grão-de-bico
+lentils: lentilhas
+kidney-beans: feijão vermelho
+peas: ervilhas
+sweetcorn: milho
+beetroot: beterraba
+aubergine: beringela; berinjela
+cinnamon: canela
+paprika: colorau; páprica
+cumin: cominhos; cominho
+nutmeg: noz-moscada
+bay-leaves: louro
+oats: aveia
+pears: peras; pêras
+plums: ameixas
+grapes: uvas
+nuts: nozes; frutos secos
+coconut-milk: leite de coco
+stock: caldo
+soy-sauce: molho de soja
+pineapple: ananás; abacaxi
+mango: manga
+melon: melão
+pork-belly: entremeada; barriga de porco
+turkey-breast: peito de peru
+yeast: fermento
+chopped-tomatoes: tomate pelado
+tomato-puree: polpa de tomate; extrato de tomate
+
+## es
+onion: cebolla; cebollas
+red-onion: cebolla morada
+garlic: ajo; ajos
+potato: patata; patatas; papa; papas
+sweet-potato: boniato; batata; camote
+carrot: zanahoria; zanahorias
+celery: apio
+pepper: pimiento; pimientos
+courgette: calabacín
+broccoli: brócoli
+cauliflower: coliflor
+spinach: espinacas
+salad: lechuga
+tomato: tomate; tomates
+cherry-tomato: tomates cherry
+cucumber: pepino
+mushroom: champiñones; setas
+leek: puerro
+cabbage: col; repollo
+green-beans: judías verdes; ejotes
+avocado: aguacate; palta
+lemon: limón
+lime: lima
+ginger: jengibre
+chilli: guindilla; chile
+coriander: cilantro
+parsley: perejil
+basil: albahaca
+spring-onion: cebolleta; cebollino
+apple: manzana; manzanas
+banana: plátano
+orange: naranja; naranjas
+strawberries: fresas; frutillas
+raspberries: frambuesas
+blueberries: arándanos
+dill: eneldo
+thyme: tomillo
+rosemary: romero
+mint: menta; hierbabuena
+sage: salvia
+bread: pan
+chicken-breast: pechuga de pollo
+chicken-thigh: muslos de pollo; contramuslos
+chicken-wings: alitas de pollo
+whole-chicken: pollo entero; pollo
+beef-mince: carne picada; carne molida
+steak: filete; bistec
+diced-beef: ternera; carne de res
+pork-chop: chuletas de cerdo
+sausages: salchichas
+bacon: beicon; tocino
+lamb: cordero
+ham: jamón
+salmon: salmón
+white-fish: merluza; pescado blanco
+prawns: gambas; langostinos; camarones
+tuna: atún
+mackerel: caballa
+milk: leche
+butter: mantequilla
+cheddar: queso cheddar; queso
+cream: nata; crema
+yogurt: yogur natural; yogur
+eggs: huevos; huevo
+rice: arroz
+flour: harina
+sugar: azúcar
+honey: miel
+salt: sal
+black-pepper: pimienta negra; pimienta
+oil: aceite
+olive-oil: aceite de oliva
+vinegar: vinagre
+chickpeas: garbanzos
+lentils: lentejas
+kidney-beans: alubias rojas; frijoles rojos
+peas: guisantes; chícharos
+sweetcorn: maíz
+beetroot: remolacha
+aubergine: berenjena
+cinnamon: canela
+paprika: pimentón
+cumin: comino
+nutmeg: nuez moscada
+bay-leaves: laurel
+oats: avena
+pears: peras
+plums: ciruelas
+grapes: uvas
+nuts: frutos secos; nueces
+coconut-milk: leche de coco
+stock: caldo; pastilla de caldo
+soy-sauce: salsa de soja
+pineapple: piña
+melon: melón
+pork-belly: panceta
+turkey-breast: pechuga de pavo
+yeast: levadura
+
+## lt
+onion: svogūnas; svogūnai
+red-onion: raudonasis svogūnas
+garlic: česnakas; česnakai
+potato: bulvė; bulvės
+carrot: morka; morkos
+celery: salieras
+pepper: paprika
+courgette: cukinija
+broccoli: brokoliai
+cauliflower: žiedinis kopūstas
+spinach: špinatai
+salad: salotos
+tomato: pomidoras; pomidorai
+cucumber: agurkas; agurkai
+mushroom: grybai; pievagrybiai
+leek: poras; porai
+cabbage: kopūstas; kopūstai
+green-beans: šparaginės pupelės
+lemon: citrina
+ginger: imbieras
+parsley: petražolės
+basil: bazilikas
+dill: krapai
+thyme: čiobreliai
+rosemary: rozmarinas
+mint: mėta
+sage: šalavijas
+apple: obuolys; obuoliai
+banana: bananas; bananai
+orange: apelsinas; apelsinai
+strawberries: braškės
+raspberries: avietės
+blueberries: mėlynės
+bread: duona
+chicken-breast: vištienos krūtinėlė; vištienos filė
+whole-chicken: višta; vištiena
+beef-mince: jautienos faršas; faršas
+diced-beef: jautiena
+pork-chop: kiaulienos karbonadas; kiauliena
+sausages: dešrelės; dešra
+bacon: šoninė
+lamb: aviena
+ham: kumpis
+salmon: lašiša
+prawns: krevetės
+tuna: tunas
+milk: pienas
+butter: sviestas
+cheddar: sūris
+cream: grietinėlė
+creme-fraiche: grietinė
+yogurt: jogurtas
+buttermilk: pasukos
+cottage-cheese: varškė
+eggs: kiaušiniai; kiaušinis
+rice: ryžiai
+pasta: makaronai
+flour: miltai
+sugar: cukrus
+honey: medus
+salt: druska
+black-pepper: pipirai
+oil: aliejus
+olive-oil: alyvuogių aliejus
+vinegar: actas
+peas: žirneliai
+beetroot: burokėliai; burokas
+lentils: lęšiai
+chickpeas: avinžirniai
+kidney-beans: raudonosios pupelės
+cinnamon: cinamonas
+oats: avižiniai dribsniai
+pears: kriaušės
+plums: slyvos
+grapes: vynuogės
+nuts: riešutai
+chocolate: šokoladas
+grains: grikiai
+
+## uk
+onion: цибуля
+red-onion: червона цибуля
+garlic: часник
+potato: картопля
+sweet-potato: батат
+carrot: морква
+celery: селера
+pepper: болгарський перець; перець
+courgette: кабачок; цукіні
+broccoli: броколі
+cauliflower: цвітна капуста
+spinach: шпинат
+salad: салат
+tomato: помідор; помідори; томат
+cucumber: огірок; огірки
+mushroom: печериці; гриби
+leek: цибуля-порей; порей
+cabbage: капуста
+green-beans: стручкова квасоля
+lemon: лимон
+ginger: імбир
+chilli: перець чилі; чилі
+coriander: кінза; коріандр
+parsley: петрушка
+basil: базилік
+dill: кріп
+thyme: чебрець
+rosemary: розмарин
+mint: м'ята
+apple: яблуко; яблука
+banana: банан; банани
+orange: апельсин
+strawberries: полуниця
+raspberries: малина
+blueberries: лохина; чорниця
+bread: хліб
+chicken-breast: куряче філе
+chicken-thigh: курячі стегна
+whole-chicken: курка
+beef-mince: яловичий фарш; фарш
+diced-beef: яловичина
+pork-chop: свиняча відбивна; свинина
+sausages: сосиски; ковбаса
+bacon: бекон
+lamb: баранина
+ham: шинка
+salmon: лосось
+white-fish: тріска; біла риба
+prawns: креветки
+tuna: тунець
+mackerel: скумбрія
+milk: молоко
+butter: вершкове масло
+cheddar: сир чеддер; сир
+cream: вершки
+creme-fraiche: сметана
+yogurt: йогурт
+cottage-cheese: кисломолочний сир; творог
+eggs: яйця; яйце
+rice: рис
+pasta: макарони
+noodles: локшина
+flour: борошно
+sugar: цукор
+honey: мед
+salt: сіль
+black-pepper: чорний перець
+oil: олія
+olive-oil: оливкова олія
+vinegar: оцет
+peas: горошок
+sweetcorn: кукурудза
+beetroot: буряк
+lentils: сочевиця
+chickpeas: нут
+kidney-beans: червона квасоля
+cinnamon: кориця
+cumin: кмин; зіра
+paprika: паприка
+bay-leaves: лавровий лист
+oats: вівсяні пластівці; вівсянка
+pears: груші
+plums: сливи
+grapes: виноград
+nuts: горіхи
+chocolate: шоколад
+yeast: дріжджі
+pork-belly: свиняча грудинка
+grains: гречка

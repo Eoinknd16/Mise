@@ -933,7 +933,7 @@ function updateCard() {
 function knowledgeCard() {
   const st = K.stats(); if (!st) return '';
   return `<div class="card"><h2>Chef knowledge</h2><p class="small" style="margin:0">${st.ingredients.toLocaleString()} ingredients · ${st.chefPairs.toLocaleString()} chef pairings · ${st.dishes.toLocaleString()} real dishes analysed (${st.pairs.toLocaleString()} proven combinations) · ${Object.keys(TQ.PROTEIN).length + Object.keys(TQ.VEGTECH).length} technique profiles${st.foods ? ` · nutrition for ${st.foods.toLocaleString()} foods` : ''}</p>
-    <p class="tiny muted" style="margin:6px 0 0">Dish and nutrition data: USDA FNDDS and SR28 (public domain). Contains information licensed under the Open Government Licence – Canada (Canadian Nutrient File). World ingredient names and families from FoodOn (foodon.org), licensed CC BY 4.0, mapped to Mise ingredients by Mise.</p></div>`;
+    <p class="tiny muted" style="margin:6px 0 0">Dish and nutrition data: USDA FNDDS and SR28 (public domain). Contains information licensed under the Open Government Licence – Canada (Canadian Nutrient File). World ingredient names and families from FoodOn (foodon.org), licensed CC BY 4.0, and Wikidata (wikidata.org, CC0), mapped to Mise ingredients by Mise.</p></div>`;
 }
 function viewSettings() {
   const st = S.settings, R7 = M.rhythm(S), ppl = S.people || [];
@@ -964,6 +964,7 @@ function viewSettings() {
     <details><summary class="tiny muted">TheMealDB key</summary><label class="f"><input data-setting="mealdbKey" value="${esc(st.mealdbKey)}" autocomplete="off"></label></details></div>
   <div class="card"><h2>Look & feel</h2><div class="themes" role="group" aria-label="Colour theme">${THEMES.map(([k, n, c]) => `<button data-act="setTheme" data-val="${k}" aria-pressed="${(st.theme || 'light') === k}"><span class="sw">${c.map(x => `<i style="background:${x}"></i>`).join('')}</span>${n}</button>`).join('')}</div>
     <label class="row small" style="gap:10px"><input type="checkbox" data-act="themeAuto"${st.theme === 'auto' ? ' checked' : ''} style="width:22px;height:22px;min-height:0;accent-color:var(--accent)"><span>Match my phone (light or dark)</span></label>
+    <div class="small muted" style="font-weight:600">Ingredient names</div><p class="tiny muted" style="margin:0">Mise understands English. Pick other languages you shop or cook in and it understands those names too.</p><div class="chips wrap">${LANG_PACKS.map(([k, n]) => `<button class="chip" data-act="setLang" data-val="${k}" aria-pressed="${myLangs().includes(k)}" lang="${k}">${esc(n)}</button>`).join('')}</div>
     <div class="small muted" style="font-weight:600" data-tour="sPersona">Receipt reviews</div><div class="seg">${[['gentle', 'Gentle'], ['cheeky', 'Cheeky'], ['savage', 'Savage']].map(([k, n]) => `<button data-act="setTone" data-val="${k}" aria-pressed="${st.tone === k}">${n}</button>`).join('')}</div></div>
   <div class="card" data-tour="sBackup"><h2>Back up & move</h2><p class="small muted" style="margin:0">Everything stays on this phone.</p>
     <div class="row wrap"><button class="btn grow" data-act="exportData">Back up</button><label class="btn grow" for="importFile">Restore</label><input type="file" id="importFile" accept="application/json,.json" hidden data-change="importData"></div>
@@ -1394,6 +1395,7 @@ const A = {
   toggleNight: el => { const i = +el.dataset.val; S.settings.nights[i] = S.settings.nights[i] ? 0 : 1; save(); render(); },
   toggleShop: el => { const s = el.dataset.val, a = S.settings.shops; S.settings.shops = a.includes(s) ? a.filter(x => x !== s) : [...a, s]; if (!S.settings.shops.length) S.settings.shops = [s]; if (!S.settings.shops.includes(S.settings.defaultShop)) S.settings.defaultShop = S.settings.shops[0]; save(); render(); },
   setTone: el => { S.settings.tone = el.dataset.val; save(); render(); },
+  setLang: el => { const k = el.dataset.val, L = myLangs(); S.settings.langs = L.includes(k) ? L.filter(x => x !== k) : [...L, k]; save(); if (!L.includes(k)) loadPack(k).then(n => toast(n ? `Mise now knows ${n.toLocaleString()} more ingredient names` : 'Names added')); render(); },
   setTheme: el => { S.settings.theme = el.dataset.val; applyTheme(); save(); render(); },
   themeAuto: el => { S.settings.theme = el.checked ? 'auto' : (darkMQ.matches ? 'dark' : 'light'); applyTheme(); save(); render(); },
   exportData: async () => {
@@ -2137,6 +2139,14 @@ async function syncLib(manual) {
   if (['settings', 'recipes'].includes(ui.route)) { const y = scrollY; render(); scrollTo(0, y); }
 }
 // world ingredients in your data ("w:cauliflower:romanesco") are rebuilt from their ids before anything renders
+// The Wikidata ingredients, extra English names, and name packs for the languages you cook in
+const LANG_PACKS = [['ga', 'Gaeilge'], ['pl', 'Polski'], ['ro', 'Română'], ['pt', 'Português'], ['es', 'Español'], ['lt', 'Lietuvių'], ['lv', 'Latviešu'], ['it', 'Italiano'], ['fr', 'Français'], ['de', 'Deutsch'], ['uk', 'Українська'], ['ru', 'Русский'], ['ar', 'العربية'], ['zh', '中文'], ['hi', 'हिन्दी'], ['ur', 'اردو'], ['tl', 'Filipino']];
+function myLangs() { if (!S.settings.langs) { const nav = (navigator.languages || [navigator.language || 'en']).map(l => String(l).slice(0, 2).toLowerCase()); S.settings.langs = LANG_PACKS.map(x => x[0]).filter(l => nav.includes(l)); } return S.settings.langs; }
+const loadPack = lg => fetch(`data/names/${lg}.json`).then(r => r.ok ? r.json() : null).then(j => C.loadNames(j)).catch(() => 0);
+function loadWorldMore() {
+  return fetch('data/ingwd.json').then(r => r.ok ? r.json() : null).then(j => { if (j) C.loadWorld(j, true); C.customWorld(S); })
+    .then(() => Promise.all(['en', ...myLangs()].map(loadPack))).then(() => { registerWorldIds(); }).catch(() => {});
+}
 function registerWorldIds() { try { for (const id of new Set(JSON.stringify(S).match(/w:[a-z0-9-]+:[a-z0-9-]+/g) || [])) C.ensureWorld(id); } catch (e) { /* ignore */ } }
 async function boot() {
   S = await C.loadState();
@@ -2149,7 +2159,7 @@ async function boot() {
 
   if (!S.settings.onboarded) onboarding();
   if (isNative()) setTimeout(() => checkUpdate(false), 5000);
-  fetch('data/ingdb.json').then(r => r.json()).then(j => { C.loadWorld(j); C.customWorld(S); }).catch(() => {});
+  fetch('data/ingdb.json').then(r => r.json()).then(j => { C.loadWorld(j); C.customWorld(S); return loadWorldMore(); }).catch(() => {});
   K.load().then(ok => { if (ok && ['builder', 'lab', 'settings'].includes(ui.route)) render(); }); setTimeout(() => K.loadNutrition(), 1500);
   C.aiAvailable().then(a => { ui.aiStatus = a; });
   C.loadLibrary().then(L => { refreshRecipes(); if (ui.route === 'recipes') render(); if (navigator.onLine !== false && (!L.count || Date.now() - L.at > 14 * 864e5)) syncLib(false); });

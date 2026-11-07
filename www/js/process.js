@@ -265,7 +265,7 @@ const FAMILIES = {
       T(so, `Soften the ${o}${m === 'leek' ? ' and ' + v : ''} in the ${fat} with a pinch of salt`, 8, { cue: 'soft and sweet, not coloured' });
       if (m === 'lentils' || m === 'parsnip' || m === 'sweet-potato') T(so, `Add ${d.use('garlic', 0.5, '')}, crushed, and ${d.use(m === 'lentils' ? 'cumin' : 'curry-powder', 0.5, 'tsp')} for a minute`, 1);
       const body = m === 'leek' || m === 'broccoli' || m === 'cauliflower' || m === 'mushroom' ? d.use('potato', 80) : null;
-      const adds = [m === 'leek' ? null : roast ? `the roasted ${v}` : `the ${v}, chopped`, body ? `the ${body}, diced` : null].filter(Boolean);
+      const adds = [m === 'leek' ? null : roast ? `the roasted ${v}` : m === 'lentils' ? `the ${v}, rinsed` : m === 'peas' ? `the ${v}` : `the ${v}, chopped`, body ? `the ${body}, diced` : null].filter(Boolean);
       T(so, `Add ${adds.length ? list(adds) + ', and ' : ''}the ${d.use('stock', 0.35, '')} made up with 300 ml hot water per person`, 2);
       TQ.simmer(d, so, m === 'lentils' ? 25 : m === 'peas' ? 6 : 20, 'lid on', 'everything is completely soft');
       const fin = m === 'broccoli' || m === 'cauliflower' ? `stir in ${d.use('cheddar', 25)}, grated, until melted` : m === 'peas' && d.ok('mint') ? `add a handful of ${d.use('mint', 3)} leaves` : m === 'carrot' && d.ok('coriander') ? `add a handful of ${d.use('coriander', 4)}` : null;

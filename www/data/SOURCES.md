@@ -15,3 +15,5 @@ Fraunces and Inter, both under the SIL Open Font Licence 1.1 (licence texts in `
 
 - `tools/world_ingredients.txt`: written for Mise.
 - FoodOn food ontology (https://foodon.org, https://github.com/FoodOntology/foodon), CC BY 4.0. Names, synonyms and the family tree were used to map each ingredient to the Mise ingredient it cooks like. Built with `tools/foodon_extract.py`, `tools/foodon_map.mjs` and `tools/build_ingdb.mjs`.
+- Wikidata (https://www.wikidata.org), CC0 1.0 (public domain). Food and ingredient items, their "subclass of" tree and their names in 18 languages, harvested by tools/wikidata_harvest.mjs and tools/wikidata_catalog.mjs (run in GitHub Actions) and turned into data/ingwd.json and data/names/*.json by tools/build_wikidata.mjs.
+- Everyday ingredient names in Irish, Polish, Romanian, Portuguese, Spanish, Lithuanian and Ukrainian (tools/names_core.txt) were written for Mise.
