@@ -247,3 +247,24 @@ pak choi; pak choy; bok choy; bok choi; choy sum | cabbage
 goat; diced goat; goat meat; mutton; diced mutton | lamb
 rabbit; diced rabbit | chicken-thigh
 veal; veal escalope | pork-chop
+## Staples from Caribbean, African and South Asian kitchens in Ireland
+callaloo; amaranth leaves; callalloo | spinach
+ugu; fluted pumpkin leaves; efo; efo tete | spinach
+ewedu; jute leaves; molokhia; mulukhiyah | spinach
+bitter leaf; bitterleaf; onugbu | kale
+ackee; akee; tinned ackee | mango
+egusi; egusi seeds; melon seeds | nuts
+ogbono; ogbono seeds | nuts
+garri; gari; eba | couscous
+fufu flour; pounded yam flour; poundo yam | flour
+suya spice; yaji | cajun-spice
+uziza; uziza seeds | black-pepper
+dawadawa; iru; locust bean | miso
+ground crayfish; dried crayfish | fish-sauce
+scotch bonnet; scotch bonnet pepper | chilli
+hoja santa; hierba santa | basil
+curry leaves; curry leaf | bay-leaves
+methi; fenugreek leaves; kasuri methi | dried-thyme
+amchur; amchoor; mango powder | lemon
+asafoetida; hing | garlic-granules
+jaggery; gur | brown-sugar

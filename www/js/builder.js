@@ -33,6 +33,11 @@ export const MAINS = {
   lentils: M('lentils', 'lentil', 'veg', 60, 'curry simmer soup', { cook: 'Add the rinsed lentils with enough water to cover and simmer 20 minutes' }),
   halloumi: M('halloumi', 'halloumi', 'veg', 100, 'traybake wraps bowl burgers panfry salad hash flatbread', { roast: 15, cook: 'Fry the halloumi slices until golden, 2 minutes a side' }),
   tofu: M('tofu', 'tofu', 'veg', 140, 'stirfry curry bowl friedrice noodlesoup', { cook: 'Fry the cubed tofu until crisp, 8 minutes' }),
+  // plant-based meats: cook like the real thing, a little quicker, and count as vegetarian
+  'veggie-mince': M('plant-based mince', 'veggie mince', 'veg', 125, 'simmer pasta wraps bowl bake stirfry hash loaded pie quesadilla flatbread', { mince: true, cook: 'Fry the plant-based mince, breaking it up, 5 minutes' }),
+  'veggie-sausages': M('veggie sausages', 'veggie sausage', 'veg', 2, 'traybake simmer pasta panfry bake hash flatbread', { roast: 20, cook: 'Fry the veggie sausages until browned all over, 8 minutes, then slice' }),
+  'veggie-burgers': M('veggie burgers', 'veggie burger', 'veg', 1, 'burgers loaded', { cook: 'Fry or grill the veggie burgers 4–5 minutes a side until hot through' }),
+  'veggie-chicken': M('plant-based chicken pieces', 'veggie chicken', 'veg', 125, 'stirfry curry bowl wraps traybake friedrice noodlesoup pasta', { cook: 'Fry the pieces until golden, 6–8 minutes' }),
   nuggets: M('chicken goujons', 'goujon', 'chicken', 150, 'wraps bowl burgers', { ready: true, oven: 20, cook: 'Oven-cook the goujons as the pack says' }),
   'fish-fingers': M('fish fingers', 'fish finger', 'fish', 4, 'wraps burgers', { ready: true, oven: 20, cook: 'Oven-cook the fish fingers as the pack says' }),
   'diced-beef': M('diced beef', 'beef', 'beef', 150, 'simmer pie braise', { slow: true, cook: 'Brown the beef in batches' }),
@@ -344,6 +349,8 @@ Object.assign(METHODS, { 'p-bake': { n: 'oven bake', t: 90, slow: true, batch: t
 const sq = v => Math.tanh((v || 0) / 3) * 3;
 
 /* ================= Is a part allowed for you? ================= */
+// Last line of defence: a recipe with anything your diet, allergies or dislikes rule out never gets through
+export const safeFor = (state, r) => !!r && !r.ings.some(i => i.item && ITEM[i.item] && !i.optional && !okItem(state, i.item));
 export const okItem = (state, id, prep) => { const it = ITEM[id]; if (!it) return false; return C.likeOf(state, { item: id, name: it.n, prep: prep || null }) > -1; };
 function spiceCap(state, opts) { if (opts.kids) return 1; const s = (state.taste || {}).spice; return s == null ? 3 : s === 0 ? 0 : s === 1 ? 1 : 3; }
 export function kitAllowed(state, kitId, opts = {}) { const k = kitOf(kitId); if (!k) return false; if (k.spice > spiceCap(state, opts)) return false; return k.core.every(([id]) => okItem(state, id)); }
@@ -954,6 +961,7 @@ export function candidates(state, opts = {}) {
       if (!GR.hob && HOB_ONLY.has(meth) && gear !== 'af' && gear !== 'sc') continue;
       if (!GR.hob && !GR.oven && gear !== 'af' && gear !== 'sc') continue;
       if (KIT_NEED[meth] && GR[KIT_NEED[meth]] === false && gear !== 'af' && gear !== 'sc') continue;
+      if (['shakshuka', 'frittata'].includes(meth) && !okItem(state, 'eggs')) continue; // egg dishes need eggs to be allowed
       const tech = Tech.techOf(meth, gear), mfit = Tech.fitOf(mid, tech);
       if (mfit === 0 && !typed) continue; // e.g. stewing beef can't be stir-fried
       if (gear !== 'sc') {
@@ -1065,7 +1073,7 @@ export function options(state, opts = {}, n = 3) {
   { const w0 = opts.want || {}; if ((w0.course && !['dinner', 'lunch'].includes(w0.course)) || (w0.proc && w0.proc.proc && !P.isDinnerFam(w0.proc.proc))) {
     const seen0 = opts.seen || new Set(), titles0 = opts.seenTitles || new Set(), out = [];
     let pc = []; try { pc = P.candidates(state, { ...opts, allowSlow: true }, 4); } catch (e) { console.warn('process', e); }
-    for (const x of pc) { if (out.length >= n) break; const k = specKey(x.sp) + JSON.stringify(x.sp.px || {}); if (seen0.has(k) || titles0.has(x.r.title)) continue; const xr = worldSwap(state, x.r); if (xr.unsuited) continue; if (!w0.proc && out.some(o => o.spec.proc === x.sp.proc)) continue; seen0.add(k); titles0.add(x.r.title); out.push(xr); }
+    for (const x of pc) { if (out.length >= n) break; const k = specKey(x.sp) + JSON.stringify(x.sp.px || {}); if (seen0.has(k) || titles0.has(x.r.title)) continue; const xr = worldSwap(state, x.r); if (xr.unsuited || !safeFor(state, xr)) continue; if (!w0.proc && out.some(o => o.spec.proc === x.sp.proc)) continue; seen0.add(k); titles0.add(x.r.title); out.push(xr); }
     AS = null; return out; } }
   const picked = [], w = { ...(opts.want || {}) }, seen = opts.seen || new Set();
   let pool = candidates(state, { ...opts, want: w });
@@ -1090,7 +1098,7 @@ export function options(state, opts = {}, n = 3) {
     { const famOf = sp => sp.proc ? sp.method.slice(2) : ({ roast: 'roast', curry: 'curry', soup: 'soup', risotto: 'risotto', pie: 'pie', bake: 'bake', stirfry: 'stirfry', braise: 'stew' })[sp.method];
       const f = famOf(best.sp); if (f && picked.some(p => famOf(p.sp) === f && p.sp.main === best.sp.main && !!p.sp.proc !== !!best.sp.proc)) continue; }
     const r = buildMeal(state, best.sp, opts.serves, opts.stock);
-    if (!r || r.unsuited) continue;
+    if (!r || r.unsuited || !safeFor(state, r)) continue;
     if (titles.has(r.title)) continue; titles.add(r.title); seen.add(specKey(best.sp)); best.r = r; picked.push(best);
   }
   AS = null;
@@ -1099,7 +1107,7 @@ export function options(state, opts = {}, n = 3) {
 // Process dishes (bakes, pies, curries, risotto, soups, roasts) for a collection
 export function processDishes(state, opts, fams, n = 6) {
   const got = P.candidates(state, { ...opts, allowSlow: opts.allowSlow !== false }, 4).filter(x => fams.includes(P.families().find(f => f.id === x.sp.proc).fam));
-  const out = [], seenT = new Set(); for (const x of got) { if (out.length >= n) break; const r = worldSwap(state, x.r); if (r.unsuited || seenT.has(r.title)) continue; seenT.add(r.title); out.push(r); } return out;
+  const out = [], seenT = new Set(); for (const x of got) { if (out.length >= n) break; const r = worldSwap(state, x.r); if (r.unsuited || !safeFor(state, r) || seenT.has(r.title)) continue; seenT.add(r.title); out.push(r); } return out;
 }
 // Alternatives for one part (used by the swap buttons)
 export function alternatives(state, sp, part, opts = {}) {
@@ -1209,7 +1217,7 @@ export function planWeek(state, dates, basket, opts = {}) {
     const next = dates[dates.indexOf(d) + 1];
     if (leftoverOk && !(MAINS[ch.sp.main] && MAINS[ch.sp.main].joint) && ch.sp.proc !== 'roastdinner' && next && !(opts.night && opts.night(next).skip) && pr !== 'variety') cook = serves * 2;
     let r = buildMeal(state, ch.sp, cook, stock);
-    for (const alt of c.slice(0, 12)) { if (!used.titles[r.title] && !r.unsuited) break; if (alt === ch) continue; ch = alt; r = buildMeal(state, ch.sp, cook, stock); }
+    for (const alt of c.slice(0, 12)) { if (!used.titles[r.title] && !r.unsuited && safeFor(state, r)) break; if (alt === ch) continue; ch = alt; r = buildMeal(state, ch.sp, cook, stock); }
     picks.push({ date: d, recipe: r, serves: cook });
     if (cook > serves && next) { picks.push({ date: next, recipe: r, serves, leftover: d }); cover.add(next); }
     for (const i of r.ings) if (i.item && stock.has(i.item)) stock.set(i.item, Math.max(0, stock.get(i.item) - (C.toBase(i.q, i.u, ITEM[i.item]) || 0)));

@@ -57,7 +57,7 @@ lemongrass|Lemongrass|fruitveg|pc|2|0.99|14|veg|lemon grass;lemongrass stalks|
 grapes|Grapes|fruitveg|g|500|1.99|7|fruit|grape|
 thyme|Fresh thyme|fruitveg|g|20|0.99|10|veg|thyme sprigs||sprig:1
 rosemary|Fresh rosemary|fruitveg|g|20|0.99|10|veg|rosemary sprigs||sprig:1
-bread|Sliced pan|bakery|pc|20|1.19|5|bakery|bread;sliced bread;white bread;brown bread;wholemeal bread;pan;toast||slice:1;loaf:20
+bread|Sliced pan|bakery|pc|20|1.19|5|bakery|bread;sliced bread;white bread;brown bread;wholemeal bread;pan;toast;sourdough;bloomer;loaf;batch loaf||slice:1;loaf:20
 wraps|Wraps|bakery|pc|8|1.29|14|bakery|tortillas;tortilla wraps;flour tortillas;wrap|
 buns|Burger buns|bakery|pc|6|1.09|5|bakery|burger buns;brioche buns;bap;rolls;hot dog rolls;hot dog buns;burger buns;brioche buns|
 naan|Naan bread|bakery|pc|2|1.29|7|bakery|naan;naans|
@@ -86,7 +86,7 @@ tuna|Tinned tuna|pantry|g|145|1.19|700|pantry|tuna;tuna chunks|p:fish|tin:145;ca
 smoked-salmon|Smoked salmon|fish|g|100|2.49|7|fish||p:fish
 milk|Milk|dairy|ml|2000,1000|1.89|7|dairy|whole milk;full fat milk;semi skimmed;low fat milk;avonmore;milk 2l|
 butter|Butter|dairy|g|227|2.99|60|dairy|salted butter;unsalted butter;kerrygold||knob:15;stick:113
-cheddar|Cheddar|dairy|g|200,400|2.19|30|dairy|cheese;cheddar cheese;mature cheddar;grated cheese;red cheddar|
+cheddar|Cheddar|dairy|g|200,400|2.19|30|dairy|cheese;cheddar cheese;mature cheddar;grated cheese;red cheddar;dubliner|
 mozzarella|Mozzarella|dairy|g|125|0.89|10|dairy|mozzarella ball;grated mozzarella||ball:125
 parmesan|Parmesan|dairy|g|100|2.49|60|dairy|grana padano;parmigiano;hard cheese|
 feta|Feta|dairy|g|200|1.49|14|dairy|feta cheese;salad cheese|
@@ -99,8 +99,12 @@ creme-fraiche|Crème fraîche|dairy|g|200|1.29|10|dairy|creme fraiche;sour cream
 yogurt|Natural yogurt|dairy|g|500|1.09|10|dairy|plain yogurt;natural yoghurt;yoghurt;greek yogurt;greek style yogurt|
 buttermilk|Buttermilk|dairy|ml|500|0.99|10|dairy|buttermilk|
 eggs|Eggs|dairy|pc|12,6|3.29|21|dairy|egg;free range eggs;large eggs|p:egg
-cream-cheese|Cream cheese|dairy|g|200|1.29|14|dairy|soft cheese;philadelphia|
+cream-cheese|Cream cheese|dairy|g|200|1.29|14|dairy|soft cheese;philadelphia;roule;garlic and herb soft cheese;boursin;garlic herb roule;garlic and herb roule|
 tofu|Tofu|chilled|g|280|1.99|10|chilled|firm tofu|p:veg
+veggie-mince|Plant-based mince|chilled|g|454|2.49|7|chilled|quorn mince;veggie mince;vegan mince;vegetarian mince;plant based mince;meat free mince;soya mince;vemondo mince;beyond mince;quorn|p:veg
+veggie-sausages|Veggie sausages|chilled|pc|6|2.29|7|chilled|vegan sausages;vegetarian sausages;veggie sausage;plant based sausages;meat free sausages;quorn sausages;linda mccartney sausages|p:veg
+veggie-burgers|Veggie burgers|chilled|pc|2|2.49|7|chilled|vegan burgers;vegetarian burgers;veggie burger;plant based burgers;beyond burger;bean burgers;quorn burgers|p:veg
+veggie-chicken|Plant-based chicken pieces|chilled|g|300|2.79|7|chilled|quorn pieces;quorn chicken;vegan chicken;plant based chicken;meat free chicken;vegan nuggets;quorn fillets;vegetarian chicken|p:veg
 hummus|Hummus|chilled|g|200|1.29|7|chilled|houmous|
 fresh-pasta|Fresh pasta|chilled|g|250|1.59|7|chilled|tortellini;ravioli|
 coleslaw|Coleslaw|chilled|g|300|0.99|5|chilled||
@@ -161,7 +165,7 @@ chilli-powder|Chilli powder|spices|g|50|0.89|700|pantry|chili powder;cayenne;chi
 curry-powder|Curry powder|spices|g|50|0.89|700|pantry|curry powder;mild curry powder;turmeric;ground coriander;ground ginger;allspice;nutmeg;five spice;cardamom|s
 oregano|Dried herbs|spices|g|15|0.79|700|pantry|oregano;dried oregano;mixed herbs;italian herbs;dried thyme;dried basil;bay leaf;bay leaves|s
 cinnamon|Cinnamon|spices|g|40|0.89|700|pantry|ground cinnamon|s
-turmeric|Turmeric|spices|g|40|0.89|700|pantry|ground turmeric;haldi|s
+turmeric|Turmeric|spices|g|40|0.89|700|pantry|ground turmeric;haldi;tumeric|s
 garam-masala|Garam masala|spices|g|40|0.99|700|pantry|garam masala|s
 mixed-herbs|Mixed dried herbs|spices|g|15|0.79|700|pantry|mixed herbs;italian herbs;italian seasoning;herbes de provence;dried herbs|s
 chilli-flakes|Chilli flakes|spices|g|30|0.89|700|pantry|chilli flakes;chili flakes;crushed chillies;red pepper flakes|s
@@ -240,7 +244,7 @@ mint|Fresh mint|fruitveg|g|20|0.99|6|veg|mint;chives;fresh herbs|
 salad-veg|Prepared veg|fruitveg|g|300|1.29|4|veg|stir fry mix;coleslaw mix;veg medley;soup mix;prepared vegetables;diced onion|
 croissants|Croissants & pastries|bakery|pc|4|1.29|3|bakery|croissant;pain au chocolat;danish;pastries;cinnamon swirl|
 scones|Scones|bakery|pc|4|1.49|4|bakery|scone|
-soda-bread|Brown soda bread|bakery|pc|1|1.49|4|bakery|soda bread;wholemeal loaf;brennans;wholegrain bread;sourdough;bloomer|
+soda-bread|Brown soda bread|bakery|pc|1|1.49|4|bakery|soda bread;wholemeal loaf;wholegrain bread|
 cake|Cakes & buns|bakery|pc|1|2.29|5|sweet|cake;muffins;muffin;doughnuts;donuts;brownies;cupcakes;swiss roll;tarts;apple tart|
 crumpets|Crumpets & pancakes|bakery|pc|6|1.09|5|bakery|crumpet;pancakes;potato farls;potato cakes;waffles fresh|
 chicken-drum|Chicken drumsticks|meat|g|1000|3.49|3|meat|drumsticks;chicken legs;chicken drumsticks|p:chicken
@@ -251,7 +255,7 @@ deli-meat|Cooked meats|meat|g|150|1.79|5|meat|salami;pepperoni;chicken slices;tu
 hot-dogs|Hot dogs|meat|pc|8|1.29|21|meat|frankfurters;hot dog sausages|p:pork
 gammon|Gammon & bacon joint|meat|g|1000|5.99|7|meat|gammon;bacon joint;ham joint|p:pork
 beef-roast|Beef roasting joint|meat|g|1200|11.99|4|meat|beef joint;beef roasting joint;roasting joint;silverside;topside;beef roast;roast beef joint;rib of beef;sirloin joint;rolled beef|p:beef
-pork-roast|Pork roasting joint|meat|g|1200|6.99|4|meat|pork roast;pork joint;pork roasting joint;pork shoulder;pork leg;leg of pork;loin joint;pork loin joint;roast pork;pulled pork;shoulder of pork;boston butt|p:pork
+pork-roast|Pork roasting joint|meat|g|1200|6.99|4|meat|pork roast;pork joint;pork roasting joint;pork shoulder;pork leg;leg of pork;loin joint;pork loin joint;roast pork;pulled pork;shoulder of pork;boston butt;pork loin;loin of pork;pork loin joint|p:pork
 pork-fillet|Pork fillet & steaks|meat|g|450|4.99|3|meat|pork fillet;pork tenderloin;pork medallions;pork steaks;pork loin steaks|p:pork
 pork-ribs|Pork ribs|meat|g|800|5.99|3|meat|ribs;pork ribs;spare ribs;baby back ribs;rack of ribs;bbq ribs|p:pork
 lamb-leg|Lamb leg or shoulder joint|meat|g|1500|14.99|4|meat|leg of lamb;lamb leg;lamb shoulder;shoulder of lamb;lamb joint;roast lamb|p:lamb
@@ -265,7 +269,7 @@ game|Venison & game|meat|g|500|8.99|4|meat|venison;pheasant;wild boar;game;goose
 pork-belly|Pork belly|meat|g|600|4.49|3|meat|pork belly;belly pork;pork belly slices;pork belly joint|p:pork
 mackerel|Mackerel & sardines|fish|g|125|1.19|365|fish|mackerel;sardines;tinned mackerel;kippers|p:fish
 fish-cakes|Fish cakes|fish|pc|4|2.49|4|fish|fishcakes;crab sticks|p:fish
-cheese-slices|Cheese slices|dairy|pc|10|1.49|21|dairy|easi singles;cheese singles;sliced cheese;dubliner|
+cheese-slices|Cheese slices|dairy|pc|10|1.49|21|dairy|easi singles;cheese singles;sliced cheese|
 cottage-cheese|Cottage cheese & soft cheese|dairy|g|300|1.29|10|dairy|cottage cheese;ricotta;mascarpone;quark|
 brie|Speciality cheese|dairy|g|200|2.29|14|dairy|brie;camembert;blue cheese;goats cheese;gouda;emmental;edam;stilton|
 fruit-yogurt|Yogurt pots|dairy|pc|6|1.69|14|dairy|yogurt pots;fruit yogurt;kids yogurt;petits filous;yoplait;muller;activia|

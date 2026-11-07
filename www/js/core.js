@@ -170,14 +170,83 @@ export const standinOf = id => (id && ITEM[id] && ITEM[id].standin && !(ITEM[id]
 export const NAMES = new Map(), NAMEPACKS = new Set();
 export function loadNames(json) { if (!json || !json.names) return 0; NAMEPACKS.add(json.lang); let n = 0; for (const [k, t] of json.names) if (!NAMES.has(k)) { NAMES.set(k, t); n++; } return n; }
 const nameTarget = t => t && (t.startsWith('w:') ? ensureWorld(t) : ITEM[t] ? t : null);
-export function matchIngredient(name) {
-  const n = norm(name);
-  if (!n) return null;
-  if (/salt (and|&) (black )?pepper/.test(n)) return 'salt';
+// ---- Names Mise has never seen: clean the shop wording off, read brands, correct typos ----
+// Brands people write instead of the food. A brand alone means its product; with other words it's ignored.
+const BRAND_OF = { kerrygold: 'butter', dairygold: 'spread', flora: 'spread', 'low low': 'cheddar', avonmore: 'milk', philadelphia: 'cream-cheese', boursin: 'cream-cheese', 'cathedral city': 'cheddar', dubliner: 'cheddar', charleville: 'cheddar', galtee: 'bacon', denny: 'sausages', clonakilty: 'pudding', 'kelly s': 'pudding', tayto: 'crisps', 'hunky dorys': 'crisps', pringles: 'crisps', walkers: 'crisps', weetabix: 'cereal', 'kellogg s': 'cereal', kelloggs: 'cereal', flahavan: 'oats', flahavans: 'oats', 'flahavan s': 'oats', odlums: 'flour', 'odlum s': 'flour', siucra: 'sugar', bisto: 'gravy', oxo: 'stock', knorr: 'stock', nutella: 'choc-spread', heinz: 'baked-beans', beanz: 'baked-beans', dolmio: 'pasta-sauce', 'ragu': 'pasta-sauce', hellmann: 'mayo', hellmanns: 'mayo', 'hellmann s': 'mayo', 'lea perrins': 'worcestershire', 'lea and perrins': 'worcestershire', colman: 'mustard', colmans: 'mustard', 'colman s': 'mustard', 'ben s original': 'rice', 'uncle ben s': 'rice', 'uncle bens': 'rice', activia: 'fruit-yogurt', muller: 'fruit-yogurt', yoplait: 'fruit-yogurt', glenisk: 'yogurt', alpro: 'oat-milk', oatly: 'oat-milk', 'barry s': 'tea', barrys: 'tea', lyons: 'tea', cadbury: 'chocolate', 'dairy milk': 'chocolate', 'old el paso': 'wraps', patak: 'curry-paste', pataks: 'curry-paste', 'patak s': 'curry-paste', 'blue dragon': 'soy-sauce', amoy: 'noodles', 'mutti': 'passata', napolina: 'chopped-tomatoes', 'birds eye': 'peas', 'mccain': 'chips', 'goodfella s': 'pizza', goodfellas: 'pizza', batchelors: 'baked-beans', 'jacob s': 'crackers', jacobs: 'crackers', hovis: 'bread', brennans: 'bread', 'pat the baker': 'bread', quorn: 'beef-mince', ballymaloe: 'mint-sauce', 'fry light': 'oil', schwartz: 'mixed-herbs', 'santa maria': 'fajita-mix', 'john west': 'tuna', princes: 'tuna', 'lucozade': 'sports' };
+// Supermarket own labels and shelf words that say nothing about the food
+const LABELS = /\b(lidl|aldi|tesco|dunnes|supervalu|centra|spar|m s|marks spencer|deluxe|milbona|chef select|freshona|crownfield|pilos|dulano|combino|baresa|kania|solevita|vemondo|snack day|mcennedy|golden sun|alesto|rowan glen|strathroy|ballymaguire|grafschafter|belbake|specially selected|brannans|cowbelle|village bakery|nature s pick|natures pick|ashfield farm|clonbawn|carlo|bramwells|four seasons|brooklea|emporium|finest|simply better|signature tastes|tesco finest|everyday essentials|essential|value|own brand|premium|original|classic|traditional|homestyle|farmhouse|artisan|handmade|rustic|fairtrade|vine ripened|on the vine|irish|british|family|multipack|pack|packs|bag|bags|tin|tins|can|cans|jar|jars|bottle|punnet|tub|carton|box|net|loose|approx|each|pcs|portions|serves)\b/g;
+const SIZE = /\b(x ?\d+|\d+ ?x|\d+(\s\d+)?\s?(kg|g|grams?|ml|l|ltr|litres?|cl|pk|oz|lb)?)\b/g;
+const MEDIA = 'brine|water|spring water|oil|sunflower oil|olive oil|tomato sauce|sauce|juice|syrup|light syrup|natural juice|gravy|vinegar|curry sauce|chilli sauce';
+function cleanName(n) {
+  let c = ' ' + n + ' ';
+  c = c.replace(SIZE, ' ').replace(LABELS, ' ');
+  for (const b of Object.keys(BRAND_OF)) c = c.replace(' ' + b + ' ', ' ');
+  c = c.replace(new RegExp(` in (${MEDIA})( .*)?$`), ' ');        // tuna in brine -> tuna
+  c = c.replace(/^ *(fillets?|loins?|legs?|shoulders?|breasts?|joint|rack|cutlets?|steaks?|tin|pot|jar|bunch|head|bulb|clove|cloves|slices?|pieces?|handful) of (.+)$/, ' $2 $1 ');  // fillet of sea bass -> sea bass fillet
+  return c.replace(/\s+/g, ' ').trim();
+}
+const brandAlone = n => { const k = n.replace(/\b(cubes?|pots?|stock pot|spread|singles)\b/g, ' ').replace(/\s+/g, ' ').trim(); return BRAND_OF[k] || BRAND_OF[n] || null; };
+// Typo correction against every word Mise knows (catalog first, then the world list)
+let VOC = null;
+function vocab() {
+  if (VOC && VOC.n === EXACT.size + WORLD.exact.size) return VOC;
+  const cat = new Set(), wld = new Set();
+  for (const k of EXACT.keys()) for (const w of k.split(' ')) if (w.length >= 4 && /^[a-z]+$/.test(w)) cat.add(w);
+  for (const [p] of PHRASES) for (const w of p.split(' ')) if (w.length >= 4 && /^[a-z]+$/.test(w)) cat.add(w);
+  for (const k of WORLD.exact.keys()) for (const w of k.split(' ')) if (w.length >= 4 && /^[a-z]+$/.test(w) && !cat.has(w)) wld.add(w);
+  if (typeof FIXED !== 'undefined') FIXED.clear(); // answers depend on the word list
+  VOC = { cat: [...cat], wld: [...wld], all: new Set([...cat, ...wld]), n: EXACT.size + WORLD.exact.size }; VOC.cat.includes = (x => VOC.catSet.has(x)); VOC.catSet = cat; return VOC;
+}
+function dist(a, b, max) { // Damerau-Levenshtein (adjacent swaps count as one), gives up past max
+  if (Math.abs(a.length - b.length) > max) return max + 1;
+  const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...new Array(b.length).fill(0)]); for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) { let rowMin = 99; for (let j = 1; j <= b.length; j++) {
+    const c = a[i - 1] === b[j - 1] ? 0 : 1; d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + c);
+    if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1); rowMin = Math.min(rowMin, d[i][j]); }
+    if (rowMin > max) return max + 1; }
+  return d[a.length][b.length];
+}
+const FIXED = new Map();
+function correctWord(w, max) {
+  const ck = w + max; if (FIXED.has(ck)) return FIXED.get(ck); const r = correctWord0(w, max); FIXED.set(ck, r); return r;
+}
+function correctWord0(w, max) {
+  const V = vocab(); if (w.length < 4 || !/^[a-z]+$/.test(w)) return w;
+  const inCat = V.cat.includes(w); if (inCat) return w;
+  for (const list of V.all.has(w) ? [V.cat] : [V.cat, V.wld]) { let best = null, bd = max + 1;
+    for (const c of list) { if (Math.abs(c.length - w.length) > max || (c[0] !== w[0] && !(c[0] === w[1] && c[1] === w[0]))) continue; const d0 = dist(w, c, Math.min(max, bd)); if (d0 < bd || (d0 === bd && best && c[0] === w[0] && best[0] !== w[0])) { bd = d0; best = c; } }
+    if (best && bd <= max) return best; }
+  return w;
+}
+const fixTypos = (n, strict) => n.split(' ').map(w => correctWord(w, strict ? 1 : w.length >= 7 ? 2 : 1)).join(' ');
+
+const SUFFIX = [[/berr(y|ies)$/, 'berries'], [/melons?$/, 'melon'], [/nuts?$/, 'nuts'], [/fish$/, 'other-fish'], [/cheese$/, 'cheddar'], [/milk$/, 'milk'], [/bread$/, 'bread'], [/cakes?$/, 'cake'], [/(leaf|leaves)$/, 'salad'], [/(root|roots)$/, 'other-veg'], [/beans?$/, 'kidney-beans'], [/peas?$/, 'peas'], [/(sauce|ketchup)$/, 'other-sauce'], [/(steak|steaks)$/, 'steak'], [/(chop|chops)$/, 'pork-chop'], [/sausages?$/, 'sausages'], [/(oil)$/, 'oil'], [/(flour|meal)$/, 'flour'], [/(rice)$/, 'rice'], [/(noodles?)$/, 'noodles'], [/(pepper|peppers)$/, 'pepper'], [/(seeds?)$/, 'nuts'], [/(syrup)$/, 'syrup'], [/(vinegar)$/, 'vinegar'], [/(tea)$/, 'tea'], [/(wine)$/, 'wine']];
+export function matchIngredient(name, _depth = 0) {
+  const raw = norm(name);
+  if (!raw) return null;
+  if (/salt (and|&) (black )?pepper/.test(raw)) return 'salt';
+  const c = cleanName(raw) || raw, f1 = _depth ? c : fixTypos(c, true);
+  // whole-name matches first (as typed, without the shop wording, with an obvious typo fixed)...
+  for (const t of [raw, c, f1]) { const h = matchCore(t, true); if (h) return h; }
+  // ...then a known food inside the words, cleanest text first
+  for (const t of [c, f1, raw]) { const h = matchCore(t, false); if (h) return h; }
+  const b = brandAlone(raw) || brandAlone(c); if (b && ITEM[b]) return b;
+  // bigger typos (two slips) in longer words
+  if (!_depth) { const f2 = fixTypos(c, false); if (f2 !== c && f2 !== f1) { const h = matchIngredient(f2, 1); if (h) return h; } }
+  // compound words say what they are: cloudberry, monkeynut, swordfish, beefsteak, goatsmilk
+  if (!_depth) { const last = c.split(' ').pop();
+    for (const [rx, id] of SUFFIX) if (rx.test(last) && ITEM[id]) return id; }
+  return null;
+}
+function matchCore(n, wholeOnly, phrasesOnly) {
   const variants = [n, n.split(' ').map(sing).join(' '), n.split(' ').filter(w => !DESCRIPTORS.has(w)).map(sing).join(' ')];
+  if (!phrasesOnly) {
   for (const v of variants) { const id = EXACT.get(v); if (id) return id; }
-  for (const v of variants) { const w = WORLD.exact.get(v); if (w) return ensureWorld(w.id, w.n, w.syn); }
+  let weak = null; // Wikidata items Mise can't cook ('other-*') lose to a real food found in the words
+  for (const v of variants) { const w = WORLD.exact.get(v); if (w) { if (!/^w:other-/.test(w.id)) return ensureWorld(w.id, w.n, w.syn); weak = weak || w; } }
   for (const v of variants) { const t = nameTarget(NAMES.get(v)); if (t) return t; }
+  if (wholeOnly) { if (weak) { const strong = matchCore(n, false, true); if (strong) return strong; return ensureWorld(weak.id, weak.n, weak.syn); } return null; }
+  }
   for (const v of variants) {
     const padded = ' ' + v + ' ';
     let cat = null; for (const [p, id] of PHRASES) if (padded.includes(' ' + p + ' ')) { cat = [p, id]; break; }
@@ -613,7 +682,7 @@ export const DIETS = [
   ['nuts', 'Nut allergy', 'Peanuts and tree nuts'], ['shellfish', 'Shellfish allergy', ''], ['egg', 'Egg-free', ''],
   ['fish', 'Fish allergy', ''], ['sesame', 'Sesame allergy', ''], ['soy', 'Soy allergy', ''], ['mustard', 'Mustard allergy', ''], ['celery', 'Celery allergy', ''], ['sulphites', 'Sulphite sensitivity', 'Wine, dried fruit, some vinegar']
 ];
-const GLUTEN = ['bread', 'wraps', 'buns', 'naan', 'pitta', 'baguette', 'pasta', 'spaghetti', 'noodles', 'couscous', 'flour', 'fresh-pasta', 'croissants', 'scones', 'soda-bread', 'cake', 'crumpets', 'breadcrumbs', 'lasagne', 'gnocchi', 'biscuits', 'crackers', 'cereal', 'oats', 'beer', 'pizza', 'garlic-bread', 'pizza-dough', 'pot-noodle', 'fish-fingers', 'nuggets', 'soy-sauce', 'grains', 'quiche', 'cereal-bars', 'frozen-fish'];
+const GLUTEN = ['veggie-mince', 'veggie-sausages', 'veggie-burgers', 'veggie-chicken', 'bread', 'wraps', 'buns', 'naan', 'pitta', 'baguette', 'pasta', 'spaghetti', 'noodles', 'couscous', 'flour', 'fresh-pasta', 'croissants', 'scones', 'soda-bread', 'cake', 'crumpets', 'breadcrumbs', 'lasagne', 'gnocchi', 'biscuits', 'crackers', 'cereal', 'oats', 'beer', 'pizza', 'garlic-bread', 'pizza-dough', 'pot-noodle', 'fish-fingers', 'nuggets', 'soy-sauce', 'grains', 'quiche', 'cereal-bars', 'frozen-fish'];
 let dietCache = { key: null, set: new Set() };
 export function dietBlocks(state) {
   const diet = (state.settings && state.settings.diet) || [];
@@ -632,7 +701,7 @@ export function dietBlocks(state) {
     if (diet.includes('dairy') && (it.a === 'dairy' && !['eggs', 'oat-milk'].includes(it.id) || ['ice-cream', 'custard', 'cream-spray', 'parmesan', 'pesto', 'other-dairy'].includes(it.id))) out.add(it.id);
     if (diet.includes('nuts') && ['nuts', 'peanut-butter', 'pesto', 'dried-fruit', 'choc-spread'].includes(it.id)) out.add(it.id);
     if (diet.includes('shellfish') && it.id === 'prawns') out.add(it.id);
-    if (diet.includes('egg') && ['eggs', 'mayo', 'salad-cream', 'cake', 'fresh-pasta', 'noodles'].includes(it.id)) out.add(it.id);
+    if (diet.includes('egg') && ['eggs', 'mayo', 'salad-cream', 'cake', 'fresh-pasta', 'noodles', 'veggie-mince', 'veggie-sausages', 'veggie-burgers', 'veggie-chicken'].includes(it.id)) out.add(it.id);
     for (const d of diet) if (['fish', 'sesame', 'soy', 'mustard', 'celery', 'sulphites'].includes(d)) for (const al of DIET_ALG[d] || []) if ((ALG[it.id] || []).includes(al)) out.add(it.id);
   }
   dietCache = { key, set: out };
@@ -651,6 +720,8 @@ function dietNameBlock(state, name) {
   const diet = (state.settings && state.settings.diet) || []; if (!diet.length) return false;
   const n = ' ' + norm(name) + ' ';
   const veg = diet.includes('vegetarian') || diet.includes('vegan');
+  const plant = /\b(plant based|plant|veggie|vegetarian|vegan|meat free|meatless|quorn|soya|soy|mycoprotein|tofu|seitan|tempeh|jackfruit)\b/.test(n);
+  if (plant && !(diet.includes('vegan') && /\b(quorn|mycoprotein|vegetarian)\b/.test(n) && !/\bvegan\b/.test(n))) return false;
   if ((veg || diet.includes('pescatarian')) && MEAT_RE.test(n)) return true;
   if (veg && FISH_RE.test(n)) return true;
   if (diet.includes('vegan') && (DAIRY_RE.test(n) || EGG_RE.test(n) || /\bhoney\b/.test(n))) return true;
