@@ -20,7 +20,9 @@ jobs:
         if: inputs.part != 'catalog'
         run: node tools/wikidata_harvest.mjs
       - name: Names for Mise's own ingredients
-        run: node tools/wikidata_catalog.mjs
+        run: |
+          git fetch -q origin harvest-data && git show origin/harvest-data:items.json.gz | gunzip > items.json || true
+          node tools/wikidata_catalog.mjs
       - name: Save to the harvest-data branch
         run: |
           mkdir -p /tmp/out
@@ -29,6 +31,6 @@ jobs:
           if [ -f harvest/items.json ]; then gzip -9 -c harvest/items.json > /tmp/out/items.json.gz; cp harvest/roots.json /tmp/out/; fi
           gzip -9 -c harvest/catalog.json > /tmp/out/catalog.json.gz
           git config user.name "Mise harvest" && git config user.email "actions@users.noreply.github.com"
-          git checkout --orphan harvest-data && git rm -rq --cached . && git clean -fdxq -e harvest
+          git checkout --orphan harvest-data && git rm -rq --cached . && git clean -fdxq -e harvest -e items.json && rm -f items.json
           cp /tmp/out/* . && git add *.json.gz *.json
           git commit -qm "Wikidata harvest $(date -u +%F)" && git push -f origin harvest-data
