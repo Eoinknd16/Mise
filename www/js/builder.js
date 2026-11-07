@@ -336,7 +336,7 @@ export function partTaste(state) {
   tasteCache = { key, t }; return t;
 }
 // process dishes (process.js) have their own techniques; these entries only name them
-Object.assign(METHODS, { 'p-bake': { n: 'oven bake', t: 90, slow: true, batch: true }, 'p-pie': { n: 'pie', t: 70, batch: true }, 'p-curry': { n: 'curry', t: 45, batch: true }, 'p-risotto': { n: 'risotto', t: 35 }, 'p-soup': { n: 'soup', t: 35, batch: true }, 'p-roast': { n: 'roast dinner', t: 120, slow: true, joint: true } });
+Object.assign(METHODS, { 'p-bake': { n: 'oven bake', t: 90, slow: true, batch: true }, 'p-pie': { n: 'pie', t: 70, batch: true }, 'p-curry': { n: 'curry', t: 45, batch: true }, 'p-risotto': { n: 'risotto', t: 35 }, 'p-soup': { n: 'soup', t: 35, batch: true }, 'p-roast': { n: 'roast dinner', t: 120, slow: true, joint: true }, 'p-breakfast': { n: 'breakfast', t: 20 }, 'p-dessert': { n: 'dessert', t: 45 }, 'p-baking': { n: 'baking', t: 60 } });
 const sq = v => Math.tanh((v || 0) / 3) * 3;
 
 /* ================= Is a part allowed for you? ================= */
@@ -1041,6 +1041,12 @@ export function candidates(state, opts = {}) {
 const simSp = (a, b) => (a.main === b.main ? 1.7 : MAINS[a.main] && MAINS[b.main] && MAINS[a.main].grp === MAINS[b.main].grp ? 0.4 : 0) + (a.kit === b.kit ? 1.2 : (kitOf(a.kit) || {}).feel === (kitOf(b.kit) || {}).feel ? 0.4 : 0) + (a.method === b.method ? 0.9 : 0) + (a.base === b.base ? 0.3 : 0);
 export function options(state, opts = {}, n = 3) {
   AS = (opts.want && opts.want.as) || null;
+  // breakfasts, desserts and baking come only from the process engine
+  { const w0 = opts.want || {}; if ((w0.course && !['dinner', 'lunch'].includes(w0.course)) || (w0.proc && w0.proc.proc && !P.isDinnerFam(w0.proc.proc))) {
+    const seen0 = opts.seen || new Set(), titles0 = opts.seenTitles || new Set(), out = [];
+    let pc = []; try { pc = P.candidates(state, { ...opts, allowSlow: true }, 4); } catch (e) { console.warn('process', e); }
+    for (const x of pc) { if (out.length >= n) break; const k = specKey(x.sp) + JSON.stringify(x.sp.px || {}); if (seen0.has(k) || titles0.has(x.r.title)) continue; if (!w0.proc && out.some(o => o.spec.proc === x.sp.proc)) continue; seen0.add(k); titles0.add(x.r.title); out.push(worldSwap(state, x.r)); }
+    AS = null; return out; } }
   const picked = [], w = { ...(opts.want || {}) }, seen = opts.seen || new Set();
   let pool = candidates(state, { ...opts, want: w });
   const lock = w.lock && w.main, vegLock = (w.veg || []).length > 0;
@@ -1295,6 +1301,7 @@ export function parseWant(state, text) {
   if (want.base && want.method && !BASES[want.base].methods.includes(want.method)) { if (want.method === 'bowl') delete want.method; else delete want.base; }
   if (want.main && want.method && !mainList().some(id => MAINS[id].methods.includes(want.method))) delete want.method;
   if (Object.keys(as).length) want.as = as;
-  { const pd = P.detect(text); if (pd) want.proc = pd; }
+  { const pd = P.detect(text); if (pd) { if (pd.proc) want.proc = pd; if (pd.course) want.course = pd.course; } }
+  want.text = ' ' + norm(text) + ' ';
   return { want, exclude, mods };
 }

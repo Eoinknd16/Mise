@@ -97,6 +97,7 @@ cream|Cream|dairy|ml|250|1.29|7|dairy|single cream;cooking cream;fresh cream;whi
 double-cream|Double cream|dairy|ml|250|1.49|7|dairy|heavy cream|
 creme-fraiche|Crème fraîche|dairy|g|200|1.29|10|dairy|creme fraiche;sour cream|
 yogurt|Natural yogurt|dairy|g|500|1.09|10|dairy|plain yogurt;natural yoghurt;yoghurt;greek yogurt;greek style yogurt|
+buttermilk|Buttermilk|dairy|ml|500|0.99|10|dairy|buttermilk|
 eggs|Eggs|dairy|pc|12,6|3.29|21|dairy|egg;free range eggs;large eggs|p:egg
 cream-cheese|Cream cheese|dairy|g|200|1.29|14|dairy|soft cheese;philadelphia|
 tofu|Tofu|chilled|g|280|1.99|10|chilled|firm tofu|p:veg
@@ -112,8 +113,12 @@ basmati|Basmati rice|pantry|g|1000|1.99|700|pantry|basmati|
 noodles|Noodles|pantry|g|250|0.89|700|pantry|egg noodles;rice noodles;udon;ramen noodles||nest:60
 couscous|Couscous|pantry|g|500|0.99|700|pantry||
 oats|Porridge oats|pantry|g|1000|1.19|300|pantry|oats;rolled oats;porridge|
-flour|Plain flour|pantry|g|1000|0.79|300|pantry|flour;self raising flour;cornflour;cornstarch;corn starch|s
-sugar|Sugar|pantry|g|1000|1.29|700|pantry|caster sugar;brown sugar;granulated sugar|s
+flour|Plain flour|pantry|g|1000|0.79|300|pantry|flour;cornflour;cornstarch;corn starch|s
+self-raising-flour|Self-raising flour|pantry|g|1000|0.89|300|pantry|self raising flour;self-raising;sr flour|s
+strong-flour|Strong white flour|pantry|g|1000|1.29|300|pantry|strong flour;bread flour;strong white flour;00 flour;pizza flour|s
+sugar|Sugar|pantry|g|1000|1.29|700|pantry|caster sugar;granulated sugar|s
+brown-sugar|Brown sugar|pantry|g|500|1.29|700|pantry|brown sugar;light brown sugar;dark brown sugar;muscovado;demerara|s
+icing-sugar|Icing sugar|pantry|g|500|1.09|700|pantry|icing sugar;powdered sugar|s
 chopped-tomatoes|Chopped tomatoes|pantry|g|400|0.59|700|pantry|tinned tomatoes;canned tomatoes;tomatoes chopped;plum tomatoes||tin:400;can:400
 passata|Passata|pantry|g|500|0.89|700|pantry|tomato passata|
 tomato-puree|Tomato purée|pantry|g|200|0.69|60|pantry|tomato puree;tomato paste|s|
@@ -285,7 +290,10 @@ chipotle|Chipotle paste|pantry|g|90|2.29|365|sauce|chipotle;chipotle paste;chipo
 anchovies|Anchovies|pantry|g|50|1.49|700|sauce|anchovy;anchovy fillets|s
 kimchi|Kimchi|chilled|g|300|2.99|30|sauce|kimchi|
 syrup|Syrup|pantry|g|450|1.69|700|sweet|golden syrup;maple syrup;agave|s
-baking|Baking items|pantry|g|200|1.29|700|pantry|baking powder;bread soda;bicarbonate;yeast;cocoa;vanilla;icing sugar;baking chocolate;chocolate chips|s
+baking|Baking items|pantry|g|200|1.29|700|pantry|baking chocolate;chocolate chips|s
+baking-powder|Baking powder|pantry|g|170|0.99|700|pantry|baking powder|s|tsp:4
+bread-soda|Bread soda|pantry|g|200|0.89|700|pantry|bicarbonate of soda;bicarb;bread soda;baking soda|s|tsp:4
+yeast|Dried yeast|pantry|g|56|1.49|365|pantry|yeast;dried yeast;fast action yeast;instant yeast|s|tsp:3;sachet:7
 breadcrumbs|Breadcrumbs|pantry|g|200|0.79|300|pantry|panko|s
 dried-fruit|Dried fruit, nuts & seeds|pantry|g|200|1.49|300|pantry|raisins;sultanas;dried apricots;seeds;chia;flaxseed;ground almonds;flaked almonds|
 grains|Quinoa & grains|pantry|g|500|1.79|700|pantry|quinoa;bulgur;pearl barley;polenta|

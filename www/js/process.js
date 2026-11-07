@@ -6,6 +6,7 @@
 import { ITEM } from './data.js';
 import * as C from './core.js';
 import * as G from './builder.js';
+import * as RT from './ratios.js';
 
 /* ---------------- amounts ---------------- */
 function qty(id, pp, serves, unit) {
@@ -20,7 +21,7 @@ const list = a => a.length <= 1 ? (a[0] || '') : a.slice(0, -1).join(', ') + ' a
 const tl = t => t >= 60 ? `${Math.floor(t / 60)} hr${t % 60 ? ' ' + (t % 60) + ' min' : ''}` : `${t} min`;
 
 class Dish {
-  constructor(state, serves) { this.state = state; this.serves = serves; this.ings = []; this.comps = []; }
+  constructor(state, serves) { this.state = state; this.serves = serves; this.ings = []; this.comps = []; this.ratios = []; }
   // add an ingredient; returns its display name for the step text
   use(id, pp, unit, name) {
     if (!ITEM[id]) return null; const { q, u } = qty(id, pp, this.serves, unit);
@@ -28,6 +29,11 @@ class Dish {
     if (ex) ex.q = Math.round((ex.q + q) * 2) / 2; else this.ings.push({ q, u, name: name || nm(id), item: id, raw: '' });
     return name || nm(id);
   }
+  // use a ratio scaled so its anchor totals `total` grams for the whole dish; returns display names by id
+  ratio(key, total, swap = {}) { const am = RT.scale(key, total), out = {}; if (!am) return out; if (!this.ratios.includes(key)) this.ratios.push(key);
+    for (const [id0, g] of Object.entries(am)) { if (id0 === 'water') { out.water = `${Math.round(g / 5) * 5} ml water`; continue; } const id = swap[id0] || id0; if (!ITEM[id]) continue;
+      const pcw = { eggs: 55, banana: 120, lemon: 100 }[id]; if (pcw) out[id0] = this.use(id, Math.max(1, Math.round(g / pcw)) / this.serves, ''); else if (['baking-powder', 'bread-soda', 'yeast', 'salt'].includes(id) && g < 20) out[id0] = this.use(id, Math.max(0.25, Math.round(g / 4 * 4) / 4) / this.serves, 'tsp'); else out[id0] = this.use(id, g / this.serves); }
+    return out; }
   has(id) { return C.pantryQty(this.state, id) > 0; }
   ok(id) { return ITEM[id] && G.okItem(this.state, id); }
   comp(name, ready = 'serve') { const c = { name, ready, tasks: [] }; this.comps.push(c); return c; }
@@ -49,7 +55,7 @@ const TQ = {
   simmer(d, c, t, lid = 'lid ajar', cue = 'thick and rich') { return T(c, `Simmer gently, ${lid}, stirring now and then`, t, { passive: true, cue, verb: 'simmers' }); },
   reduce(d, c, t = 8) { return T(c, 'Take the lid off and let it bubble down', t, { passive: true, cue: 'thick enough to hold a line when you drag a spoon through', verb: 'reduces' }); },
   // béchamel / cheese sauce by ratio: per person 12 g butter, 12 g flour, 125 ml milk
-  roux(d, c, cheese, extra = 1) { const b = d.use('butter', 12 * extra), f = d.use('flour', 12 * extra), m = d.use('milk', 125 * extra); d.use('nutmeg', 0.1, 'tsp');
+  roux(d, c, cheese, extra = 1) { if (!d.ratios.includes('bechamel')) d.ratios.push('bechamel'); const b = d.use('butter', 12 * extra), f = d.use('flour', 12 * extra), m = d.use('milk', 125 * extra); d.use('nutmeg', 0.1, 'tsp');
     T(c, `Melt the ${b} in a saucepan, stir in the ${f} and cook, stirring`, 2, { cue: 'a smooth paste that smells biscuity' });
     T(c, `Whisk in the ${m} a splash at a time, letting it thicken before the next splash, then simmer, stirring`, 6, { cue: 'it coats the back of a spoon' });
     return T(c, `Season with salt, pepper and a grating of nutmeg${cheese ? `, then stir in half the ${cheese}` : ''}`, 1); },
@@ -320,6 +326,193 @@ const FAMILIES = {
     } }
 };
 
+/* ---------------- breakfast ---------------- */
+const BRK = {
+  pancakes: { n: 'Pancakes', fam: 'breakfast', course: 'breakfast', area: 'American', words: 'pancake|pancakes|american pancakes|fluffy pancakes', mains: ['self-raising-flour', 'flour'], needs: ['milk', 'eggs'], gear: ['hob', 'pan'],
+    title: (d, m, x) => x.top ? `Fluffy pancakes with ${x.top}` : 'Fluffy pancakes',
+    make(d, m, x) { const c = d.comp('pancakes', 'serve'); const R = d.ratio('pancake', 50 * d.serves, m === 'flour' ? { 'self-raising-flour': 'flour' } : {});
+      if (m === 'flour') d.use('baking-powder', 0.5, 'tsp');
+      T(c, `Whisk the ${R['self-raising-flour']}, ${R.sugar}, ${R['baking-powder'] || 'baking powder'}${m === 'flour' ? ' (a little extra, since it\'s plain flour)' : ''} and a pinch of salt in a bowl. In a jug, whisk the ${R.milk} with the ${R.eggs} and the ${R.butter}, melted`, 4);
+      T(c, 'Pour the wet into the dry and fold together, then leave the batter to rest', 5, { hands: 1, cue: '~stop while there are still a few lumps; overmixing makes them tough' });
+      T(c, 'Heat a frying pan over a medium heat, wipe with a little butter and pour in about 60 ml of batter per pancake. Flip when bubbles pop on top and the edges look set, then cook the other side', 12, { cue: 'golden on both sides; keep them warm in a low oven while you cook the rest' });
+      const tops = pickHave(d, ['berries', 'banana', 'bacon', 'yogurt', 'honey', 'syrup', 'peanut-butter'], 3).map(id => d.use(id, { berries: 50, banana: 0.5, bacon: 40, yogurt: 40, honey: 10, syrup: 15, 'peanut-butter': 15 }[id], id === 'banana' ? '' : undefined));
+      if (tops.length) T(c, `Stack and top with ${list(tops)}`, 2);
+      return c; } },
+  crepes: { n: 'Crêpes', fam: 'breakfast', course: 'breakfast dessert', area: 'French', words: 'crepe|crepes|crêpes|pancake tuesday|shrove', mains: ['flour'], needs: ['milk', 'eggs', 'butter'], gear: ['hob', 'pan'],
+    title: (d, m, x) => `Crêpes with ${x.fill}`,
+    make(d, m, x) { const c = d.comp('crêpes', 'serve'); const R = d.ratio('crepe', 30 * d.serves);
+      T(c, `Whisk the ${R.flour}, ${R.eggs} and a pinch of salt, then whisk in the ${R.milk} a little at a time and the ${R.butter}, melted`, 4, { cue: 'smooth, the thickness of single cream' });
+      T(c, 'Rest the batter', 15, { passive: true, cue: '~resting lets the flour swell so the crêpes don\'t tear', verb: 'rests' });
+      T(c, 'Heat a non-stick pan until hot, wipe with butter, pour in a small ladle of batter and swirl to coat the base thinly. Cook, flip, cook the other side', 14, { cue: 'lacy and golden; the first one is always a test' });
+      T(c, `Fill with ${x.fill === 'lemon & sugar' ? `a squeeze of ${sg(d.use('lemon', 0.5, ''))} and a sprinkle of ${d.use('sugar', 10)}` : x.fill === 'ham & cheese' ? `${d.use('ham', 40)} and ${d.use('cheddar', 25)}, folded and warmed in the pan until melted` : x.fill === 'jam' ? d.use('jam', 20) : `${d.use('banana', 0.5, '')} and ${d.use('chocolate', 15)}`}`, 3);
+      return c; } },
+  porridge: { n: 'Porridge', fam: 'breakfast', course: 'breakfast', area: 'Irish', words: 'porridge|oatmeal', mains: ['oats'], needs: ['milk'], gear: ['hob', 'pot'],
+    title: (d, m, x) => x.top ? `Porridge with ${x.top}` : 'Creamy porridge',
+    make(d, m) { const c = d.comp('porridge', 'serve'); const R = d.ratio('porridge', 50 * d.serves);
+      T(c, `Put the ${R.oats} in a pan with the ${R.milk}, ${R.water} and a small pinch of salt. Bring to a simmer and cook, stirring`, 6, { cue: 'thick and creamy and the oats have swollen; add a splash more milk if it gets stiff' });
+      const tops = pickHave(d, ['banana', 'berries', 'apple', 'honey', 'syrup', 'nuts', 'yogurt', 'peanut-butter', 'dried-fruit'], 3).map(id => d.use(id, { banana: 0.5, berries: 50, apple: 0.5, honey: 10, syrup: 10, nuts: 15, yogurt: 30, 'peanut-butter': 15, 'dried-fruit': 15 }[id], ['banana', 'apple'].includes(id) ? '' : undefined));
+      T(c, `Serve topped with ${tops.length ? list(tops) : 'a drizzle of honey'}${d.ok('cinnamon') ? ' and a pinch of ' + d.use('cinnamon', 0.25, 'tsp') : ''}`, 1);
+      return c; } },
+  fullirish: { n: 'Full Irish breakfast', fam: 'breakfast', course: 'breakfast', area: 'Irish', words: 'full irish|fry up|full breakfast|irish breakfast|irish fry', mains: ['sausages', 'bacon'], needs: ['eggs'], gear: ['hob', 'pan'],
+    title: () => 'Full Irish breakfast',
+    make(d) { const main = d.comp('fry', 'serve');
+      const parts = [['sausages', 2], ['bacon', 2.5], ['pudding', 2], ['mushroom', 60], ['tomato', 0.5], ['baked-beans', 0.5]].filter(([id]) => d.has(id) && d.ok(id));
+      if (parts.some(p => p[0] === 'sausages')) { const sa = d.comp('sausages', 'serve'); T(sa, `Put the ${d.use('sausages', 2, '')} on a tray and cook in the oven at 200°C (180°C fan), turning once`, 25, { passive: true, oven: 200, cue: 'browned all over and cooked through', verb: 'cook' }); }
+      const pan = [];
+      if (parts.some(p => p[0] === 'bacon')) pan.push(d.use('bacon', 2.5, '', 'rashers'));
+      if (parts.some(p => p[0] === 'pudding')) pan.push(d.use('pudding', 2, '', 'slices of black & white pudding'));
+      if (pan.length) T(main, `Fry the ${list(pan)} in a little oil over a medium heat, turning once, then keep warm in the oven with the sausages`, 8, { cue: 'the rashers are golden at the edges and the pudding crisp' });
+      const veg = [];
+      if (parts.some(p => p[0] === 'mushroom')) veg.push('sliced ' + d.use('mushroom', 60));
+      if (parts.some(p => p[0] === 'tomato')) veg.push('halved ' + d.use('tomato', 0.5, ''));
+      if (veg.length) T(main, `In the same pan, fry the ${list(veg)} in the bacon fat`, 5, { cue: 'the mushrooms are golden and the tomatoes softened' });
+      if (parts.some(p => p[0] === 'baked-beans')) { const b = d.comp('beans', 'serve'); T(b, `Warm the ${d.use('baked-beans', 0.5, '')} in a small pan`, 4); }
+      const e = d.comp('eggs', 'serve'); T(e, `Fry the ${d.use('eggs', 1, '')} in a little butter or oil over a medium-low heat, spooning hot fat over the yolks`, 3, { cue: 'the whites are set and the yolks still runny' });
+      if (d.has('soda-bread') || d.has('bread')) { const t = d.comp('toast', 'serve'); T(t, `Toast the ${d.use(d.has('soda-bread') ? 'soda-bread' : 'bread', 2, '', 'slices of ' + (d.has('soda-bread') ? 'soda bread' : 'bread'))} and butter them`, 3); }
+      T(main, 'Serve everything on warm plates with a pot of tea', 1);
+      return main; } },
+  frenchtoast: { n: 'French toast', fam: 'breakfast', course: 'breakfast', area: 'French', words: 'french toast|eggy bread', mains: ['bread', 'soda-bread'], needs: ['eggs', 'milk'], gear: ['hob', 'pan'],
+    title: (d, m, x) => x.savoury ? 'Eggy bread with crispy bacon' : 'Cinnamon French toast',
+    make(d, m, x) { const c = d.comp('French toast', 'serve'); const e = d.use('eggs', 1, ''), mk = d.use('milk', 50), b = d.use(m, 2, '', 'slices of bread');
+      T(c, `Whisk the ${e} with the ${mk}${x.savoury ? ', salt and pepper' : `, ${d.use('cinnamon', 0.25, 'tsp')} and a little ${d.use('sugar', 5)}`}. Soak the ${b} in it for a few seconds a side`, 3, { cue: '~day-old bread soaks up more without falling apart' });
+      if (x.savoury) T(c, `Fry the ${d.use('bacon', 2, '', 'rashers')} until crisp and set aside`, 6);
+      T(c, `Fry the bread in a knob of ${d.use('butter', 10)} over a medium heat`, 6, { cue: 'golden and crisp on both sides, about 3 minutes a side' });
+      if (!x.savoury) { const tops = pickHave(d, ['berries', 'banana', 'honey', 'syrup', 'yogurt'], 2).map(id => d.use(id, { berries: 50, banana: 0.5, honey: 10, syrup: 15, yogurt: 30 }[id], id === 'banana' ? '' : undefined)); T(c, `Serve with ${tops.length ? list(tops) : 'a dusting of sugar'}`, 1); }
+      else T(c, 'Serve with the bacon on top', 1);
+      return c; } },
+  omelette: { n: 'Omelette', fam: 'breakfast', course: 'breakfast lunch', area: 'French', words: 'omelette|omelet', mains: ['eggs'], needs: ['butter'], gear: ['hob', 'pan'],
+    title: (d, m, x) => x.fill ? `${x.fill.charAt(0).toUpperCase() + x.fill.slice(1)} omelette` : 'French omelette',
+    make(d, m, x) { const c = d.comp('omelette', 'serve'); const ids = x.ids || [];
+      if (ids.some(id => ['mushroom', 'onion', 'pepper', 'spinach', 'bacon'].includes(id))) T(c, `Cook the ${list(ids.filter(id => ['mushroom', 'onion', 'pepper', 'spinach', 'bacon'].includes(id)).map(id => d.use(id, { mushroom: 50, onion: 30, pepper: 40, spinach: 30, bacon: 30 }[id])))} in a little butter first, then tip out`, 5, { cue: 'golden and any liquid gone' });
+      T(c, `Beat the ${d.use('eggs', 3, '')} with salt and pepper. Melt a knob of ${d.use('butter', 10)} in a non-stick pan over a medium heat until it foams`, 2);
+      T(c, 'Pour in the eggs and stir with a fork while shaking the pan, then stop and let the bottom set', 2, { cue: 'just set on the bottom, still glossy on top' });
+      const ch = ids.find(id => ['cheddar', 'ham', 'feta', 'goats-cheese'].includes(id) || ['mushroom', 'onion', 'pepper', 'spinach', 'bacon'].includes(id));
+      T(c, `Scatter over the filling${ids.filter(id => ['cheddar', 'ham', 'feta', 'goats-cheese'].includes(id)).map(id => ' and ' + d.use(id, 30)).join('')}, tilt the pan and roll the omelette onto a warm plate. Make one per person`, 2, { cue: '~it keeps cooking on the plate, so take it off while the middle is still soft' });
+      return c; } }
+};
+/* ---------------- desserts & baking ---------------- */
+const SWEET = {
+  crumble: { n: 'Crumble', fam: 'dessert', course: 'dessert', area: 'Irish', words: 'crumble|apple crumble|fruit crumble', mains: ['apple', 'berries', 'plums', 'pears', 'banana'], needs: ['flour', 'butter'], gear: ['oven', 'dish'], batch: 6,
+    title: (d, m) => ({ apple: 'Apple crumble', berries: 'Berry crumble', plums: 'Plum crumble', pears: 'Pear & ginger crumble', banana: 'Banana & toffee crumble' })[m] + (d.has('custard') || (d.ok('eggs') && d.ok('milk')) ? ' & custard' : ''),
+    make(d, m) { const f = d.comp('fruit', 'final'); const fr = d.use(m, { apple: 1, berries: 80, plums: 1, pears: 1, banana: 0.7 }[m], ['apple', 'plums', 'pears', 'banana'].includes(m) ? '' : undefined);
+      T(f, `Peel and chop the ${fr} (if needed) and toss with ${d.use('sugar', 10)}${d.ok('cinnamon') && m !== 'berries' ? ' and a pinch of ' + d.use('cinnamon', 0.1, 'tsp') : ''} in an ovenproof dish`, 6);
+      const t = d.comp('topping', 'final'); const R = d.ratio('crumble', 30 * d.serves, d.ok('brown-sugar') ? {} : { 'brown-sugar': 'sugar' });
+      T(t, `Rub the ${R.butter}, cold and cubed, into the ${R.flour} with your fingertips, then stir in the ${R['brown-sugar']}${R.oats && d.ok('oats') ? ' and ' + R.oats : ''}`, 5, { cue: 'it looks like rough breadcrumbs with a few pea-size lumps' });
+      const fin = d.comp('crumble', 'serve'); T(fin, 'Scatter the topping loosely over the fruit; don\'t press it down', 1);
+      TQ.bake(fin, 190, 35, 'golden on top and bubbling up at the edges');
+      if (d.has('custard')) T(fin, `Serve warm with ${d.use('custard', 80)}, heated`, 2);
+      else if (d.ok('eggs') && d.ok('milk')) { const cu = d.comp('custard', 'serve'); const C2 = d.ratio('custard', 70 * d.serves);
+        T(cu, `Heat the ${C2.milk}${d.ok('vanilla') ? ' with a few drops of ' + d.use('vanilla', 0.5, 'ml') : ''} until steaming. Whisk the ${C2.eggs} with the ${C2.sugar} and ${C2.flour}, pour the hot milk on while whisking, return to the pan and stir over a low heat`, 8, { cue: 'it coats the back of a spoon and a finger drawn through leaves a clean line; don\'t let it boil' }); }
+      else if (d.ok('cream')) T(fin, `Serve with ${d.use('cream', 30)}`, 1);
+      return fin; } },
+  ricepud: { n: 'Rice pudding', fam: 'dessert', course: 'dessert', area: 'Irish', words: 'rice pudding|rice pud', mains: ['rice'], needs: ['milk', 'sugar'], gear: ['hob', 'pot'], batch: 4,
+    title: () => 'Creamy rice pudding',
+    make(d) { const c = d.comp('rice pudding', 'serve'); const R = d.ratio('ricepud', 25 * d.serves);
+      T(c, `Put the ${R.rice} (short-grain pudding rice is creamiest), ${R.milk}, ${R.sugar} and ${R.butter} in a heavy pan${d.ok('vanilla') ? ' with a few drops of ' + d.use('vanilla', 0.5, 'ml') : ''}. Bring to a gentle simmer`, 4);
+      T(c, 'Cook very gently, stirring often so it doesn\'t catch, adding a splash more milk if it gets thick', 35, { hands: 8, cue: 'the rice is completely soft and it\'s thick but still spoonable; it thickens as it cools' });
+      T(c, `Serve warm with ${d.ok('jam') ? 'a spoon of ' + d.use('jam', 15) : 'a grating of nutmeg'}`, 1);
+      return c; } },
+  brownies: { n: 'Brownies', fam: 'baking', course: 'dessert baking', area: 'American', words: 'brownie|brownies|chocolate brownies', mains: ['dark-chocolate', 'chocolate'], needs: ['butter', 'eggs', 'sugar', 'flour'], gear: ['oven'], batch: 16, makes: '16 squares',
+    title: () => 'Fudgy chocolate brownies',
+    make(d, m) { const c = d.comp('brownies', 'serve'); const R = d.ratio('brownie', 200, { 'dark-chocolate': m });
+      T(c, `Line a 20 cm square tin. Melt the ${R['dark-chocolate']} and ${R.butter} together in a bowl over a pan of barely simmering water, then cool slightly`, 6, { cue: 'smooth and glossy' });
+      T(c, `Whisk the ${R.eggs} and ${R.sugar} together`, 4, { cue: 'pale, thick and doubled in volume; this gives the crackly top' });
+      T(c, `Fold in the chocolate, then sift over the ${R.flour}${R.cocoa && d.ok('cocoa') ? ' and ' + R.cocoa : ''} with a pinch of salt and fold until just combined`, 3, { cue: '~stop as soon as you can\'t see flour' });
+      TQ.bake(c, 180, 25, 'the top is set and papery, with a slight wobble in the middle; a skewer comes out sticky');
+      T(c, 'Cool completely in the tin before cutting into squares', 60, { passive: true, cue: '~they set as they cool; cut too early and they\'re soup', verb: 'cool' });
+      return c; } },
+  breadpud: { n: 'Bread & butter pudding', fam: 'dessert', course: 'dessert', area: 'Irish', words: 'bread and butter pudding|bread & butter pudding|bread pudding', mains: ['bread', 'soda-bread'], needs: ['eggs', 'milk', 'butter', 'sugar'], gear: ['oven', 'dish'], batch: 6,
+    title: () => 'Bread & butter pudding',
+    make(d, m) { const c = d.comp('pudding', 'serve'); const b = d.use(m, 1.5, '', 'slices of bread'); const R = d.ratio('custard', 70 * d.serves);
+      T(c, `Butter the ${b} with ${d.use('butter', 8)}, cut into triangles and layer in a buttered dish${d.ok('dried-fruit') ? ', scattering ' + d.use('dried-fruit', 10) + ' between the layers' : ''}`, 6);
+      T(c, `Whisk the ${R.eggs}, ${R.milk} and ${R.sugar}${d.ok('vanilla') ? ' with a few drops of ' + d.use('vanilla', 0.5, 'ml') : ''}, pour over the bread and press down. Grate over a little ${d.use('nutmeg', 0.1, 'tsp')}`, 3);
+      T(c, 'Leave to soak', 15, { passive: true, cue: '~soaking makes it a pudding, not a soggy sandwich', verb: 'soaks' });
+      TQ.bake(c, 180, 35, 'puffed and golden with a just-set wobble in the middle');
+      return c; } },
+  sponge: { n: 'Victoria sponge', fam: 'baking', course: 'baking dessert', area: 'British', words: 'victoria sponge|sponge|sponge cake|birthday cake|jam sponge', mains: ['self-raising-flour', 'flour'], needs: ['butter', 'sugar', 'eggs', 'jam'], gear: ['oven'], batch: 8, makes: '8 slices',
+    title: () => 'Victoria sponge',
+    make(d, m) { const c = d.comp('sponge', 'serve'); const R = d.ratio('sponge', 220, m === 'flour' ? { 'self-raising-flour': 'flour' } : {});
+      if (m === 'flour') d.use('baking-powder', 0.25, 'tsp');
+      T(c, `Grease and line two 20 cm sandwich tins. Beat the ${R.butter}, soft, with the ${R.sugar}`, 4, { cue: 'pale and fluffy; this traps the air that makes it rise' });
+      T(c, `Beat in the ${R.eggs} one at a time, adding a spoon of the flour with each if it starts to curdle`, 3);
+      T(c, `Fold in the ${R['self-raising-flour']}${m === 'flour' ? ' and 2 tsp baking powder' : ''} with a splash of milk until just combined, and divide between the tins`, 3, { cue: 'a dropping consistency: it falls off the spoon in a few seconds' });
+      TQ.bake(c, 180, 22, 'golden, springing back when pressed and a skewer comes out clean');
+      T(c, 'Cool for 5 minutes in the tins, then turn out onto a rack and cool completely', 40, { passive: true, verb: 'cools' });
+      T(c, `Sandwich with ${d.use('jam', 15)}${d.ok('cream') ? ` and ${d.use('cream', 25)}, whipped to soft peaks` : ''} and dust with sugar`, 4);
+      return c; } },
+  scones: { n: 'Scones', fam: 'baking', course: 'baking', area: 'Irish', words: 'scone|scones', mains: ['self-raising-flour', 'flour'], needs: ['butter', 'milk', 'sugar'], gear: ['oven'], batch: 8, makes: '8 scones',
+    title: (d, m, x) => x.fruit ? 'Fruit scones' : 'Scones with jam & cream',
+    make(d, m, x) { const c = d.comp('scones', 'serve'); const R = d.ratio('scone', 225, m === 'flour' ? { 'self-raising-flour': 'flour' } : {});
+      if (m === 'flour') d.use('baking-powder', 0.4, 'tsp');
+      T(c, `Rub the ${R.butter}, cold and cubed, into the ${R['self-raising-flour']} with ${R['baking-powder'] || 'baking powder'} and a pinch of salt, then stir in the ${R.sugar}${x.fruit ? ' and ' + d.use('dried-fruit', 8) : ''}`, 5, { cue: 'it looks like fine breadcrumbs' });
+      T(c, `Add the ${R.milk} and bring together with a knife, then pat out 3 cm thick on a floured surface`, 3, { cue: '~don\'t knead; a light hand makes a light scone' });
+      T(c, 'Cut straight down with a floured cutter (don\'t twist), put on a lined tray and brush the tops with milk', 4);
+      TQ.bake(c, 220, 12, 'well risen and golden; they sound hollow when tapped underneath');
+      T(c, `Serve warm with ${d.ok('jam') ? d.use('jam', 10) : 'butter'}${d.ok('cream') ? ' and ' + d.use('cream', 15) : ''}`, 1);
+      return c; } },
+  bananabread: { n: 'Banana bread', fam: 'baking', course: 'baking', area: 'American', words: 'banana bread|banana loaf|banana cake', mains: ['banana'], needs: ['butter', 'eggs'], gear: ['oven'], batch: 10, makes: '1 loaf',
+    title: () => 'Banana bread',
+    make(d) { const c = d.comp('banana bread', 'serve'); const R = d.ratio('banana', 300, { 'self-raising-flour': d.ok('self-raising-flour') ? 'self-raising-flour' : 'flour', 'brown-sugar': d.ok('brown-sugar') ? 'brown-sugar' : 'sugar' });
+      T(c, `Line a 900 g loaf tin. Mash the ${R.banana} (the blacker the better) and beat in the ${R.butter}, melted, the ${R['brown-sugar']} and the ${R.eggs}`, 6);
+      T(c, `Fold in the ${R['self-raising-flour']}, ${R['bread-soda'] || 'bread soda'}${d.ok('cinnamon') ? ', ' + d.use('cinnamon', 0.05, 'tsp') : ''} and a pinch of salt${d.has('nuts') ? ', and ' + d.use('nuts', 5) + ', chopped' : ''}`, 3, { cue: '~just until combined; lumps are fine' });
+      TQ.bake(c, 170, 55, 'risen and cracked on top, and a skewer comes out clean');
+      T(c, 'Cool in the tin for 10 minutes, then on a rack', 30, { passive: true, verb: 'cools' });
+      return c; } },
+  cookies: { n: 'Cookies', fam: 'baking', course: 'baking dessert', area: 'American', words: 'cookie|cookies|choc chip cookies|chocolate chip cookies|biscuits', mains: ['flour'], needs: ['butter', 'sugar', 'eggs'], gear: ['oven'], batch: 16, makes: '16 cookies',
+    title: (d, m, x) => x.choc ? 'Chocolate chip cookies' : 'Brown butter cookies',
+    make(d, m, x) { const c = d.comp('cookies', 'serve'); const R = d.ratio('cookie', 225, d.ok('brown-sugar') ? {} : { 'brown-sugar': 'sugar' });
+      T(c, `Melt the ${R.butter} in a pan and keep cooking${x.choc ? '' : ', swirling'}`, 4, { cue: x.choc ? 'just melted' : 'it smells nutty and flecks of brown appear on the bottom' });
+      T(c, `Whisk with the ${R['brown-sugar']}${R.sugar ? ' and ' + R.sugar : ''}, then beat in the ${R.eggs}${d.ok('vanilla') ? ' and a few drops of ' + d.use('vanilla', 0.3, 'ml') : ''}`, 3);
+      T(c, `Stir in the ${R.flour}, ${R['bread-soda'] || 'bread soda'} and a good pinch of salt${x.choc ? `, then the ${d.use(d.has('dark-chocolate') ? 'dark-chocolate' : 'chocolate', 6)}, roughly chopped` : ''}`, 3);
+      T(c, 'Chill the dough', 30, { passive: true, cue: '~cold dough spreads less and the cookies get chewier', verb: 'chills' });
+      T(c, 'Roll into 16 balls and space well apart on two lined trays', 6);
+      TQ.bake(c, 180, 11, 'golden at the edges and still soft in the middle; they firm up as they cool');
+      return c; } },
+  sodabread: { n: 'Soda bread', fam: 'baking', course: 'baking', area: 'Irish', words: 'soda bread|brown bread|irish bread|wheaten', mains: ['flour'], needs: ['bread-soda'], gear: ['oven'], batch: 8, makes: '1 loaf',
+    title: () => 'Irish soda bread',
+    make(d, m, x) { const c = d.comp('soda bread', 'serve'); const sour = d.ok('buttermilk') && (d.has('buttermilk') || !d.has('yogurt'));
+      const R = d.ratio('soda', 450, sour ? {} : { buttermilk: 'milk' });
+      if (!sour) T(c, `No buttermilk? Stir a squeeze of ${sg(d.use('lemon', 0.5, ''))} into the ${R.buttermilk} and leave it`, 10, { passive: true, cue: 'it thickens and curdles slightly, which is what you want', verb: 'stands' });
+      T(c, `Mix the ${R.flour}${x.brown && d.ok('oats') ? ' with ' + d.use('oats', 6) : ''}, ${R['bread-soda']} and ${R.salt} in a big bowl. Make a well and pour in most of the ${sour ? R.buttermilk : 'soured milk'}`, 3);
+      T(c, 'Mix with one hand into a soft, sticky dough, adding the rest of the liquid if it\'s dry. Tip out, shape into a round and cut a deep cross in the top', 3, { cue: '~don\'t knead; the bread soda starts working straight away, so get it into the oven' });
+      TQ.bake(c, 220, 15, 'it has risen and started to colour'); TQ.bake(c, 200, 25, 'it sounds hollow when you tap the bottom', 'Turn the oven down and bake');
+      T(c, 'Wrap in a clean tea towel to cool, for a soft crust', 30, { passive: true, verb: 'cools' });
+      return c; } },
+  loaf: { n: 'White loaf', fam: 'baking', course: 'baking', area: 'British', words: 'white bread|bread loaf|white loaf|loaf of bread|homemade bread|bake bread|make bread|loaf', mains: ['strong-flour'], needs: ['yeast'], gear: ['oven'], batch: 10, makes: '1 loaf', slow: true,
+    title: () => 'Crusty white loaf',
+    make(d) { const c = d.comp('loaf', 'serve'); const R = d.ratio('bread', 500);
+      T(c, `Mix the ${R['strong-flour']}, ${R.yeast} and ${R.salt} (keep the salt and yeast apart at first), then add ${R.water}, lukewarm, and a splash of oil`, 4);
+      T(c, 'Knead on the worktop', 10, { cue: 'smooth and stretchy: a small piece stretches thin enough to see light through without tearing' });
+      T(c, 'Put in an oiled bowl, cover and leave somewhere warm to prove', 60, { passive: true, cue: 'doubled in size', verb: 'proves' });
+      T(c, 'Knock back, shape into a tight ball or a loaf for a tin, and prove again on a floured tray', 45, { hands: 4, passive: false, cue: 'risen and a fingertip leaves a dent that springs back slowly' });
+      T(c, 'Slash the top, and put a tray of hot water in the bottom of the oven for steam', 2);
+      TQ.bake(c, 220, 30, 'deep golden and it sounds hollow when tapped underneath');
+      T(c, 'Cool on a rack before slicing', 30, { passive: true, cue: '~it\'s still cooking inside', verb: 'cools' });
+      return c; } },
+  pizza: { n: 'Homemade pizza', fam: 'baking', course: 'dinner baking', area: 'Italian', words: 'pizza|homemade pizza|margherita', mains: ['strong-flour', 'flour'], needs: ['yeast', 'passata', 'mozzarella'], gear: ['oven'],
+    title: (d, m, x) => x.top ? `Homemade ${x.top} pizza` : 'Homemade margherita pizza',
+    make(d, m, x) { const dg = d.comp('dough', 'final'); const R = d.ratio('pizza', 125 * d.serves, m === 'flour' ? { 'strong-flour': 'flour' } : {});
+      T(dg, `Mix the ${R['strong-flour']}, ${R.yeast}, ${R.salt}, ${R['olive-oil']} and ${R.water}, lukewarm, then knead`, 10, { cue: 'smooth and elastic' });
+      T(dg, 'Cover and leave to prove', 60, { passive: true, cue: 'doubled; a longer, cooler prove in the fridge tastes even better', verb: 'proves' });
+      const sa = d.comp('sauce', 'final'); T(sa, `Stir the ${d.use('passata', 60)} with a crushed ${sg(d.use('garlic', 0.5, ''))} clove, a pinch of ${d.use('oregano', 0.25, 'tsp')}, salt and a drizzle of olive oil. No need to cook it`, 3);
+      const fin = d.comp('pizza', 'serve');
+      T(fin, 'Heat the oven as hot as it goes (240°C+) with a heavy baking tray inside for 30 minutes', 30, { passive: true, oven: 240, cue: '~a screaming hot tray is what gives a crisp base', verb: 'heats' });
+      const tops = (x.ids || []).map(id => d.use(id, { ham: 30, mushroom: 40, pepper: 40, olives: 15, chorizo: 25, 'red-onion': 20, onion: 20, spinach: 20, 'cooked-chicken': 40, bacon: 30, sweetcorn: 30, pineapple: 30 }[id] || 30));
+      T(fin, `Divide the dough into ${d.serves} balls. Stretch each one into a thin round on a floured sheet of baking paper. Spread thinly with the sauce, tear over the ${d.use('mozzarella', 60)}${tops.length ? ' and add the ' + list(tops) : ''}`, 6, { cue: '~less is more: too much topping makes a soggy middle' });
+      T(fin, 'Slide onto the hot tray (on its paper) and bake one at a time', 10, { passive: true, oven: 240, cue: 'the crust is blistered and the cheese bubbling, 8 to 12 minutes', verb: 'bakes' });
+      if (d.ok('basil')) T(fin, `Scatter with ${d.use('basil', 2)} and a drizzle of oil`, 1);
+      return fin; } },
+  flatbreads: { n: 'Flatbreads', fam: 'baking', course: 'baking lunch', area: 'Middle Eastern', words: 'flatbread|flatbreads|naan|quick bread', mains: ['self-raising-flour', 'flour'], needs: ['yogurt'], gear: ['hob', 'pan'], batch: 4, makes: '4 flatbreads',
+    title: () => 'Two-ingredient flatbreads',
+    make(d, m) { const c = d.comp('flatbreads', 'serve'); const R = d.ratio('flatbread', 200, m === 'flour' ? { 'self-raising-flour': 'flour' } : {}); if (m === 'flour') d.use('baking-powder', 0.5, 'tsp');
+      T(c, `Mix the ${R['self-raising-flour']}${m === 'flour' ? ' with 2 tsp baking powder' : ''}, ${R.yogurt} and a pinch of salt into a soft dough and knead briefly`, 4, { cue: 'smooth and only slightly sticky' });
+      T(c, 'Divide into 4, roll each out thinly and cook in a hot dry pan', 10, { cue: 'puffed with charred spots, about 2 minutes a side' });
+      if (d.ok('garlic') && d.ok('butter')) T(c, `Brush with ${d.use('butter', 5)} melted with a crushed ${sg(d.use('garlic', 0.25, ''))} clove${d.ok('parsley') ? ' and chopped parsley' : ''}`, 2);
+      return c; } }
+};
+Object.assign(FAMILIES, BRK, SWEET);
+for (const F of Object.values(FAMILIES)) if (!F.course) F.course = F.fam === 'soup' ? 'lunch dinner' : 'dinner';
+
 /* ---------------- scheduling: everything lands at the same time ---------------- */
 function schedule(comps) {
   // components marked 'final' must be ready when the finishing component (the last 'serve' one built) starts its assembly
@@ -360,34 +553,51 @@ function writeSteps(tasks) {
 }
 
 /* ---------------- building and choosing ---------------- */
-function variantsOf(fid) { const F = FAMILIES[fid];
+function variantsOf(fid, state) {
+  const F = FAMILIES[fid], have = id => ITEM[id] && C.pantryQty(state, id) > 0 && G.okItem(state, id);
   if (fid === 'indian') return Object.entries(F.styles).flatMap(([sid, s]) => s.mains.split(' ').map(m => ({ main: m, x: { style: sid } })));
   if (fid === 'chickenpie') return F.mains.flatMap(m => [{ main: m, x: { leek: false, bacon: false } }, { main: m, x: { leek: true, bacon: false } }, { main: m, x: { leek: false, bacon: true } }]);
-  return F.mains.map(m => ({ main: m, x: {} })); }
+  const mains = F.mains, V = xs => mains.flatMap(m => xs.map(x => ({ main: m, x })));
+  if (fid === 'pancakes') return V([{}, ...[['berries', 'berries'], ['banana', 'banana & honey'], ['bacon', 'crispy bacon & syrup']].filter(([id]) => have(id)).map(([, t]) => ({ top: t }))]);
+  if (fid === 'crepes') return V([['lemon & sugar', ['lemon']], ['ham & cheese', ['ham', 'cheddar']], ['jam', ['jam']], ['banana & chocolate', ['banana', 'chocolate']]].filter(([, ids]) => ids.every(id => ITEM[id] && G.okItem(state, id))).map(([f]) => ({ fill: f })));
+  if (fid === 'porridge') { const t = ['banana', 'berries', 'apple', 'honey'].filter(have); return V([{ top: t.length ? t.slice(0, 2).join(' & ').replace('apple', 'stewed apple') : null }]); }
+  if (fid === 'frenchtoast') return V([{ savoury: false }, ...(have('bacon') ? [{ savoury: true }] : [])]);
+  if (fid === 'omelette') { const f = ['cheddar', 'ham', 'mushroom', 'spinach', 'pepper', 'onion', 'feta', 'bacon'].filter(have); const combos = [f.slice(0, 2), f.slice(2, 4), f.slice(0, 1)].filter(c => c.length && c.some(id => !['onion', 'pepper'].includes(id)));
+    return V(combos.length ? combos.map(c => ({ ids: c, fill: c.map(id => ({ cheddar: 'cheese', ham: 'ham', mushroom: 'mushroom', spinach: 'spinach', pepper: 'pepper', onion: 'onion', feta: 'feta', bacon: 'bacon' })[id]).join(' & ') })) : [{}]); }
+  if (fid === 'scones') return V([{ fruit: false }, ...(have('dried-fruit') ? [{ fruit: true }] : [])]);
+  if (fid === 'cookies') return V([{ choc: have('dark-chocolate') || have('chocolate') }]);
+  if (fid === 'pizza') { const t = ['ham', 'mushroom', 'pepper', 'chorizo', 'olives', 'red-onion', 'spinach', 'cooked-chicken', 'bacon', 'sweetcorn'].filter(have).slice(0, 3);
+    return V([{}, ...(t.length ? [{ ids: t, top: t.slice(0, 2).map(id => ({ bacon: 'bacon', 'cooked-chicken': 'chicken', 'red-onion': 'red onion', olives: 'olive' })[id] || ITEM[id].n.toLowerCase().replace(/^(sliced|cooked|tinned) /, '').replace(/s$/, '')).join(' & ') }] : [])]); }
+  return mains.map(m => ({ main: m, x: {} })); }
+export const isDinnerFam = fid => !!FAMILIES[fid] && FAMILIES[fid].course.split(' ').some(c => c === 'dinner' || c === 'lunch');
 export function build(state, sp, serves) {
   const F = FAMILIES[sp.proc]; if (!F) return null;
-  const d = new Dish(state, serves || 2); F.make(d, sp.main, sp.px || {});
+  const d = new Dish(state, F.batch || serves || 2); F.make(d, sp.main, sp.px || {});
   const sch = schedule(d.comps), steps = writeSteps(sch.tasks);
   const title = F.title(d, sp.main, sp.px || {});
   for (const i of d.ings) i.raw = i.raw || `${i.q}${i.u ? (['g', 'ml'].includes(i.u) ? '' : ' ') + i.u : ''} ${i.name}`;
   const id = 'p:' + sp.proc + ':' + sp.main + ':' + Object.values(sp.px || {}).map(v => v === true ? 1 : v === false ? 0 : v).join('');
-  const r = C.normalizeRecipe({ id, src: 'built', title, serves: d.serves, time: sch.total, cat: 'Built', area: F.area, ings: d.ings, steps, spec: { ...sp }, proc: sp.proc, timeline: sch.tasks.map(t => ({ at: t.at, t: t.t, comp: t.comp, passive: t.passive, oven: t.oven })), comps: d.comps.map(c => c.name) });
+  const r = C.normalizeRecipe({ id, src: 'built', title, serves: d.serves, course: F.course || 'dinner', makes: F.makes || null, time: sch.total, cat: 'Built', area: F.area, ings: d.ings, steps, spec: { ...sp }, proc: sp.proc, timeline: sch.tasks.map(t => ({ at: t.at, t: t.t, comp: t.comp, passive: t.passive, oven: t.oven })), comps: d.comps.map(c => c.name) });
   r.active = sch.handsOn; if (sch.total > 60) r.slowish = true;
+  r.ratioNotes = d.ratios.map(k => `${RT.RATIOS[k].n}: ${RT.RATIOS[k].why}.`);
   if (d.leftover && ITEM[d.leftover.item]) { r.leftover = d.leftover; r.steps.push(`Leftovers: wrap the rest of the meat (about ${Math.round(d.leftover.g / 50) * 50} g) and refrigerate within 2 hours. It makes quick meals later in the week.`); }
   return r;
 }
 // typed words that ask for a process dish ("lasagne", "fish pie", "roast dinner", "korma"...)
 export function detect(text) {
   const t = ' ' + String(text || '').toLowerCase().replace(/[^a-z ]/g, ' ').replace(/\s+/g, ' ') + ' ';
+  let best = null, bl = 0;
   for (const [fid, F] of Object.entries(FAMILIES)) {
-    if (fid === 'indian') for (const [sid, s] of Object.entries(F.styles)) for (const w of s.words.split('|')) if (t.includes(' ' + w + ' ')) return { proc: fid, style: sid };
-    for (const w of F.words.split('|')) if (w !== 'pie' && w !== 'roast' && w !== 'curry' && w !== 'soup' && t.includes(' ' + w + ' ')) return { proc: fid };
+    const words = fid === 'indian' ? Object.entries(F.styles).flatMap(([sid, s]) => s.words.split('|').map(w => [w, { proc: fid, style: sid }])) : F.words.split('|').map(w => [w, { proc: fid }]);
+    for (const [w, res] of words) { if (['pie', 'roast', 'curry', 'soup'].includes(w)) continue; if (t.includes(' ' + w + ' ') && w.length > bl) { best = res; bl = w.length; } }
   }
+  const course = / (breakfast|brunch) /.test(t) ? 'breakfast' : / (dessert|desert|pudding|something sweet|sweet treat|sweet|treat) /.test(t) ? 'dessert' : / (bake|baking|baked goods) /.test(t) ? 'baking' : / lunch /.test(t) ? 'lunch' : null;
+  if (best) return course ? { ...best, course } : best;
   if (/ roast (dinner|lunch)| sunday /.test(t)) return { proc: 'roastdinner' };
   if (/ curry /.test(t) && !/ thai /.test(t)) return { proc: 'indian', loose: true };
   if (/ soup /.test(t)) return { proc: 'soup', loose: true };
   if (/ pie /.test(t)) return { proc: /fish|salmon|cod|haddock/.test(t) ? 'fishpie' : /chicken|turkey/.test(t) ? 'chickenpie' : 'cottagepie', loose: true };
-  return null;
+  return course ? { course } : null;
 }
 // Candidates for the main options() picker. Scores are on the same scale as the meal builder's.
 export function candidates(state, opts, ref = 4) {
@@ -395,12 +605,13 @@ export function candidates(state, opts, ref = 4) {
   const w = opts.want || {}, asked = w.proc || null, spiceCap = (state.taste && state.taste.spice != null ? state.taste.spice : 2) + 1;
   for (const [fid, F] of Object.entries(FAMILIES)) {
     if (asked && asked.proc !== fid && !(asked.loose && FAMILIES[asked.proc].fam === F.fam)) continue;
+    { const course = w.course || (asked ? null : 'dinner'); if (course && !F.course.split(' ').includes(course) && !(asked && asked.proc === fid)) continue; }
     if (F.gear.some(g => gear[g] === false)) continue;
     if (!F.needs.every(id => ITEM[id] && G.okItem(state, id))) continue;
-    for (const v of variantsOf(fid)) {
+    for (const v of variantsOf(fid, state)) {
       const m = v.main; if (!ITEM[m] || !G.okItem(state, m)) continue;
-      if ((opts.useStock || opts.onlyStockMains) && !asked && !(stock.get(m) > 0) && !(w.main === m)) continue;
-      if (w.main && w.main !== m) continue;
+      if ((opts.useStock || opts.onlyStockMains) && !asked && !(stock.get(m) > 0) && !(w.main === m) && isDinnerFam(fid) && !(ITEM[m] && ITEM[m].staple)) continue;
+      if (w.main && w.main !== m && !(asked && asked.proc === fid && !isDinnerFam(fid))) continue;
       if (fid === 'indian') { const s = F.styles[v.x.style]; if (s.spice > spiceCap) continue; if (asked && asked.style && asked.style !== v.x.style) continue; }
       if (fid === 'chickenpie') { if (v.x.leek && !(stock.get('leek') > 0)) continue; if (v.x.bacon && !(stock.get('bacon') > 0)) continue; if (!v.x.leek && !G.okItem(state, 'mushroom')) continue; }
       if (opts.vegOnly && G.MAINS[m] && !['chickpeas', 'halloumi', 'tofu', 'lentils'].includes(m) && ITEM[m].cat !== 'veg') continue;
@@ -422,7 +633,8 @@ export function candidates(state, opts, ref = 4) {
       if (asked) s += 6 + (w.main === m ? 2 : 0);
       if (w.main === m) s += 1.5; if ((w.veg || []).some(vid => r.ings.some(i => i.item === vid))) s += 1;
       if (opts.quick && r.time > 40) s -= 2;
-      if (F.fam === 'soup' && !asked) s -= 1.2; // a soup is a lighter supper; offer it, don't lead with it
+      if (F.fam === 'soup' && !asked) s -= 1.2;
+      if (w.text && ITEM[m] && w.text.includes(' ' + ITEM[m].n.toLowerCase().split(' ')[0].replace(/s$/, ''))) s += 2.5; // a soup is a lighter supper; offer it, don't lead with it
       s += (Math.random() - 0.5) * (opts.noise || 1);
       r.spec.add = [...new Set(fresh.map(i => i.item))].filter(id => id !== m);
       out.push({ s, sp: r.spec, r });

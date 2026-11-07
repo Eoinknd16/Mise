@@ -230,7 +230,7 @@ function renderRecipeSheet() {
   else h += `<div class="r-plan" data-tour="daypick"><div class="small muted" style="margin-bottom:6px;font-weight:600">Add to ${ui.weekOffset === 1 ? 'next' : 'this'} week</div><div class="daypick">${C.weekDates(ui.weekOffset).map(d => { const n = (S.plan[d] || []).length; return `<button data-act="addToDay" data-date="${d}">${DOW[(new Date(d + 'T12:00').getDay() + 6) % 7]}<span>${n ? n + ' planned' : new Date(d + 'T12:00').getDate()}</span></button>`; }).join('')}</div>${r.stub ? '' : '<button class="btn block" data-act="cookFromSheet" style="margin-top:8px">Cook it now</button>'}</div>`;
   // why it works
   if (!r.stub) { const w = C.whyRecipe(S, r), tp = M.tipsFor(S, r, ctx && ctx.date);
-    if (w.length || tp.length || r.blocks) h += `<details class="r-sec r-why"${r.exp ? ' open' : ''}><summary><h3>Why this works</h3></summary>${w.length ? `<div class="why">${w.map(([v, t]) => `<span class="${v < 0 ? 'neg' : ''}">${v < 0 ? '−' : '+'} ${esc(t)}</span>`).join('')}</div>` : ''}${tp.map(t => `<div class="note">${esc(t)}</div>`).join('')}${r.blocks ? blocksBox(r) : ''}</details>`; }
+    if (w.length || tp.length || r.blocks || (r.ratioNotes || []).length) h += `<details class="r-sec r-why"${r.exp ? ' open' : ''}><summary><h3>Why this works</h3></summary>${w.length ? `<div class="why">${w.map(([v, t]) => `<span class="${v < 0 ? 'neg' : ''}">${v < 0 ? '−' : '+'} ${esc(t)}</span>`).join('')}</div>` : ''}${(r.ratioNotes || []).map(t => `<div class="note"><b>The ratio.</b> ${esc(t)}</div>`).join('')}${tp.map(t => `<div class="note">${esc(t)}</div>`).join('')}${r.blocks ? blocksBox(r) : ''}</details>`; }
   if (r.exp) h += labBox(r);
   // ingredients
   const fresh = r.ings.filter(i => i.item && ITEM[i.item] && !ITEM[i.item].staple), haveN = fresh.filter(i => C.pantryQty(S, i.item) > 0).length, miss = fresh.filter(i => C.pantryQty(S, i.item) <= 0 && !C.subOf(S, i));
@@ -533,7 +533,7 @@ function showReview(rec) {
 
 /* ================= Builder ================= */
 function sel(id, obj, cur, any = 'Any') { return `<select id="${id}" data-bspec="${id.replace('b-', '')}"><option value="">${any}</option>${Object.entries(obj).map(([k, v]) => `<option value="${k}"${k === cur ? ' selected' : ''}>${esc(v.n)}</option>`).join('')}</select>`; }
-const MAKE_CHIPS = [['exp', 'Experiment'], ['have', 'Use what I have'], ['quick', 'Quick'], ['comfort', 'Comfort'], ['healthy', 'Healthy'], ['cheap', 'Cheap'], ['spicy', 'Spicy'], ['veggie', 'Veggie']];
+const MAKE_CHIPS = [['exp', 'Experiment'], ['have', 'Use what I have'], ['quick', 'Quick'], ['breakfast', 'Breakfast'], ['sweet', 'Something sweet'], ['bake', 'Baking'], ['comfort', 'Comfort'], ['healthy', 'Healthy'], ['cheap', 'Cheap'], ['spicy', 'Spicy'], ['veggie', 'Veggie']];
 /* ---------- Method tiles: a designed stand-in for food photos ---------- */
 const TILE_ICON = {
   oven: '<svg viewBox="0 0 48 48"><rect x="8" y="12" width="32" height="26" rx="4"/><path d="M8 19h32M14 15.5h2M20 15.5h2"/><rect x="14" y="24" width="20" height="9" rx="2"/></svg>',
@@ -551,7 +551,7 @@ const TILE_OF = { roast: ['oven', '#7d4527'], traybake: ['oven', '#8a5a2b'], bak
   simmer: ['pot', '#8f3f2c'], curry: ['pot', '#9a3d22'], soup: ['pot', '#7a3b4a'], noodlesoup: ['bowl', '#2e5a6b'], pulled: ['pot', '#6b3b26'],
   wraps: ['wrap', '#7d5631'], quesadilla: ['wrap', '#a0661f'], burgers: ['wrap', '#6f4a2e'], flatbread: ['wrap', '#93542a'],
   frittata: ['egg', '#a0711c'], shakshuka: ['egg', '#9b3f26'], loaded: ['oven', '#4f5f3a'],
-  'p-bake': ['oven', '#8a3f2f'], 'p-pie': ['oven', '#7a5a2e'], 'p-curry': ['pot', '#a2481f'], 'p-risotto': ['bowl', '#6c6a3b'], 'p-soup': ['pot', '#5e7a3a'], 'p-roast': ['oven', '#6b3a25'] };
+  'p-bake': ['oven', '#8a3f2f'], 'p-pie': ['oven', '#7a5a2e'], 'p-curry': ['pot', '#a2481f'], 'p-risotto': ['bowl', '#6c6a3b'], 'p-soup': ['pot', '#5e7a3a'], 'p-roast': ['oven', '#6b3a25'], 'p-breakfast': ['egg', '#b0782a'], 'p-dessert': ['spark', '#8a4a5e'], 'p-baking': ['oven', '#9a6a33'] };
 function tile(r, cls) {
   const m = r && r.spec && r.spec.method, [ic, col] = r && r.exp ? ['spark', '#6b2f57'] : TILE_OF[m] || ['pot', 'var(--accent)'];
   return `<div class="tile ${cls || ''}" style="--tc:${col}" aria-hidden="true">${TILE_ICON[ic]}</div>`;
@@ -582,7 +582,8 @@ function homeSuggestions(more) {
   if (H.list && !more) return H;
   try {
     const stock = G.pantryStock(S), ctx = nightCtx(t), serves = M.servesFor(S, t), useStock = [...stock.keys()].some(id => G.MAINS[id]);
-    const got = G.options(S, { want: {}, stock, serves, useStock, seen: H.seen, seenTitles: H.seenTitles, kids: ctx.kids, onlyStockMains: useStock, noise: 1.8, allowSlow: false, priority: useStock ? 'save' : 'balanced', recent: true }, 2);
+    const morning = new Date().getHours() < 11;
+    const got = G.options(S, { want: morning ? { course: 'breakfast' } : {}, stock, serves, useStock: morning ? false : useStock, seen: H.seen, seenTitles: H.seenTitles, kids: ctx.kids, onlyStockMains: !morning && useStock, noise: 1.8, allowSlow: false, priority: useStock ? 'save' : 'balanced', recent: true }, 2);
     const urgent = useFirstItems();
     H.list = got.map(r => ({ r, why: homeReason(r, urgent) }));
     if (!H.jp) { const joints = [...stock.keys()].filter(id => G.MAINS[id] && G.MAINS[id].joint); H.jp = joints.slice(0, 1).map(id => G.jointPlan(S, id, serves)).filter(x => x && x.first.length); }
@@ -600,7 +601,7 @@ function homeBody(B) {
   if (!fresh) return h + `<section class="card empty-home"><h3>Tell Mise what's in your kitchen</h3><p class="small muted" style="margin:0">Add a few things you have and Home fills with meals you can make right now, starting with what needs using.</p><div class="row"><a class="btn primary grow" href="#pantry">Add food</a><button class="btn grow" data-act="scanOpen">Scan a barcode</button></div></section>`;
   const H = homeSuggestions();
   B.jp = H.jp; B.jpR = (H.jp || []).flatMap(x => [...x.first, ...x.then]);
-  h += `<section><div class="sec-h"><h3>Ideas from your kitchen</h3><button class="btn sm ghost" data-act="homeMore">Show others</button></div>`;
+  h += `<section><div class="sec-h"><h3>${new Date().getHours() < 11 ? 'Breakfast ideas' : 'Ideas from your kitchen'}</h3><button class="btn sm ghost" data-act="homeMore">Show others</button></div>`;
   h += H.list.length ? `<div class="sugs">${H.list.map((x, k) => { const r = x.r, c = C.recipeCost(S, r, r.serves);
     return `<article class="sug"><button class="sug-main" data-act="homeOpen" data-idx="${k}">${tile(r, 'sug-tile')}<div class="grow"><div class="eyebrow">${esc(G.METHODS[r.spec.method] ? G.METHODS[r.spec.method].n : 'dinner')} · ${timeLabel(r)} · ${C.eur(c.perServe)} each</div><h3>${esc(r.title)}</h3><p class="reason">${esc(x.why)}</p></div></button>
       <div class="row"><button class="btn primary sm grow" data-act="homeTonight" data-idx="${k}">Cook tonight</button><button class="btn sm grow" data-act="homeOpen" data-idx="${k}">See it</button></div></article>`; }).join('')}</div>`
@@ -616,7 +617,7 @@ function homeLinks() {
 function greeting() { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'; }
 function viewBuilder() {
   const B = ui.make || (ui.make = { text: '', chips: S.pantry.filter(p => p.item && ITEM[p.item] && !ITEM[p.item].staple).length >= 6 ? ['have'] : [], res: null });
-  const night = new Date().getHours() >= 15 ? 'tonight' : 'today';
+  const hr = new Date().getHours(), night = hr < 11 ? 'this morning' : hr >= 15 ? 'tonight' : 'today';
   let h = `<section class="hero-ask" data-tour="bDesc"><div class="hello">${greeting()}</div><h2 class="ask-h">What shall we cook ${night}?</h2>
     <div class="ask-in"><input id="makeText" type="search" enterkeyhint="go" autocomplete="off" aria-label="What do you fancy?" placeholder="Pork roast, something creamy, or ask a question…" value="${esc(B.text)}"><button class="go" data-act="makeGo" aria-label="Show me ideas"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
     <div class="chips">${MAKE_CHIPS.map(([k, n]) => `<button class="chip" data-act="makeChip" data-val="${k}" aria-pressed="${B.chips.includes(k)}">${n}</button>`).join('')}</div>
@@ -651,6 +652,7 @@ function makeRun(surprise, append) {
   const stock = G.pantryStock(S), ctx = nightCtx(t);
   if (!append || !B.seen) { B.seen = new Set(); B.seenTitles = new Set(); B.res = []; }
   const useStock = ch.includes('have');
+  { const cc = ch.includes('breakfast') ? 'breakfast' : ch.includes('sweet') ? 'dessert' : ch.includes('bake') ? 'baking' : null; if (cc && !p.want.course) p.want.course = cc; }
   const opts = { want: p.want, exclude: p.exclude, serves: M.servesFor(S, t), stock, useStock, seen: B.seen, seenTitles: B.seenTitles, quick: p.mods.quick || ch.includes('quick'), cheap: p.mods.cheap || ch.includes('cheap'), healthy: p.mods.healthy || ch.includes('healthy'), spicy: p.mods.spicy || ch.includes('spicy'), vegOnly: p.mods.veggie || ch.includes('veggie'), mood: p.mods.mood || (ch.includes('comfort') ? 'comfort' : null), kids: ctx.kids, onlyStockMains: useStock && [...stock.keys()].some(id => G.MAINS[id] && !p.want.main), noise: surprise ? 4 : 1.6, allowSlow: !(p.mods.quick || ch.includes('quick')), maxTime: p.mods.quick || ch.includes('quick') ? 35 : null, priority: useStock ? 'save' : 'balanced' };
   if (ch.includes('exp')) { B.res = B.res.concat(F.experiments(S, { ...expWant(B.text), stock, serves: opts.serves, wild: B.wild || 1, vegOnly: opts.vegOnly, seenTitles: B.seenTitles }, 6)); return; }
   if (!append) { const joints = [...stock.keys()].filter(id => G.MAINS[id] && G.MAINS[id].joint && !opts.vegOnly && (!p.want.main || [].concat(p.want.main).includes(id))); B.jp = joints.slice(0, 2).map(id => G.jointPlan(S, id, opts.serves)).filter(x => x && x.first.length); B.jpR = B.jp.flatMap(x => [...x.first, ...x.then]); }
@@ -2037,7 +2039,10 @@ const DISCO_ROWS = [
   ['slow', 'Roasts & slow cooks', 'Worth the wait', { methods: ['roast', 'pulled', 'braise', 'sticky'], allowSlow: true }],
   ['pot', 'One pot & curries', 'Less washing up', { methods: ['simmer', 'curry', 'soup', 'noodlesoup', 'risotto'] }],
   ['oven', 'Throw it in the oven', 'Traybakes & bakes', { methods: ['traybake', 'bake', 'loaded', 'pie'] }],
+  ['brekkie', 'Breakfast & brunch', 'Pancakes to a full Irish', { course: 'breakfast' }],
   ['bakes', 'Bakes & pies', 'Lasagne, moussaka, cottage pie', { proc: ['bake', 'pie'] }],
+  ['sweet', 'Desserts', 'Crumbles, puddings, brownies', { course: 'dessert' }],
+  ['baking', 'Baking', 'Soda bread, scones, banana bread', { course: 'baking' }],
   ['curries', 'Curries, built properly', 'Spices bloomed, onions taken golden', { proc: ['curry'] }],
   ['soups', 'Soups & risotto', '', { proc: ['soup', 'risotto'] }],
   ['roasts', 'Roast dinners', 'Everything timed to land together', { proc: ['roast'] }],
@@ -2063,7 +2068,8 @@ function discoBuild() {
       curNo = o.noMeth;
       let got = [];
       const opts = { ...base, ...o, useStock: o.useStock || F.have, onlyStockMains: (o.useStock || F.have) && [...stock.keys()].some(id => G.MAINS[id]) };
-      if (o.proc) got = G.processDishes(S, { ...opts, allowSlow: true }, o.proc, 8);
+      if (o.course) got = G.options(S, { ...opts, want: { course: o.course }, useStock: false, onlyStockMains: false, allowSlow: true }, 8);
+      else if (o.proc) got = G.processDishes(S, { ...opts, allowSlow: true }, o.proc, 8);
       else if (o.methods) for (const m of o.methods) { got = got.concat(G.options(S, { ...opts, want: { method: m } }, 2)); }
       else if (o.feel) { const kids = Object.entries(G.KITS).filter(([, k]) => o.feel.includes(k.feel)).map(([id]) => id).sort(() => Math.random() - 0.5).slice(0, 4); for (const kid of kids) got = got.concat(G.options(S, { ...opts, want: { kit: kid } }, o.noMeth ? 3 : 2)); }
       else got = G.options(S, opts, 7);
