@@ -1,0 +1,242 @@
+{
+ "Q10943": {
+  "want": "cheese",
+  "got": "cheese"
+ },
+ "Q10990": {
+  "want": "meat",
+  "got": "meat"
+ },
+ "Q11002": {
+  "want": "sugar",
+  "got": "sugar"
+ },
+ "Q11004": {
+  "want": "vegetable",
+  "got": "vegetable"
+ },
+ "Q11009": {
+  "want": "nut",
+  "got": "nut"
+ },
+ "Q12117": {
+  "want": "cereal",
+  "got": "cereal"
+ },
+ "Q131419": {
+  "want": "sausage",
+  "got": "sausage"
+ },
+ "Q13184": {
+  "want": "berry",
+  "got": "berry"
+ },
+ "Q145909": {
+  "want": "legume",
+  "got": "legume"
+ },
+ "Q178": {
+  "want": "pasta",
+  "got": "pasta"
+ },
+ "Q178359": {
+  "want": "sauce",
+  "got": "sauce"
+ },
+ "Q185217": {
+  "want": "dairy product",
+  "got": "dairy product"
+ },
+ "Q192874": {
+  "want": "noodle",
+  "got": "noodle"
+ },
+ "Q192935": {
+  "want": "seafood",
+  "got": "seafood"
+ },
+ "Q20136": {
+  "want": "root vegetable",
+  "got": "root vegetable"
+ },
+ "Q207123": {
+  "want": "herb",
+  "got": "herb"
+ },
+ "Q25403900": {
+  "want": "food ingredient",
+  "got": "food ingredient"
+ },
+ "Q2596997": {
+  "want": "condiment",
+  "got": "condiment"
+ },
+ "Q3314483": {
+  "want": "fruit",
+  "got": "fruit"
+ },
+ "Q42527": {
+  "want": "spice",
+  "got": "spice"
+ },
+ "Q5090": {
+  "want": "rice",
+  "got": "rice"
+ },
+ "Q600396": {
+  "want": "fish as food",
+  "got": "fish as food"
+ },
+ "Q654236": {
+  "want": "edible mushroom",
+  "got": "edible mushroom"
+ },
+ "Q7802": {
+  "want": "bread",
+  "got": "bread"
+ },
+ "Q8495": {
+  "want": "milk",
+  "got": "milk"
+ },
+ "Q93189": {
+  "want": "egg as food",
+  "got": "egg as food"
+ },
+ "Q36465": {
+  "want": "flour",
+  "got": "flour (by name, 81 under it)"
+ },
+ "?cut of meat": {
+  "want": "cut of meat",
+  "got": "not found"
+ },
+ "Q427457": {
+  "want": "cooking oil",
+  "got": "cooking oil (by name, 35 under it)"
+ },
+ "?citrus": {
+  "want": "citrus",
+  "got": "not found"
+ },
+ "Q20134": {
+  "want": "leaf vegetable",
+  "got": "leaf vegetable (by name, 33 under it)"
+ },
+ "Q6501235": {
+  "want": "shellfish",
+  "got": "shellfish (by name, 7 under it)"
+ },
+ "Q952658": {
+  "want": "pulse",
+  "got": "pulse (by name, 3 under it)"
+ },
+ "Q796185": {
+  "want": "edible seaweed",
+  "got": "edible seaweed (by name, 12 under it)"
+ },
+ "Q157484": {
+  "want": "offal",
+  "got": "offal (by name, 109 under it)"
+ },
+ "?pickled food": {
+  "want": "pickled food",
+  "got": "not found"
+ },
+ "Q6950796": {
+  "want": "fermented food",
+  "got": "fermented food (by name, 62 under it)"
+ },
+ "Q41354": {
+  "want": "vinegar",
+  "got": "vinegar (by name, 30 under it)"
+ },
+ "Q234901": {
+  "want": "dried fruit",
+  "got": "dried fruit (by name, 27 under it)"
+ },
+ "?cured meat": {
+  "want": "cured meat",
+  "got": "not found"
+ },
+ "Q844144": {
+  "want": "tropical fruit",
+  "got": "tropical fruit (by name, 16 under it)"
+ },
+ "?stone fruit": {
+  "want": "stone fruit",
+  "got": "not found"
+ },
+ "?squash": {
+  "want": "squash",
+  "got": "not found"
+ },
+ "Q165199": {
+  "want": "chili pepper",
+  "got": "chili pepper (by name, 52 under it)"
+ },
+ "Q3406628": {
+  "want": "onion",
+  "got": "onion (by name, 23 under it)"
+ },
+ "Q183319": {
+  "want": "tuber",
+  "got": "tuber (by name, 18 under it)"
+ },
+ "?sprout": {
+  "want": "sprout",
+  "got": "not found"
+ },
+ "Q13317": {
+  "want": "yogurt",
+  "got": "yogurt (by name, 45 under it)"
+ },
+ "Q34172": {
+  "want": "butter",
+  "got": "butter (by name, 40 under it)"
+ },
+ "?curry powder": {
+  "want": "curry powder",
+  "got": "not found"
+ },
+ "Q1521067": {
+  "want": "spice mix",
+  "got": "spice mix (by name, 71 under it)"
+ },
+ "Q904216": {
+  "want": "paste",
+  "got": "paste (by name, 9 under it)"
+ },
+ "Q6584340": {
+  "want": "syrup",
+  "got": "syrup (by name, 89 under it)"
+ },
+ "Q10987": {
+  "want": "honey",
+  "got": "honey (by name, 54 under it)"
+ },
+ "Q195": {
+  "want": "chocolate",
+  "got": "chocolate (by name, 87 under it)"
+ },
+ "Q6097": {
+  "want": "tea",
+  "got": "tea (by name, 110 under it)"
+ },
+ "Q153697": {
+  "want": "coffee bean",
+  "got": "coffee bean (by name, 8 under it)"
+ },
+ "?edible insect": {
+  "want": "edible insect",
+  "got": "not found"
+ },
+ "Q19862498": {
+  "want": "game meat",
+  "got": "game meat (by name, 14 under it)"
+ },
+ "Q18087876": {
+  "want": "poultry meat",
+  "got": "poultry meat (by name, 17 under it)"
+ }
+}
