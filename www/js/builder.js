@@ -725,6 +725,7 @@ export function buildMeal(state, sp, serves, stock) {
   if (Chef.ready()) { const h = Chef.harmony([...new Set(ings.map(i => i.item).filter(Boolean))], sp.method, sp.main); if (h) r.harmony = Math.round(h.h * 100) / 100; }
   if (J || sp.method === 'sticky' || sp.method === 'braise') r.slow = time > 75;
   if (sp.gear) { r.gear = sp.gear; if (handsOn) r.handsOn = handsOn; }
+  if (r.steps) r.steps = r.steps.map(st => st.replace(/(?<!\.)\.\.(?!\.)/g, '.'));
   return worldSwap(state, r);
 }
 const dedupeWords = t => { const w = t.split(' '), out = []; for (const x of w) { const p = out[out.length - 1]; if (p && x.length > 3 && p.length > 3 && p.slice(0, 4).toLowerCase() === x.slice(0, 4).toLowerCase()) continue; out.push(x); } return out.join(' '); };

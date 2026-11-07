@@ -1,6 +1,7 @@
 // Mise flavour lab: pairings by shared aroma families + taste contrast.
 // Ingredients that share aroma compounds (roasted, fruity, green, citrus...) tend to taste good together,
 // even when they never appear together in normal cooking. This is our own simplified map of that idea.
+import * as PR from './pairings.js';
 import { ITEM } from './data.js';
 import * as C from './core.js';
 import * as G from './builder.js';
@@ -84,25 +85,30 @@ export function affinity(a, b) {
 const CLASSIC = {}; for (const line of ['strawberries cream chocolate vanilla mint lemon yogurt', 'apple cinnamon cheddar sage pork-chop pork-roast honey', 'pears blue-cheese nuts chocolate cinnamon', 'banana chocolate peanut-butter honey cinnamon', 'pineapple ham gammon coconut-milk lime chilli', 'mango lime chilli coconut-milk prawns', 'beetroot goats-cheese orange dill feta', 'coffee chocolate dark-chocolate vanilla cinnamon', 'orange chocolate duck-breast fennel', 'tomato basil mozzarella', 'blueberries lemon yogurt', 'raspberries chocolate dark-chocolate cream lemon', 'rhubarb ginger cream', 'dates nuts cinnamon lamb', 'lemon salmon white-fish chicken-thigh', 'lime chilli coriander', 'blue-cheese nuts honey steak', 'goats-cheese honey nuts', 'miso salmon honey', 'tahini lemon chickpeas'])
   { const [a, ...bs] = line.split(' '); for (const b of bs) { (CLASSIC[a] = CLASSIC[a] || new Set()).add(b); (CLASSIC[b] = CLASSIC[b] || new Set()).add(a); } }
 // does everyone already cook these together?
-const usual = (a, b) => (K.ready() && ((K.pair(a, b) || {}).rec || 0) > 0.06) || (CLASSIC[a] && CLASSIC[a].has(b)) || G.pairScore([a, b]) > 0 || Object.values(G.KITS).some(k => { const ids = [...k.core, ...k.extra].map(c => c[0]); return (ids.includes(a) && (ids.includes(b) || (k.mains || []).includes(b) || (k.vegPref || []).includes(b))) || (ids.includes(b) && ((k.mains || []).includes(a) || (k.vegPref || []).includes(a))); });
+const usual = (a, b) => (K.ready() && (((K.pair(a, b) || {}).rec || 0) > 0.06 || ((K.pair(a, b) || {}).known || 0) > 0)) || (CLASSIC[a] && CLASSIC[a].has(b)) || G.pairScore([a, b]) > 0 || Object.values(G.KITS).some(k => { const ids = [...k.core, ...k.extra].map(c => c[0]); return (ids.includes(a) && (ids.includes(b) || (k.mains || []).includes(b) || (k.vegPref || []).includes(b))) || (ids.includes(b) && ((k.mains || []).includes(a) || (k.vegPref || []).includes(a))); });
 // taste contrast: what makes a combo balanced even when aromas don't overlap
 const CONTRAST = { s: 'al', a: 'sf', f: 'a', b: 'sf', l: 'sa', h: 'sf' };
 function contrast(a, b) { return Math.max(contrast1(a, b), contrast1(b, a)); }
 function contrast1(a, b) { const ta = (A[a] || {}).t || '', tb = (A[b] || {}).t || ''; let n = 0; for (const c of ta) if ((CONTRAST[c] || '').split('').some(z => tb.includes(z))) n++; return Math.min(1, n * 0.5); }
 const learnt = (state, a, b) => ((state.lab || {}).pairs || {})[[a, b].sort().join('|')] || 0;
 // Partners for one ingredient, grouped: classic, surprising, wild
+const REP = { chilli: 'chilli', tomato: 'tomato', onion: 'onion', soy_sauce: 'soy-sauce', curry: 'curry-powder', beef: 'steak', pork: 'pork-chop', fish: 'white-fish', sausage: 'sausages', coconut: 'coconut-milk', chicken: 'chicken-thigh', basil: 'basil', ginger: 'ginger', mint: 'mint', oregano: 'oregano', thyme: 'thyme', rosemary: 'rosemary', coriander: 'coriander', cheese: 'blue-cheese', feta: 'feta', bread: 'bread', potato: 'potato', carrot: 'carrot', spinach: 'spinach', cabbage: 'cabbage', lettuce: 'salad', honey: 'honey', sugar: 'sugar', raisin: 'dates', apple: 'apple' };
 export function partners(state, id, opts = {}) {
-  const out = [];
+  const out = [], fam = new Map(), catA = CAT(sdi(id));
   for (const b of Object.keys(A)) {
-    if (b === id || !ITEM[b] || !G.okItem(state, b)) continue;
+    if (b === id || b === sdi(id) || !ITEM[b] || !G.okItem(state, b)) continue;
     if (opts.vegOnly && CAT(b) === 'protein' && G.MAINS[b] && G.MAINS[b].grp !== 'veg') continue;
-    const af = affinity(id, b), ct = contrast(id, b), us = usual(id, b), l = learnt(state, id, b);
-    const cross = CAT(id) !== CAT(b) && ['fruit', 'sweet', 'dry'].some(c => [CAT(id), CAT(b)].includes(c)) && [CAT(id), CAT(b)].some(c => ['protein', 'cheese', 'veg', 'umami'].includes(c));
-    const score = af.s + ct * 0.35 + l * 0.4;
-    if (score < 0.35 && !us) continue;
-    const kind = us ? 'classic' : cross && af.s >= 0.3 ? 'wild' : af.s >= 0.3 || ct >= 0.5 ? 'surprising' : null;
-    if (!kind) continue;
-    out.push({ id: b, kind, score: score + (us ? 0.2 : 0), why: whyPair(id, b, af, ct) });
+    const f = pairFit(id, b), l = learnt(state, id, b); if (f.kn === -1) continue;
+    const catB = CAT(b), us = f.kn > 0 || (CLASSIC[sdi(id)] && CLASSIC[sdi(id)].has(b)), ev = !us && usual(sdi(id), b);
+    if (catA === 'protein' && catB === 'protein' && !us) continue; // another meat isn't a partner
+    const cross = catA !== catB && ['fruit', 'sweet', 'dry'].some(c => [catA, catB].includes(c)) && [catA, catB].some(c => ['protein', 'cheese', 'veg', 'umami'].includes(c));
+    const kind = us || ev ? 'classic' : cross && f.af.s >= 0.3 ? 'wild' : f.af.s >= 0.3 || f.ct >= 0.5 ? 'surprising' : null;
+    if (!kind || (f.s + l * 0.4 < 0.35 && !us && !ev)) continue;
+    const rk = f.kn > 0 ? PR.rank(sdi(id), b, K.keyOf) : 99, score = f.s + l * 0.4 + (f.kn === 2 ? 0.15 : f.kn === 1 ? 0.05 : us ? 0.12 : 0) + (rk < 99 ? 0.12 * Math.max(0, 1 - rk / 25) : 0);
+    // one per family: chicken thighs, not six cuts of chicken
+    const fk = (K.ready() && K.keyOf(b)) || b, prev = fam.get(fk), sc = score + (b === fk || REP[fk] === b ? 0.06 : 0);
+    if (prev && prev.score >= sc) continue;
+    const x = { id: b, kind, score: sc, why: whyPair(id, b, f.af, f.ct) }; if (prev) out.splice(out.indexOf(prev), 1); fam.set(fk, x); out.push(x);
   }
   out.sort((x, y) => y.score - x.score);
   const g = k => out.filter(x => x.kind === k).slice(0, opts.n || 10);
@@ -121,16 +127,39 @@ export function whyPair(a, b, af = affinity(a, b), ct = contrast(a, b)) {
   return bits.join('; ') || 'they work as a contrast';
 }
 // How well a whole combo hangs together, and what it's missing
+// How well two ingredients go together, 0..1. Three kinds of evidence, best one wins:
+// what cooks know (Mise's pairing knowledge), what real dishes do (USDA dish data), and shared aromas
+// or a taste contrast (sweet mango against hot chilli). Known clashes are capped low.
+const sdi = id => (ITEM[id] && ITEM[id].standin) || id;
+export function pairFit(a, b) {
+  a = sdi(a); b = sdi(b);
+  const p = K.ready() ? K.pair(a, b) : null, kn = p ? p.known || 0 : 0;
+  const af = affinity(a, b), ct = contrast(a, b), raw = Math.min(1, af.s + ct * 0.4);
+  if (kn === -1) return { s: Math.min(raw, 0.08), kn, af, ct };
+  let s = raw;
+  if (kn === 2 || (CLASSIC[a] && CLASSIC[a].has(b))) s = Math.max(s, 0.88 + raw * 0.12);
+  else if (kn === 1) s = Math.max(s, 0.72 + raw * 0.2);
+  else if (usual(a, b)) s = Math.max(s, 0.6 + raw * 0.25);
+  return { s: Math.min(1, s), kn, af, ct };
+}
 export function comboCheck(ids) {
-  const links = []; let total = 0, pairs = 0;
-  for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) { const af = affinity(ids[i], ids[j]), ct = contrast(ids[i], ids[j]); total += af.s + ct * 0.4; pairs++; if (af.s >= 0.25 || ct >= 0.5) links.push([ids[i], ids[j], whyPair(ids[i], ids[j], af, ct)]); }
-  const tastes = new Set(ids.flatMap(id => ((A[id] || {}).t || '').split('').filter(Boolean)));
+  const links = [], n = ids.length, best = new Array(n).fill(0); let total = 0, pairs = 0;
+  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+    const f = pairFit(ids[i], ids[j]); total += f.s; pairs++; best[i] = Math.max(best[i], f.s); best[j] = Math.max(best[j], f.s);
+    if (f.s >= 0.45 || f.kn === -1) links.push([ids[i], ids[j], f.kn === -1 ? 'cooks usually keep these apart' : whyPair(ids[i], ids[j], f.af, f.ct), f.s]);
+  }
+  links.sort((x, y) => y[3] - x[3]);
+  // a combo hangs together when every part links to something; not every pair has to match
+  const mean = pairs ? total / pairs : 0, conn = n ? best.reduce((a, x) => a + x, 0) / n : 0;
+  const tastes = new Set(ids.flatMap(id => ((A[sdi(id)] || {}).t || '').split('').filter(Boolean)));
   const need = [];
   if ((tastes.has('f') || tastes.has('s')) && !tastes.has('a')) need.push(['a', 'something sharp (lemon, lime, vinegar, pickles)']);
   if (!tastes.has('l') && !ids.some(id => CAT(id) === 'umami' || CAT(id) === 'cheese')) need.push(['l', 'something salty (cheese, soy, miso, anchovies, or just salt)']);
   if (tastes.has('b') && !tastes.has('s') && !tastes.has('f')) need.push(['s', 'a touch of sweetness or richness to soften the bitterness']);
   if (!ids.some(id => ['nutty', 'herb'].includes(CAT(id)) || ['cucumber', 'pomegranate', 'apple', 'spring-onion', 'red-onion'].includes(id))) need.push(['c', 'crunch or freshness (nuts, herbs, raw onion, pomegranate)']);
-  return { harmony: pairs ? Math.min(1, total / pairs) : 0, links, need };
+  const clashes = links.filter(l => l[2] === 'cooks usually keep these apart').length;
+  const h = n <= 2 ? mean : Math.min(1, conn * 0.55 + mean * 0.45);
+  return { harmony: Math.max(0, clashes ? Math.min(h, 0.4) - 0.1 * (clashes - 1) : h), links, need };
 }
 
 /* ---------- Build an experimental dish ---------- */
