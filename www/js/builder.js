@@ -5,6 +5,7 @@ import * as F from './flavour.js';
 import * as Chef from './chef.js';
 import * as Tech from './techniques.js';
 import * as P from './process.js';
+import { suits } from './profiles.js';
 const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
 
 /* ================= Parts ================= */
@@ -96,12 +97,12 @@ export const VEG = {
 // Anything in the catalog can be cooked: register mains/veg on the fly from the item's name
 const LEAFY = /kale|chard|rocket|lettuce|spinach|cabbage|greens|pak choi|bok choy/, HARDV = /root|parsnip|turnip|swede|beet|celeriac|squash|pumpkin|carrot|sweet potato/, QUICKV = /asparagus|bean|mangetout|pea|corn|tomato|sprout/;
 export function ensureVeg(id) {
-  if (VEG[id] || BASES[id] || !ITEM[id] || ITEM[id].cat !== 'veg') return !!VEG[id];
+  if (VEG[id] || BASES[id] || !ITEM[id] || ITEM[id].cat !== 'veg' || (ITEM[id].prof && ITEM[id].prof.off)) return !!VEG[id];
   const n = ITEM[id].n.toLowerCase(); if (/garlic|ginger|chilli|coriander|parsley|basil|thyme|rosemary|mint|sage|dill|tarragon|lemongrass|other/.test(n)) return false;
   VEG[id] = V(ITEM[id].u === 'pc' ? 0.5 : 80, LEAFY.test(n) ? 'leafy' : HARDV.test(n) ? 'hard' : QUICKV.test(n) ? 'quick' : 'firm'); return true;
 }
 export function ensureMain(id, label) {
-  if (MAINS[id]) return true; const it = ITEM[id]; if (!it || !['meat', 'fish'].includes(it.cat)) return false;
+  if (MAINS[id]) return true; const it = ITEM[id]; if (!it || !['meat', 'fish'].includes(it.cat) || (it.prof && it.prof.off)) return false;
   const nm = (label || it.n).toLowerCase(), tag = (it.tags.find(t => t.startsWith('p:')) || '').slice(2), grp = tag === 'fish' || it.cat === 'fish' ? 'fish' : ['chicken', 'beef', 'pork', 'lamb'].includes(tag) ? tag : 'beef';
   const short = nm.replace(/^(other|fresh|frozen|cooked|sliced|diced) /, '').replace(/s$/, '');
   if (/cooked|deli|smoked|tin|leftover/.test(nm)) MAINS[id] = M(nm, short, grp, 90, 'wraps salad bowl hash quesadilla friedrice pasta', { ready: true, cook: `Add the ${short} and heat through` });
@@ -363,16 +364,31 @@ let AS = null;
 const escRe = x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 function worldSwap(state, r) {
   const sw = new Map(), has = id => (state.pantry || []).some(p => p.item === id && p.qty > 0);
-  for (const p of state.pantry || []) { const it = p.item && ITEM[p.item]; if (it && it.standin && p.qty > 0 && !sw.has(it.standin) && !has(it.standin)) sw.set(it.standin, p.item); }
+  for (const p of state.pantry || []) { const it = p.item && ITEM[p.item]; if (it && it.standin && !(it.prof || {}).off && p.qty > 0 && !sw.has(it.standin) && !has(it.standin)) sw.set(it.standin, p.item); }
   if (AS) for (const [s0, w] of Object.entries(AS)) if (ITEM[w]) { const mine = sw.get(s0) || (state.pantry || []).map(p => p.item).find(id => id && ITEM[id] && ITEM[id].standin === s0); sw.set(s0, mine && norm(ITEM[mine].n).includes(norm(ITEM[w].n)) ? mine : w); }
   if (!sw.size) return r;
+  const mk = r.spec ? (r.spec.proc || r.spec.method) : null, notes = [];
   for (const i of r.ings) {
     const w = i.item && sw.get(i.item); if (!w) continue;
+    const pf = ITEM[w].prof; if (pf && !suits(pf, mk)) { r.unsuited = ITEM[w].n; continue; }
+    if (pf && (pf.tip || pf.prep || pf.t)) notes.push([ITEM[w].n, pf]);
     const from = ITEM[i.item], to = ITEM[w].n.toLowerCase(), names = [...new Set([from.n, i.name, from.n.replace(/s$/, ''), String(i.name || '').replace(/s$/, ''), MAINS[from.id] && MAINS[from.id].n, MAINS[from.id] && MAINS[from.id].short, VSHORT[from.id], BASES[from.id] && BASES[from.id].n].filter(x => x && x.length > 2).map(x => x.toLowerCase()))].sort((a, b) => b.length - a.length);
     const rx = new RegExp('\\b(' + names.map(escRe).join('|') + ')s?\\b', 'gi'), rep = m => m[0] === m[0].toUpperCase() ? to.charAt(0).toUpperCase() + to.slice(1) : to;
     i.item = w; i.name = to; i.raw = (i.raw || '').replace(rx, rep);
     r.title = r.title.replace(rx, rep); if (r.steps) r.steps = r.steps.map(st => st.replace(rx, rep));
     if (r.tech) for (const t of r.tech) { if (t.id === from.id) t.n = ITEM[w].n; }
+  }
+  // what's different about the real ingredient: its prep first, its cooking tip after the step that first uses it
+  if (notes.length && r.steps) {
+    const tl = r.timeline, put = (k, text, near) => { r.steps.splice(k, 0, text); if (tl && tl.length) { const nb = tl[Math.min(near, tl.length - 1)] || {}; tl.splice(k, 0, { at: nb.at, t: 0, comp: nb.comp, passive: false, oven: false }); } };
+    for (const [n, pf] of notes) {
+      const low = n.toLowerCase(), first = r.steps.findIndex(st => st.toLowerCase().includes(low));
+      // the tip carries its own timing: take the stand-in's timing out of that step so they don't argue
+      if (pf.tip && first >= 0 && /\d/.test(pf.tip)) r.steps[first] = r.steps[first].split(/(?<=\.)\s+/).map(se => !se.toLowerCase().includes(low) ? se : se.replace(/,?\s*(for the last )?\(?\b\d+(?:–\d+)?\s*(?:minutes?|mins?)\b(?: a side)?\)?/g, '').replace(/,?\s*(just )?until (pink|golden and cooked through|cooked through)/g, '').replace(/\s+([,.])/g, '$1').replace(/,\s*,/g, ',').replace(/\b(boil|simmer|fry|roast|cook)(?= and )/, '$1')).join(' ');
+      if (pf.tip && first >= 0) put(first + 1, `${n}: ${pf.tip.charAt(0).toLowerCase() + pf.tip.slice(1)}`, first);
+      if (pf.prep) put(0, `Get the ${low} ready: ${pf.prep.charAt(0).toLowerCase() + pf.prep.slice(1)}`, 0);
+      if (pf.t) r.time = (r.time || 0) + pf.t;
+    }
   }
   return r;
 }
@@ -1045,7 +1061,7 @@ export function options(state, opts = {}, n = 3) {
   { const w0 = opts.want || {}; if ((w0.course && !['dinner', 'lunch'].includes(w0.course)) || (w0.proc && w0.proc.proc && !P.isDinnerFam(w0.proc.proc))) {
     const seen0 = opts.seen || new Set(), titles0 = opts.seenTitles || new Set(), out = [];
     let pc = []; try { pc = P.candidates(state, { ...opts, allowSlow: true }, 4); } catch (e) { console.warn('process', e); }
-    for (const x of pc) { if (out.length >= n) break; const k = specKey(x.sp) + JSON.stringify(x.sp.px || {}); if (seen0.has(k) || titles0.has(x.r.title)) continue; if (!w0.proc && out.some(o => o.spec.proc === x.sp.proc)) continue; seen0.add(k); titles0.add(x.r.title); out.push(worldSwap(state, x.r)); }
+    for (const x of pc) { if (out.length >= n) break; const k = specKey(x.sp) + JSON.stringify(x.sp.px || {}); if (seen0.has(k) || titles0.has(x.r.title)) continue; const xr = worldSwap(state, x.r); if (xr.unsuited) continue; if (!w0.proc && out.some(o => o.spec.proc === x.sp.proc)) continue; seen0.add(k); titles0.add(x.r.title); out.push(xr); }
     AS = null; return out; } }
   const picked = [], w = { ...(opts.want || {}) }, seen = opts.seen || new Set();
   let pool = candidates(state, { ...opts, want: w });
@@ -1068,7 +1084,7 @@ export function options(state, opts = {}, n = 3) {
     { const famOf = sp => sp.proc ? sp.method.slice(2) : ({ roast: 'roast', curry: 'curry', soup: 'soup', risotto: 'risotto', pie: 'pie', bake: 'bake', stirfry: 'stirfry', braise: 'stew' })[sp.method];
       const f = famOf(best.sp); if (f && picked.some(p => famOf(p.sp) === f && p.sp.main === best.sp.main && !!p.sp.proc !== !!best.sp.proc)) continue; }
     const r = buildMeal(state, best.sp, opts.serves, opts.stock);
-    if (!r) continue;
+    if (!r || r.unsuited) continue;
     if (titles.has(r.title)) continue; titles.add(r.title); seen.add(specKey(best.sp)); best.r = r; picked.push(best);
   }
   AS = null;
@@ -1077,7 +1093,7 @@ export function options(state, opts = {}, n = 3) {
 // Process dishes (bakes, pies, curries, risotto, soups, roasts) for a collection
 export function processDishes(state, opts, fams, n = 6) {
   const got = P.candidates(state, { ...opts, allowSlow: opts.allowSlow !== false }, 4).filter(x => fams.includes(P.families().find(f => f.id === x.sp.proc).fam));
-  const out = [], seenT = new Set(); for (const x of got) { if (out.length >= n) break; const r = worldSwap(state, x.r); if (seenT.has(r.title)) continue; seenT.add(r.title); out.push(r); } return out;
+  const out = [], seenT = new Set(); for (const x of got) { if (out.length >= n) break; const r = worldSwap(state, x.r); if (r.unsuited || seenT.has(r.title)) continue; seenT.add(r.title); out.push(r); } return out;
 }
 // Alternatives for one part (used by the swap buttons)
 export function alternatives(state, sp, part, opts = {}) {
@@ -1187,7 +1203,7 @@ export function planWeek(state, dates, basket, opts = {}) {
     const next = dates[dates.indexOf(d) + 1];
     if (leftoverOk && !(MAINS[ch.sp.main] && MAINS[ch.sp.main].joint) && ch.sp.proc !== 'roastdinner' && next && !(opts.night && opts.night(next).skip) && pr !== 'variety') cook = serves * 2;
     let r = buildMeal(state, ch.sp, cook, stock);
-    for (const alt of c.slice(0, 12)) { if (!used.titles[r.title]) break; if (alt === ch) continue; ch = alt; r = buildMeal(state, ch.sp, cook, stock); }
+    for (const alt of c.slice(0, 12)) { if (!used.titles[r.title] && !r.unsuited) break; if (alt === ch) continue; ch = alt; r = buildMeal(state, ch.sp, cook, stock); }
     picks.push({ date: d, recipe: r, serves: cook });
     if (cook > serves && next) { picks.push({ date: next, recipe: r, serves, leftover: d }); cover.add(next); }
     for (const i of r.ings) if (i.item && stock.has(i.item)) stock.set(i.item, Math.max(0, stock.get(i.item) - (C.toBase(i.q, i.u, ITEM[i.item]) || 0)));
@@ -1230,7 +1246,7 @@ export function namedDish(clean) {
   return best;
 }
 export function parseWant(state, text) {
-  const as = {}, mi = ph => { const id = C.matchIngredient(ph); if (id && ITEM[id] && ITEM[id].standin) { as[ITEM[id].standin] = id; return ITEM[id].standin; } return id; };
+  const as = {}, mi = ph => { const id = C.matchIngredient(ph); if (id && ITEM[id] && ITEM[id].standin && !(ITEM[id].prof || {}).off) { as[ITEM[id].standin] = id; return ITEM[id].standin; } return id; };
   const t = ' ' + norm(text) + ' ', want = { veg: [] }, exclude = new Set(), mods = {};
   for (const m of t.matchAll(/\b(?:no|without|not|hate|minus)\s+([a-z ]+?)(?=\s(?:and|or|with|but|please|,)\s|$|\s{2})/g)) { const id = mi(m[1].trim()); if (id) exclude.add(id); { const wd = norm(m[1].trim()).replace(/s$/, ''); if (wd.length >= 4) for (const it of Object.values(ITEM)) if (!it.world && (norm(it.n).split(' ').some(x => x.replace(/s$/, '') === wd) || (it.al || []).some(a => norm(a).split(' ').some(x => x.replace(/s$/, '') === wd)))) exclude.add(it.id); } for (const [kid, k] of Object.entries(KITS)) if ((k.words || '').split(' ').some(w => w && m[1].includes(w))) exclude.add(kid); }
   let clean = t.replace(/\b(?:no|without|not|hate|minus)\s+[a-z]+(?: [a-z]+)?/g, ' ');

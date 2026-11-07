@@ -1,5 +1,6 @@
 // Mise — core logic: storage, parsing, matching, planning, list, pricing, pantry, receipts, roast, builder, AI.
 import { ALG, DIET_ALG } from './allergens.js';
+import { profileOf } from './profiles.js';
 import { CATALOG, ITEM, AISLES, BUILTIN, B_PROTEIN, B_BASE, B_STYLE, B_VEG } from './data.js';
 
 /* ================= Storage (IndexedDB with localStorage fallback) ================= */
@@ -148,7 +149,7 @@ export function ensureWorld(id, name, syn) {
   if (!id || ITEM[id]) return id;
   const m = /^w:([a-z0-9-]+):(.+)$/.exec(id); if (!m || !ITEM[m[1]]) return null;
   const sid = m[1], b = ITEM[sid], nm = name || (WORLD.byId && WORLD.byId.get(id) && WORLD.byId.get(id).n) || m[2].replace(/-/g, ' ').replace(/^./, c => c.toUpperCase());
-  ITEM[id] = { ...b, id, n: nm, al: syn || [], standin: sid, world: true, staple: false, tags: [], conv: { ...b.conv } };
+  ITEM[id] = { ...b, id, n: nm, al: syn || [], standin: sid, world: true, staple: false, tags: [], conv: { ...b.conv }, prof: profileOf(nm, sid) };
   return id;
 }
 export function loadWorld(json) {
@@ -160,7 +161,7 @@ export function loadWorld(json) {
 // Your own names for things ("it's like…"), kept in your data
 export function customWorld(state) { for (const [k, c] of Object.entries(state.custom || {})) { const e = { id: 'w:' + c.sid + ':' + slug(c.n), n: c.n, sid: c.sid, syn: [] }; if (!ITEM[c.sid]) continue; WORLD.exact.set(k, e); WORLD.byId && WORLD.byId.set(e.id, e); ensureWorld(e.id, c.n); } }
 export function learnLike(state, name, sid) { const k = norm(name); if (!k || !ITEM[sid]) return null; state.custom = state.custom || {}; state.custom[k] = { n: name.trim().replace(/^./, c => c.toUpperCase()), sid }; customWorld(state); return 'w:' + sid + ':' + slug(name); }
-export const standinOf = id => (id && ITEM[id] && ITEM[id].standin) || id;
+export const standinOf = id => (id && ITEM[id] && ITEM[id].standin && !(ITEM[id].prof && ITEM[id].prof.off)) ? ITEM[id].standin : id;
 
 export function matchIngredient(name) {
   const n = norm(name);
@@ -895,7 +896,7 @@ export function bestPrice(state, itemId) {
 }
 
 /* ================= Pantry ================= */
-export function pantryQty(state, itemId) { return state.pantry.filter(p => p.item === itemId || (p.item && ITEM[p.item] && ITEM[p.item].standin === itemId)).reduce((a, p) => a + (p.qty || 0), 0); }
+export function pantryQty(state, itemId) { return state.pantry.filter(p => p.item === itemId || (p.item && ITEM[p.item] && ITEM[p.item].standin === itemId && !(ITEM[p.item].prof || {}).off)).reduce((a, p) => a + (p.qty || 0), 0); }
 // Spice rack: the cupboard things you tick once, instead of guessing
 export const RACK = [
   ['Spices & dried herbs', 'salt black-pepper paprika cumin chilli-powder chilli-flakes cayenne curry-powder garam-masala turmeric ground-coriander ground-ginger cinnamon nutmeg five-spice oregano mixed-herbs dried-thyme dried-rosemary dried-basil bay-leaves garlic-granules onion-granules cajun-spice fajita-mix peri-spice star-anise cardamom fennel-seeds cocoa vanilla'],

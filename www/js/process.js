@@ -517,7 +517,7 @@ const MORE = {
       broccoli: { n: '& broccoli', words: 'beef and broccoli|beef & broccoli|chicken and broccoli', only: 'steak chicken-breast chicken-thigh tofu', sauce: [['soy-sauce', 15, 'ml'], ['oyster-sauce', 15, 'ml'], ['sugar', 3]], veg: 'broccoli' },
       kungpao: { n: 'kung pao', words: 'kung pao|kung po|gong bao', sauce: [['soy-sauce', 12, 'ml'], ['vinegar', 10, 'ml'], ['sugar', 5]], extra: [['chilli-flakes', 0.25, 'tsp']], nuts: true, spice: 2, only: 'chicken-breast chicken-thigh prawns tofu' },
       sweetsour: { n: 'sweet & sour', words: 'sweet and sour|sweet & sour', sauce: [['ketchup', 20], ['vinegar', 15, 'ml'], ['sugar', 8], ['soy-sauce', 5, 'ml']], pine: true, only: 'chicken-breast chicken-thigh pork-fillet prawns tofu' },
-      honeychilli: { n: 'honey chilli', words: 'honey chilli|crispy chilli', sauce: [['honey', 15], ['soy-sauce', 12, 'ml'], ['sweet-chilli', 10, 'ml']], extra: [['chilli', 0.25, '']], spice: 1 } },
+      honeychilli: { n: 'honey chilli', words: 'honey chilli|crispy chilli|chilli chicken|chicken chilli|chilli beef|chilli prawns|chilli pork', sauce: [['honey', 15], ['soy-sauce', 12, 'ml'], ['sweet-chilli', 10, 'ml']], extra: [['chilli', 0.25, '']], spice: 1 } },
     title: (d, m, x) => { const w = { 'chicken-breast': 'chicken', 'chicken-thigh': 'chicken', steak: 'beef', 'pork-fillet': 'pork', prawns: 'prawn', tofu: 'tofu' }[m], S = MORE.stirfry.styles[x.style];
       return x.style === 'broccoli' ? `${w.charAt(0).toUpperCase() + w.slice(1)} & broccoli` : x.style === 'kungpao' ? `Kung pao ${w}` : x.style === 'sweetsour' ? `Sweet & sour ${w}` : `${S.n.charAt(0).toUpperCase() + S.n.slice(1)} ${w} stir-fry`; },
     make(d, m, x) {

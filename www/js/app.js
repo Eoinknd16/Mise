@@ -64,7 +64,7 @@ function route() {
   ui.prevRoute = ui.route;
   let h = (location.hash || '#builder').slice(1);
   if (OLD_ROUTES[h]) { h = OLD_ROUTES[h]; history.replaceState(null, '', '#' + h); }
-  if (h.startsWith('ing/')) { const id = decodeURIComponent(h.slice(4)); if (ITEM[id]) ui.ingId = id; h = 'ing'; }
+  if (h.startsWith('ing/')) { const id = decodeURIComponent(h.slice(4)); if (id.startsWith('w:')) C.ensureWorld(id); if (ITEM[id]) ui.ingId = id; h = 'ing'; }
   if (h === 'tour') { history.replaceState(null, '', '#plan'); ui.route = 'plan'; route(); setTimeout(startTour, 150); return; }
   ui.route = TITLES[h] ? h : 'builder';
   if (ui.route === 'quiz' && (!ui.quiz || ui.quiz.stage === 'done' || (ui.quiz.stage === 'swipe' && ui.quiz.i >= (ui.quiz.deck || []).length))) ui.quiz = { stage: 'diet', first: ui.quiz && ui.quiz.first };
@@ -721,14 +721,16 @@ function viewIng() {
   if (!it) return `<div class="empty"><h3>Pick an ingredient</h3><p>Tap any ingredient in a recipe, or search the Flavour lab.</p><a class="btn" href="#lab">Flavour lab</a></div>`;
   const sid = it.standin || id;
   const have = C.pantryQty(S, id), ar = F.aroma(id), notes = ar && ar.n ? Object.entries(ar.n).sort((a, b) => b[1] - a[1]).filter(x => F.NOTES[x[0]]).slice(0, 4).map(x => F.NOTES[x[0]]) : [];
-  const t = ingTaste(sid), n = K.ready() ? K.nutritionOf(id) : null, best = TQ.bestTechniques(id), prep = PX.PREP[id], vars = PX.VARIETY[id];
-  let P = null; try { P = ar ? F.partners(S, sid, { n: 10 }) : null; } catch (e) { P = null; }
+  const t = ingTaste(sid), n = K.ready() ? K.nutritionOf(id) : null, best = it.prof && (it.prof.tip || it.prof.off) ? [] : TQ.bestTechniques(id), prep = PX.PREP[id], vars = PX.VARIETY[id];
+  let P = null; try { P = ar && !(it.prof && it.prof.off) ? F.partners(S, sid, { n: 10 }) : null; } catch (e) { P = null; }
   let sub = null; try { sub = C.substitutesFor(S, { item: sid, name: ITEM[sid].n, q: 1, u: '' }); } catch (e) { sub = null; }
   const like = C.likeOf(S, { item: id, name: it.n });
   let h = `<section class="ing-hero">${tile({ spec: { method: { meat: 'roast', fish: 'panfry', veg: 'salad', fruitveg: 'salad', dairy: 'bake', pantry: 'simmer', spices: 'curry' }[it.cat] || 'simmer' } }, 'ing-tile')}<div class="grow"><div class="eyebrow">${esc({ fruitveg: 'Fruit & veg', meat: 'Meat', fish: 'Fish', dairy: 'Dairy', chilled: 'Chilled', frozen: 'Frozen', bakery: 'Bakery', pantry: 'Cupboard', spices: 'Spices & sauces', snacks: 'Snacks', drinks: 'Drinks' }[it.a] || it.a)}</div><h2>${esc(it.n)}</h2>
     <div class="small ${have > 0 ? '' : 'muted'}">${have > 0 ? `<b style="color:var(--accent)">In your kitchen</b>` : 'Not in your kitchen'}${like > 0 ? ' · you love it' : like <= -9 ? " · can't eat" : like < 0 ? " · you don't like it" : ''}</div></div></section>
-    ${it.standin ? `<p class="note yours" style="margin:10px 0 0">Mise cooks ${esc(it.n.toLowerCase())} like <a href="#ing/${it.standin}">${esc(ITEM[it.standin].n.toLowerCase())}</a>, and keeps your name for it in recipes.</p>` : ''}
-    <button class="btn primary block" data-act="ingMeals" data-val="${id}" style="margin-top:10px">Meals with ${esc(it.n.toLowerCase())}</button>`;
+    ${it.standin ? (it.prof && it.prof.off ? `<p class="note yours" style="margin:10px 0 0">Mise knows ${esc(it.n.toLowerCase())}, but doesn't build dinners around it.</p>` : `<p class="note yours" style="margin:10px 0 0">Mise cooks ${esc(it.n.toLowerCase())} the way it cooks <a href="#ing/${it.standin}">${esc(ITEM[it.standin].n.toLowerCase())}</a>${it.prof && (it.prof.tip || it.prof.only || it.prof.not) ? ', with the changes below' : ''}, and keeps your name for it in recipes.</p>`) : ''}
+    ${it.prof && it.prof.off ? '' : `<button class="btn primary block" data-act="ingMeals" data-val="${id}" style="margin-top:10px">Meals with ${esc(it.n.toLowerCase())}</button>`}`;
+  const pf = it.prof;
+  if (pf && (pf.taste || pf.prep || pf.tip || pf.t)) h += `<section class="r-sec"><h3>Know your ${esc(it.n.toLowerCase())}</h3><div class="ilist">${[['What it\'s like', pf.taste], ['Getting it ready', pf.prep], ['Cooking it', pf.tip], ['Time', pf.t ? `Allow about ${pf.t} minutes more than ${ITEM[it.standin].n.toLowerCase()}.` : '']].filter(x => x[1]).map(([w, d]) => `<div><b>${esc(w)}</b><span>${esc(d)}</span></div>`).join('')}</div></section>`;
   if (notes.length || (t && t.some(x => x[1] > 0.05))) h += `<section class="r-sec"><h3>Flavour</h3>${notes.length ? `<p class="small" style="margin:4px 0 8px">${esc(notes.join(', '))}</p>` : ''}${t && t.some(x => x[1] > 0.05) ? `<div class="tbars">${t.filter(x => x[1] > 0.04).map(([k, v]) => `<div><span>${k}</span><i><b style="width:${Math.round(v * 100)}%"></b></i></div>`).join('')}</div>` : ''}</section>`;
   if (best.length) h += `<section class="r-sec"><h3>Best ways to cook it</h3><div class="ilist">${best.slice(0, 5).map(tq => { const nt = TQ.noteOf(id, tq) || {}; return `<div><b>${esc(cap(TQ.TECH_NAMES[tq] || tq))}</b>${nt.time || nt.prep || nt.heat ? `<span>${esc([nt.prep, nt.time, nt.heat].filter(Boolean).join(' · '))}</span>` : ''}${nt.done ? `<span>Done: ${esc(nt.done)}</span>` : ''}</div>`; }).join('')}</div>${TQ.safeOf(id) ? `<p class="tiny muted" style="margin:6px 0 0">Safe to eat: ${esc(TQ.safeOf(id))}</p>` : ''}</section>`;
   if (prep) h += `<section class="r-sec"><h3>Ways to prepare it</h3><div class="ilist">${prep.map(([w, d]) => `<div><b>${esc(w)}</b><span>${esc(d)}</span></div>`).join('')}</div></section>`;
