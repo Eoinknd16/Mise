@@ -551,7 +551,7 @@ const TILE_OF = { roast: ['oven', '#7d4527'], traybake: ['oven', '#8a5a2b'], bak
   simmer: ['pot', '#8f3f2c'], curry: ['pot', '#9a3d22'], soup: ['pot', '#7a3b4a'], noodlesoup: ['bowl', '#2e5a6b'], pulled: ['pot', '#6b3b26'],
   wraps: ['wrap', '#7d5631'], quesadilla: ['wrap', '#a0661f'], burgers: ['wrap', '#6f4a2e'], flatbread: ['wrap', '#93542a'],
   frittata: ['egg', '#a0711c'], shakshuka: ['egg', '#9b3f26'], loaded: ['oven', '#4f5f3a'],
-  'p-bake': ['oven', '#8a3f2f'], 'p-pie': ['oven', '#7a5a2e'], 'p-curry': ['pot', '#a2481f'], 'p-risotto': ['bowl', '#6c6a3b'], 'p-soup': ['pot', '#5e7a3a'], 'p-roast': ['oven', '#6b3a25'], 'p-breakfast': ['egg', '#b0782a'], 'p-dessert': ['spark', '#8a4a5e'], 'p-baking': ['oven', '#9a6a33'] };
+  'p-bake': ['oven', '#8a3f2f'], 'p-pie': ['oven', '#7a5a2e'], 'p-curry': ['pot', '#a2481f'], 'p-risotto': ['bowl', '#6c6a3b'], 'p-soup': ['pot', '#5e7a3a'], 'p-roast': ['oven', '#6b3a25'], 'p-breakfast': ['egg', '#b0782a'], 'p-dessert': ['spark', '#8a4a5e'], 'p-baking': ['oven', '#9a6a33'], 'p-stirfry': ['pan', '#2f6b62'], 'p-stew': ['pot', '#5b3a2e'], 'p-quiche': ['oven', '#a0711c'], 'p-dumplings': ['bowl', '#8a4a24'] };
 function tile(r, cls) {
   const m = r && r.spec && r.spec.method, [ic, col] = r && r.exp ? ['spark', '#6b2f57'] : TILE_OF[m] || ['pot', 'var(--accent)'];
   return `<div class="tile ${cls || ''}" style="--tc:${col}" aria-hidden="true">${TILE_ICON[ic]}</div>`;
@@ -1276,7 +1276,11 @@ const A = {
   addMissing: () => { const r = ui.sheetRecipe; let n = 0; for (const i of r.ings) { const it = i.item && ITEM[i.item]; if (!it || it.staple || C.pantryQty(S, it.id) > 0 || C.subOf(S, i) || S.list.extras.some(x => x.item === it.id)) continue; S.list.extras.push({ item: it.id, name: it.n, qty: it.packs[0] }); n++; } save(); updateBadge(); toast(n ? `${n} added to your list` : 'Already on your list'); },
   cookFromSheet: () => { const r = ui.sheetRecipe, ctx = ui.sheetCtx; closeSheet(false, () => cookModeOpen(r, ui.sheetServes || r.serves, ctx)); },
   cookClose: () => cookModeClose(),
-  cookNext: () => { const k = ui.cook; if (k && k.step < k.r.steps.length) { k.step++; renderCook(); } },
+  cookNext: () => { const k = ui.cook; if (k && k.step < k.r.steps.length) { k.step++;
+    // leave-it steps (simmer, bake, prove, rest) start their own timer
+    const tk = k.r.timeline && k.r.timeline[k.step]; k.auto = k.auto || {};
+    if (tk && tk.passive && tk.t >= 3 && !k.auto[k.step]) { k.auto[k.step] = 1; k.timers.push({ label: tk.comp, end: Date.now() + tk.t * 60000, left: tk.t * 60 }); toast(`Timer started: ${tk.comp}, ${tk.t} min`); }
+    renderCook(); } },
   cookPrev: () => { const k = ui.cook; if (k && k.step > -1) { k.step--; renderCook(); } },
   cookTap: (el, ev) => { if (ev.target.closest('button')) return; const x = ev.clientX / innerWidth; if (x > 0.35) A.cookNext(); else A.cookPrev(); },
   cookTimer: el => { const k = ui.cook; const sec = +el.dataset.sec; k.timers.push({ label: el.dataset.label, end: Date.now() + sec * 1000, left: sec }); renderCook(); toast('Timer started'); },
@@ -1941,9 +1945,11 @@ function cookModeClose(fromPop) {
 function renderCook() {
   const k = ui.cook, el = $('#cookmode'); if (!k || !el) return; const r = k.r, f = k.serves / r.serves, n = r.steps.length;
   const body = k.step < 0
-    ? `<div class="ck-eyebrow">Get ready · ${k.serves} serving${k.serves > 1 ? 's' : ''}</div><h1>${esc(r.title)}</h1><ul class="ck-ings">${C.withSubs(S, r.ings).map(i => `<li><b>${esc((i.whole ? i.q + ' ' + i.u : fmtIng(i.q * f, i.u)))}</b> ${esc(i.name)}</li>`).join('')}</ul>`
+    ? `<div class="ck-eyebrow">Get ready · ${k.serves} serving${k.serves > 1 ? 's' : ''}</div><h1>${esc(r.title)}</h1>${r.timeline ? `<p class="ck-plan">Takes ${hm(r.time)}${r.active ? `, about ${r.active} min of it hands-on` : ''}. Start now and it's ready at <b>${new Date(Date.now() + r.time * 60000).toTimeString().slice(0, 5)}</b>.${r.comps && r.comps.length > 1 ? ` Made in ${r.comps.length} parts: ${esc(r.comps.join(', '))}. Mise starts the timers for you.` : ''}</p>` : ''}<ul class="ck-ings">${C.withSubs(S, r.ings).map(i => `<li><b>${esc((i.whole ? i.q + ' ' + i.u : fmtIng(i.q * f, i.u)))}</b> ${esc(i.name)}</li>`).join('')}</ul>`
     : k.step >= n ? `<div class="ck-eyebrow">All done</div><h1>Enjoy it!</h1><button class="btn primary block" data-act="cookFinish">Finished cooking</button>`
-    : `<div class="ck-eyebrow">Step ${k.step + 1} of ${n}</div><p class="ck-step">${esc(r.steps[k.step])}</p>${M.timersIn(r.steps[k.step]).map(t => `<button class="btn" data-act="cookTimer" data-sec="${t.sec}" data-label="${esc(t.label)}">⏱ Start ${esc(t.label)} timer</button>`).join('')}`;
+    : (() => { const tk = r.timeline && r.timeline[k.step], nx = r.steps[k.step + 1];
+        const tbtn = tk ? (tk.t >= 2 && !(k.auto || {})[k.step] ? `<button class="btn" data-act="cookTimer" data-sec="${tk.t * 60}" data-label="${esc(tk.comp)}">⏱ Start ${tk.t} min timer (${esc(tk.comp)})</button>` : '') : M.timersIn(r.steps[k.step]).map(t => `<button class="btn" data-act="cookTimer" data-sec="${t.sec}" data-label="${esc(t.label)}">⏱ Start ${esc(t.label)} timer</button>`).join('');
+        return `<div class="ck-eyebrow">Step ${k.step + 1} of ${n}${tk ? ' · ' + esc(tk.comp) : ''}</div><p class="ck-step">${esc(r.steps[k.step])}</p>${tbtn}${nx ? `<p class="ck-next"><b>Next up</b> ${esc(nx.length > 110 ? nx.slice(0, 107).replace(/\s+\S*$/, '') + '…' : nx)}</p>` : ''}`; })();
   el.innerHTML = `<div class="ck-top"><button class="icon-btn" data-act="cookClose" aria-label="Close">${ICON.x}</button><div class="ck-dots">${Array.from({ length: n + 1 }, (_, i) => `<i class="${i - 1 <= k.step ? 'on' : ''}"></i>`).join('')}</div><button class="icon-btn" data-act="cookVoice" aria-label="Hands-free" style="${recog ? 'background:var(--accent);color:var(--accent-ink)' : ''}">🎤</button></div>
     <div class="ck-timers">${k.timers.map((t, i) => `<button class="ck-timer${t.left <= 0 ? ' ring' : ''}" data-act="cookTimerX" data-idx="${i}">${esc(t.label)} · <b>${t.left <= 0 ? 'Done!' : fmtClock(t.left)}</b></button>`).join('')}</div>
     <div class="ck-body" data-act="cookTap">${body}</div>

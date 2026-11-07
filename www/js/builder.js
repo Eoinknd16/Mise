@@ -336,7 +336,7 @@ export function partTaste(state) {
   tasteCache = { key, t }; return t;
 }
 // process dishes (process.js) have their own techniques; these entries only name them
-Object.assign(METHODS, { 'p-bake': { n: 'oven bake', t: 90, slow: true, batch: true }, 'p-pie': { n: 'pie', t: 70, batch: true }, 'p-curry': { n: 'curry', t: 45, batch: true }, 'p-risotto': { n: 'risotto', t: 35 }, 'p-soup': { n: 'soup', t: 35, batch: true }, 'p-roast': { n: 'roast dinner', t: 120, slow: true, joint: true }, 'p-breakfast': { n: 'breakfast', t: 20 }, 'p-dessert': { n: 'dessert', t: 45 }, 'p-baking': { n: 'baking', t: 60 } });
+Object.assign(METHODS, { 'p-bake': { n: 'oven bake', t: 90, slow: true, batch: true }, 'p-pie': { n: 'pie', t: 70, batch: true }, 'p-curry': { n: 'curry', t: 45, batch: true }, 'p-risotto': { n: 'risotto', t: 35 }, 'p-soup': { n: 'soup', t: 35, batch: true }, 'p-roast': { n: 'roast dinner', t: 120, slow: true, joint: true }, 'p-breakfast': { n: 'breakfast', t: 20 }, 'p-dessert': { n: 'dessert', t: 45 }, 'p-baking': { n: 'baking', t: 60 }, 'p-stirfry': { n: 'stir-fry', t: 25 }, 'p-stew': { n: 'stew', t: 120, slow: true, batch: true }, 'p-quiche': { n: 'quiche', t: 90 }, 'p-dumplings': { n: 'dumplings', t: 75 } });
 const sq = v => Math.tanh((v || 0) / 3) * 3;
 
 /* ================= Is a part allowed for you? ================= */
@@ -1065,7 +1065,7 @@ export function options(state, opts = {}, n = 3) {
       if (v > bv) { bv = v; best = x; } }
     pool = pool.filter(x => x !== best);
     // the same dish from both engines (a roast beef dinner twice): keep the first
-    { const famOf = sp => sp.proc ? sp.method.slice(2) : ({ roast: 'roast', curry: 'curry', soup: 'soup', risotto: 'risotto', pie: 'pie', bake: 'bake' })[sp.method];
+    { const famOf = sp => sp.proc ? sp.method.slice(2) : ({ roast: 'roast', curry: 'curry', soup: 'soup', risotto: 'risotto', pie: 'pie', bake: 'bake', stirfry: 'stirfry', braise: 'stew' })[sp.method];
       const f = famOf(best.sp); if (f && picked.some(p => famOf(p.sp) === f && p.sp.main === best.sp.main && !!p.sp.proc !== !!best.sp.proc)) continue; }
     const r = buildMeal(state, best.sp, opts.serves, opts.stock);
     if (!r) continue;

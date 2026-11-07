@@ -113,7 +113,8 @@ basmati|Basmati rice|pantry|g|1000|1.99|700|pantry|basmati|
 noodles|Noodles|pantry|g|250|0.89|700|pantry|egg noodles;rice noodles;udon;ramen noodles||nest:60
 couscous|Couscous|pantry|g|500|0.99|700|pantry||
 oats|Porridge oats|pantry|g|1000|1.19|300|pantry|oats;rolled oats;porridge|
-flour|Plain flour|pantry|g|1000|0.79|300|pantry|flour;cornflour;cornstarch;corn starch|s
+flour|Plain flour|pantry|g|1000|0.79|300|pantry|flour|s
+cornflour|Cornflour|pantry|g|400|0.99|700|pantry|cornflour;cornstarch;corn starch;corn flour|s
 self-raising-flour|Self-raising flour|pantry|g|1000|0.89|300|pantry|self raising flour;self-raising;sr flour|s
 strong-flour|Strong white flour|pantry|g|1000|1.29|300|pantry|strong flour;bread flour;strong white flour;00 flour;pizza flour|s
 sugar|Sugar|pantry|g|1000|1.29|700|pantry|caster sugar;granulated sugar|s
@@ -199,8 +200,9 @@ juice|Juice|drinks|ml|1000|1.29|10|drinks|orange juice;apple juice;oj|
 fizzy|Fizzy drinks|drinks|ml|2000|1.79|180|fizzy|cola;coca cola;coke;pepsi;7up;fanta;lemonade;soft drink;mineral|
 energy|Energy drinks|drinks|ml|250|0.99|180|energy|energy drink;red bull;monster;lucozade|
 water|Sparkling water|drinks|ml|1500|0.49|365|drinks|water;still water;sparkling water|
-beer|Beer|drinks|ml|2000|5.99|180|alcohol|lager;cider;stout;cans|
+beer|Beer|drinks|ml|2000|5.99|180|alcohol|lager;cider;cans|
 wine|Wine|drinks|ml|750|6.99|365|alcohol|red wine;white wine;rose wine|
+stout|Stout|drinks|ml|500|2.29|365|alcohol|stout;guinness;porter;murphys;beamish|
 toilet-roll|Toilet roll|household|pc|9|3.99|999|household|toilet tissue;loo roll|
 kitchen-roll|Kitchen roll|household|pc|2|1.79|999|household|kitchen towel;paper towels|
 washing-up|Washing-up liquid|household|pc|1|1.29|999|household|washing up liquid;dish soap|
