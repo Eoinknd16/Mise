@@ -73,7 +73,7 @@ diced-beef|Diced beef|meat|g|400|4.99|3|meat|stewing beef;beef chuck;braising st
 beef-brisket|Beef brisket|meat|g|1000|8.99|4|meat|brisket;chuck roast;pulled beef;beef brisket joint|p:beef
 pork-chop|Pork chops|meat|g|500|3.99|3|meat|pork chop;pork chops;loin chops|p:pork|chop:200
 pork-mince|Pork mince|meat|g|500|2.99|3|meat|minced pork;ground pork|p:pork
-sausages|Sausages|meat|pc|8|1.99|5|meat|sausage;pork sausages|p:pork
+sausages|Sausages|meat|pc|8|1.99|5|meat|sausage;pork sausages;bangers;banger;bangers and mash|p:pork
 bacon|Rashers|meat|g|300|2.49|7|meat|bacon;rashers;streaky bacon;back bacon;smoked bacon;lardons;pancetta|p:pork|rasher:25;slice:25
 lamb-mince|Lamb mince|meat|g|500|4.99|3|meat|minced lamb;ground lamb|p:lamb
 lamb|Diced lamb|meat|g|500|6.99|3|meat|diced lamb;lamb pieces;lamb stewing;lamb neck|p:lamb

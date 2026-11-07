@@ -107,7 +107,7 @@ export function toBase(q, u, item) {
   if (u === '' || u === 'piece' || u === 'large' || u === 'medium' || u === 'small' || u === 'whole') {
     if (item.u === 'pc') return q * (u === 'large' ? 1.3 : u === 'small' ? 0.7 : 1);
     const first = Object.values(conv)[0];
-    return q * (first || 100) * (u === 'large' ? 1.3 : u === 'small' ? 0.7 : 1);
+    return q * (first || (item.packs[0] <= 60 ? 1 : 100)) * (u === 'large' ? 1.3 : u === 'small' ? 0.7 : 1); // a bay leaf or a sprig weighs a gram, not 100 g
   }
   if (u === 'tin' || u === 'can') return item.u === 'pc' ? q : q * 400;
   if (u === 'pack' || u === 'bag' || u === 'jar' || u === 'pot') return q * item.packs[0];

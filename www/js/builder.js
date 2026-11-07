@@ -154,6 +154,10 @@ export const KITS = {
   cajun: K('Cajun', 'Cajun', { feel: 'American', spice: 2, tags: ['fl:spicy', 'fl:smoky'], core: [['paprika', 1, 'tsp'], ['chilli-powder', 0.25, 'tsp'], ['oregano', 0.25, 'tsp'], ['garlic', 1, '']], rub: 'paprika, oregano, garlic, a pinch of chilli and salt', methods: 'sticky roast hash salad traybake panfry bowl wraps', mains: 'chicken-wings whole-chicken chicken-drum pork-fillet turkey-breast chorizo cooked-chicken chicken-thigh chicken-breast salmon prawns sausages halloumi', bases: 'rice chips potato couscous rice potato sweet-potato wraps', vegPref: 'pepper red-onion sweetcorn onion', words: 'cajun creole jambalaya' }),
   cajuncream: K('Creamy Cajun', 'creamy Cajun', { feel: 'American', spice: 1, tags: ['fl:creamy', 'fl:spicy'], core: [['paprika', 1, 'tsp'], ['chilli-powder', 0.25, 'tsp'], ['garlic', 1, ''], ['cream', 60, 'ml']], extra: [['parmesan', 10, 'g']], sauce: 'paprika, garlic and a pinch of chilli, then the cream', methods: 'pasta panfry', mains: 'chicken-breast chicken-thigh prawns sausages salmon', bases: 'pasta rice', vegPref: 'pepper onion spinach', words: 'cajun creamy' }),
   peri: K('Peri-peri', 'peri-peri', { feel: 'Portuguese', spice: 2, tags: ['fl:spicy', 'fl:zesty'], core: [['paprika', 1, 'tsp'], ['chilli', 0.5, ''], ['lemon', 0.25, ''], ['garlic', 1, '']], rub: 'paprika, chopped chilli, garlic, lemon juice and oil', methods: 'roast sticky salad hash traybake wraps burgers bowl', mains: 'whole-chicken chicken-wings chicken-drum chorizo chicken-thigh chicken-breast halloumi prawns', bases: 'chips rice potato couscous rice chips wraps buns potato', vegPref: 'pepper red-onion sweetcorn salad coleslaw', words: 'peri piri nandos portuguese' }),
+  jerk: K('Jerk', 'jerk', { feel: 'Caribbean', spice: 2, tags: ['fl:spicy', 'fl:smoky'], core: [['cinnamon', 0.25, 'tsp'], ['nutmeg', 0.15, 'tsp'], ['thyme', 2, 'g'], ['chilli', 0.5, ''], ['lime', 0.25, ''], ['soy-sauce', 7, 'ml']], extra: [['brown-sugar', 5, 'g'], ['spring-onion', 1, ''], ['ginger', 5, 'g']], rub: 'allspice (or cinnamon and nutmeg), thyme, chopped scotch bonnet or chilli, spring onion, ginger, garlic, lime, soy and a little brown sugar, blitzed or pounded into a paste', finish: 'lime wedges', methods: 'traybake roast sticky bowl wraps', mains: 'chicken-thigh chicken-drum chicken-wings whole-chicken pork-chop pork-belly prawns halloumi', bases: 'rice rice chips', vegPref: 'pepper sweetcorn red-onion salad', words: 'jerk caribbean jamaican' }),
+  shawarma: K('Shawarma', 'shawarma', { feel: 'Middle Eastern', spice: 1, tags: ['fl:zesty'], core: [['cumin', 0.5, 'tsp'], ['paprika', 0.5, 'tsp'], ['cinnamon', 0.15, 'tsp'], ['lemon', 0.25, ''], ['garlic', 1, '']], extra: [['yogurt', 40, 'g'], ['cucumber', 0.15, ''], ['red-onion', 0.25, '']], rub: 'cumin, paprika, a pinch of cinnamon and turmeric, garlic, lemon juice, yogurt and oil', finish: 'garlic yogurt, pickled red onion and cucumber', methods: 'wraps flatbread traybake bowl salad', mains: 'chicken-thigh chicken-breast lamb-mince lamb-chops cooked-lamb chickpeas halloumi veggie-chicken', bases: 'pitta wraps naan rice couscous', vegPref: 'red-onion cucumber cherry-tomato salad pepper', words: 'shawarma kebab doner falafel' }),
+  padthai: K('Pad Thai-style', 'pad Thai', { feel: 'Thai', spice: 1, tags: ['fl:sweet', 'fl:zesty'], core: [['peanut-butter', 10, 'g'], ['lime', 0.5, ''], ['soy-sauce', 10, 'ml'], ['brown-sugar', 5, 'g']], extra: [['eggs', 1, ''], ['spring-onion', 1, ''], ['nuts', 15, 'g'], ['fish-sauce', 5, 'ml']], sauce: 'lime juice, soy (and fish sauce if you have it), a little brown sugar and a spoon of peanut butter loosened with water', finish: 'crushed peanuts, lime and spring onion', methods: 'stirfry', mains: 'chicken-breast chicken-thigh prawns tofu eggs veggie-chicken', bases: 'noodles', vegPref: 'sugar-snap pepper carrot spring-onion', words: 'pad thai padthai' }),
+  caesar: K('Caesar-style', 'Caesar', { feel: 'American', tags: ['fl:creamy'], core: [['parmesan', 15, 'g'], ['mayo', 20, 'g'], ['lemon', 0.25, ''], ['garlic', 0.5, '']], extra: [['anchovies', 2, 'g'], ['bread', 1, ''], ['salad', 60, 'g']], sauce: 'a quick Caesar dressing: mayo, grated parmesan, crushed garlic, lemon juice and a mashed anchovy if you have one', finish: 'shaved parmesan and garlicky croutons', methods: 'salad wraps', mains: 'chicken-breast chicken-thigh cooked-chicken prawns bacon halloumi', bases: 'bread wraps', vegPref: 'salad cherry-tomato cucumber', words: 'caesar' }),
   greek: K('Greek-style', 'Greek', { feel: 'Greek', tags: ['fl:zesty', 'fl:herby'], core: [['oregano', 0.5, 'tsp'], ['lemon', 0.25, ''], ['garlic', 1, '']], extra: [['feta', 30, 'g'], ['yogurt', 40, 'g'], ['cucumber', 0.15, '']], rub: 'oregano, lemon, garlic and olive oil', finish: 'feta and a quick yogurt-cucumber dip', methods: 'roast pulled salad flatbread traybake wraps bowl', mains: 'lamb-leg whole-chicken lamb-chops chicken-drum cooked-lamb turkey-breast eggs butter-beans chicken-thigh chicken-breast lamb-mince halloumi chickpeas pork-chop', bases: 'pitta wraps pitta naan pitta wraps rice potato couscous', vegPref: 'red-onion pepper cucumber courgette cherry-tomato salad', words: 'greek souvlaki gyros kofta feta tzatziki' }),
   moroccan: K('Moroccan-spiced', 'Moroccan', { feel: 'Moroccan', spice: 1, tags: ['fl:sweet'], core: [['cumin', 0.5, 'tsp'], ['cinnamon', 0.25, 'tsp'], ['paprika', 0.5, 'tsp']], extra: [['honey', 5, 'g'], ['lemon', 0.25, '']], rub: 'cumin, cinnamon, paprika, a little honey and oil', sauce: 'cumin, cinnamon and paprika, then a tin of tomatoes', methods: 'roast braise pulled soup salad shakshuka traybake simmer bowl', mains: 'lamb-leg lamb chicken-drum cooked-lamb eggs butter-beans chicken-thigh lamb-mince chickpeas sweet-potato', bases: 'couscous bread couscous rice', vegPref: 'red-onion carrot butternut courgette pepper', words: 'moroccan tagine harissa' }),
   honeymustard: K('Honey & mustard', 'honey mustard', { feel: 'Irish', tags: ['fl:sweet'], core: [['honey', 10, 'g'], ['mustard', 8, 'g']], extra: [['thyme', 1, 'g']], rub: 'honey, mustard and thyme', sauce: 'honey and mustard', methods: 'roast sticky traybake panfry', mains: 'gammon pork-roast pork-belly pork-fillet pork-ribs chicken-wings chicken-drum sausages pork-chop chicken-thigh chicken-breast salmon', bases: 'potato chips potato rice', vegPref: 'carrot broccoli green-beans red-onion', words: 'honey mustard glazed' }),
@@ -161,7 +165,7 @@ export const KITS = {
   carbonara: K('Carbonara-style', 'carbonara-style', { feel: 'Italian', tags: ['fl:creamy', 'fl:cheesy'], core: [['parmesan', 20, 'g'], ['eggs', 1, '']], extra: [['garlic', 1, '']], sauce: 'beaten egg and parmesan, tossed off the heat', methods: 'pasta', mains: 'bacon chicken-breast', bases: 'spaghetti pasta', vegPref: 'peas onion', words: 'carbonara' }),
   egg: K('Egg fried rice', 'egg-fried', { feel: 'Chinese', tags: [], core: [['soy-sauce', 10, 'ml'], ['eggs', 1, '']], extra: [['spring-onion', 1, ''], ['garlic', 1, '']], sauce: 'soy sauce', finish: 'spring onion', methods: 'friedrice', mains: 'cooked-pork cooked-beef chicken-thigh chicken-breast prawns bacon cooked-chicken tofu eggs pork-mince', bases: 'rice', vegPref: 'peas frozen-veg onion sweetcorn pepper', words: 'fried rice' }),
   buffalo: K('Buffalo', 'buffalo', { feel: 'American', spice: 2, tags: ['fl:spicy'], core: [['hot-sauce', 10, 'ml'], ['butter', 8, 'g']], extra: [['mayo', 15, 'g']], sauce: 'hot sauce melted with a little butter', methods: 'sticky wraps burgers traybake', mains: 'chicken-wings chicken-drum chicken-breast chicken-thigh nuggets cooked-chicken', bases: 'chips wraps buns potato', vegPref: 'salad coleslaw', words: 'buffalo hot wings' }),
-  burger: K('Classic burger', 'classic', { feel: 'American', tags: ['fl:cheesy'], core: [['cheese-slices', 1, ''], ['ketchup', 15, 'g']], extra: [['mayo', 10, 'g'], ['salad', 20, 'g']], sauce: 'ketchup and mayo', methods: 'burgers wraps', mains: 'beef-mince chicken-breast halloumi pork-mince turkey-mince fish-fingers nuggets', bases: 'buns chips wraps potato', vegPref: 'salad coleslaw', words: 'burger cheeseburger smash' }),
+  burger: K('Classic burger', 'classic', { feel: 'American', tags: ['fl:cheesy'], core: [['cheese-slices', 1, ''], ['ketchup', 15, 'g']], extra: [['mayo', 10, 'g'], ['salad', 20, 'g']], sauce: 'ketchup and mayo', methods: 'burgers wraps', mains: 'burgers veggie-burgers beef-mince chicken-breast halloumi pork-mince turkey-mince fish-fingers nuggets', bases: 'buns chips wraps potato', vegPref: 'salad coleslaw', words: 'burger cheeseburger smash' }),
   stew: K('Rich stew', 'rich', { feel: 'Irish', tags: [], core: [['stock', 0.5, ''], ['tomato-puree', 10, 'g']], extra: [['thyme', 1, 'g'], ['worcestershire', 3, 'ml']], sauce: 'stock, a squeeze of tomato purée and a dash of Worcestershire', methods: 'braise pie soup simmer', mains: 'beef-brisket beef-roast lamb lamb-leg pork-roast diced-beef chorizo butter-beans diced-beef sausages chicken-thigh beef-mince lentils', bases: 'potato bread puff-pastry bread potato bread rice', vegPref: 'carrot onion leek', words: 'stew casserole hotpot coddle irish' })
 };
 // grain bowls: couscous (and quinoa, bulgur, freekeh through it) suits any bowl, salad or traybake that takes rice
@@ -285,7 +289,13 @@ export const CANON = {
 };
 // Named dishes without their own entry: no cured meats or odd extras, sensible veg for the method
 const CANON_DEF = { roast: { veg: ROASTV, add: [] }, curry: { veg: CURRYV, add: ['yogurt'] }, pulled: { add: ['coleslaw', 'cheddar', 'salsa'] }, sticky: { add: ['coleslaw'] }, wraps: { add: TEXMEX.concat(['feta', 'yogurt']) }, traybake: { add: ['feta', 'halloumi', 'olives'] }, burgers: { add: ['cheddar', 'mayo', 'coleslaw'] }, bowl: { add: ['eggs', 'avocado', 'spring-onion', 'sesame-oil'] }, stirfry: { add: ['nuts', 'spring-onion', 'sesame-oil'] }, pasta: { add: ['parmesan'] }, bake: { add: ['cheddar', 'mozzarella', 'parmesan'] }, simmer: { add: [] }, panfry: { add: [] } };
+let WANTED = null; // the dish name asked for in this search
 export const NAMED = [
+  N('Pulled pork', 'pork-roast', 'smokybbq', 'pulled'), N('Burgers', 'burgers beef-mince', 'burger', 'burgers', 'buns'), N('Veggie burgers', 'veggie-burgers', 'burger', 'burgers', 'buns'), N('Beef burritos', 'beef-mince', 'taco', 'wraps'), N('Chicken burritos', 'chicken-thigh chicken-breast', 'fajita taco', 'wraps'), N('Beef stroganoff', 'steak diced-beef', 'creamymushroom', 'panfry', 'rice'),
+  N('Chicken caesar salad', 'chicken-breast chicken-thigh cooked-chicken', 'caesar', 'salad'), N('Chicken caesar wraps', 'chicken-breast chicken-thigh cooked-chicken', 'caesar', 'wraps'), N('Chicken noodle soup', 'chicken-thigh chicken-breast cooked-chicken', 'soyhoney', 'noodlesoup', 'noodles'),
+  N('Jerk chicken', 'chicken-thigh chicken-drum', 'jerk', 'traybake', 'rice'), N('Jerk chicken wings', 'chicken-wings', 'jerk', 'sticky'), N('Jerk pork', 'pork-chop pork-belly', 'jerk', 'traybake', 'rice'), N('Jerk prawn bowls', 'prawns', 'jerk', 'bowl'),
+  N('Chicken shawarma', 'chicken-thigh chicken-breast', 'shawarma', 'wraps'), N('Chicken shawarma bowl', 'chicken-thigh chicken-breast', 'shawarma', 'bowl'), N('Lamb shawarma', 'lamb-mince lamb-chops cooked-lamb', 'shawarma', 'wraps flatbread'), N('Falafel-style chickpea wraps', 'chickpeas', 'shawarma', 'wraps'), N('Doner-style kebab', 'lamb-mince', 'shawarma', 'flatbread wraps'),
+  N('Chicken pad Thai', 'chicken-breast chicken-thigh', 'padthai', 'stirfry', 'noodles'), N('Prawn pad Thai', 'prawns', 'padthai', 'stirfry', 'noodles'), N('Tofu pad Thai', 'tofu', 'padthai', 'stirfry', 'noodles'),
   N('Chicken fajitas', 'chicken-breast chicken-thigh', 'fajita', 'wraps'), N('Steak fajitas', 'steak', 'fajita', 'wraps'), N('Halloumi fajitas', 'halloumi', 'fajita', 'wraps'), N('Prawn fajitas', 'prawns', 'fajita', 'wraps'),
   N('Beef tacos', 'beef-mince', 'taco', 'wraps'), N('Turkey tacos', 'turkey-mince', 'taco', 'wraps'), N('Bean burritos', 'kidney-beans', 'taco', 'wraps'), N('Burrito bowl', 'beef-mince chicken-thigh chicken-breast', 'taco fajita', 'bowl', 'rice'),
   N('Chilli con carne', 'beef-mince', 'chilli', 'simmer', 'rice'), N('Chilli jacket potatoes', 'beef-mince turkey-mince', 'chilli', 'simmer', 'potato'), N('Veggie chilli', 'kidney-beans chickpeas', 'chilli', 'simmer'),
@@ -345,7 +355,7 @@ export function partTaste(state) {
   tasteCache = { key, t }; return t;
 }
 // process dishes (process.js) have their own techniques; these entries only name them
-Object.assign(METHODS, { 'p-bake': { n: 'oven bake', t: 90, slow: true, batch: true }, 'p-pie': { n: 'pie', t: 70, batch: true }, 'p-curry': { n: 'curry', t: 45, batch: true }, 'p-risotto': { n: 'risotto', t: 35 }, 'p-soup': { n: 'soup', t: 35, batch: true }, 'p-roast': { n: 'roast dinner', t: 120, slow: true, joint: true }, 'p-breakfast': { n: 'breakfast', t: 20 }, 'p-dessert': { n: 'dessert', t: 45 }, 'p-baking': { n: 'baking', t: 60 }, 'p-stirfry': { n: 'stir-fry', t: 25 }, 'p-stew': { n: 'stew', t: 120, slow: true, batch: true }, 'p-quiche': { n: 'quiche', t: 90 }, 'p-dumplings': { n: 'dumplings', t: 75 } });
+Object.assign(METHODS, { 'p-crumbed': { n: 'crumbed & fried', t: 35 }, 'p-onepot': { n: 'one-pot rice', t: 50 }, 'p-batter': { n: 'oven bake', t: 50 }, 'p-wellington': { n: 'Wellington', t: 120, slow: true }, 'p-bake': { n: 'oven bake', t: 90, slow: true, batch: true }, 'p-pie': { n: 'pie', t: 70, batch: true }, 'p-curry': { n: 'curry', t: 45, batch: true }, 'p-risotto': { n: 'risotto', t: 35 }, 'p-soup': { n: 'soup', t: 35, batch: true }, 'p-roast': { n: 'roast dinner', t: 120, slow: true, joint: true }, 'p-breakfast': { n: 'breakfast', t: 20 }, 'p-dessert': { n: 'dessert', t: 45 }, 'p-baking': { n: 'baking', t: 60 }, 'p-stirfry': { n: 'stir-fry', t: 25 }, 'p-stew': { n: 'stew', t: 120, slow: true, batch: true }, 'p-quiche': { n: 'quiche', t: 90 }, 'p-dumplings': { n: 'dumplings', t: 75 } });
 const sq = v => Math.tanh((v || 0) / 3) * 3;
 
 /* ================= Is a part allowed for you? ================= */
@@ -716,7 +726,8 @@ export function buildMeal(state, sp, serves, stock) {
   if (roastMins) time = roastMins + (sp.method === 'roast' && !sp.gear ? 25 : 0);
   let leftover = null;
   if (J && main.leftover && ITEM[main.leftover]) { const spare = jointG - main.pp * serves; if (spare >= main.pp * 0.8) { const g = Math.round(spare * 0.65 / 50) * 50; leftover = { item: main.leftover, g, portions: Math.max(1, Math.floor(spare / main.pp)), feeds: Math.floor(jointG / main.pp) }; } }
-  const named = NAMED.find(x => x.main.includes(sp.main) && x.kit.split(' ').includes(sp.kit) && x.method.split(' ').includes(sp.method) && (!x.base || x.base.includes(sp.base)));
+  const fits = x => x.main.includes(sp.main) && x.kit.split(' ').includes(sp.kit) && x.method.split(' ').includes(sp.method) && (!x.base || x.base.includes(sp.base));
+  const named = (WANTED && NAMED.find(x => x.n === WANTED && fits(x))) || NAMED.find(fits); // the name you asked for, when two dishes share a recipe
   const flairName = sp.flair && FLAIR[sp.flair] ? ({ salsa: ITEM[sp.flair].n.toLowerCase().replace(/s$/, '') + ' salsa', crumble: 'blue cheese', dot: "goat's cheese", kimchi: 'kimchi', pickle: 'quick pickles', hummus: 'hummus', roastfruit: 'roast ' + ITEM[sp.flair].n.toLowerCase(), avo: 'avocado' })[FLAIR[sp.flair][1]] : null;
   const baseTitle = dedupeWords(named ? named.n : madeUpName(sp, main, base, kit, veg));
   const title = (flairName && !baseTitle.toLowerCase().includes(flairName.split(' ')[0]) ? baseTitle + (/ with /.test(baseTitle) ? ' & ' : ' with ') + flairName : baseTitle) + (sp.gear === 'af' ? ' (air fryer)' : sp.gear === 'sc' ? ' (slow cooker)' : '');
@@ -1078,10 +1089,17 @@ export function options(state, opts = {}, n = 3) {
   const picked = [], w = { ...(opts.want || {}) }, seen = opts.seen || new Set();
   let pool = candidates(state, { ...opts, want: w });
   const lock = w.lock && w.main, vegLock = (w.veg || []).length > 0;
-  for (const drop of (w.base && !w.main ? ['tag', 'veg', 'method', 'kit', 'base', 'main'] : ['tag', 'base', 'veg', 'method', 'kit', 'main'])) { if ((drop === 'main' && lock) || (drop === 'veg' && vegLock)) continue; if (pool.filter(x => !seen.has(specKey(x.sp))).length >= n * 2) break; if (opts.vegOnly && drop === 'main' && w.main && MAINS[w.main] && MAINS[w.main].grp !== 'veg') { delete w.main; } if (!w[drop] || (Array.isArray(w[drop]) && !w[drop].length)) continue; delete w[drop]; pool = pool.concat(candidates(state, { ...opts, want: w })); }
-  if (pool.filter(x => !seen.has(specKey(x.sp))).length < n) pool = pool.concat(candidates(state, { ...opts, want: lock || vegLock ? { main: lock ? w.main : undefined, qty: w.qty, veg: w.veg, lock: w.lock } : {}, allowSlow: lock ? true : opts.allowSlow, quick: false, spicy: false, mood: null, onlyStockMains: false, maxTime: opts.maxTime ? opts.maxTime + 20 : null }));
+  const w0 = opts.want || {}, dishMode = !!(w0.named && !w0.proc);
+  WANTED = w0.named || null;
+  // a named dish keeps its flavour to the end: the same dish another way (bowl, traybake), then with another main, never "anything with chicken"
+  const order = dishMode ? ['tag', 'veg', 'base', 'method', 'main'] : w.base && !w.main ? ['tag', 'veg', 'method', 'kit', 'base', 'main'] : ['tag', 'base', 'veg', 'method', 'kit', 'main'];
+  for (const drop of order) { if ((drop === 'main' && lock) || (drop === 'veg' && vegLock)) continue; if (pool.filter(x => !seen.has(specKey(x.sp))).length >= n * 2) break; if (opts.vegOnly && drop === 'main' && w.main && MAINS[w.main] && MAINS[w.main].grp !== 'veg') { delete w.main; } if (!w[drop] || (Array.isArray(w[drop]) && !w[drop].length)) continue; delete w[drop]; pool = pool.concat(candidates(state, { ...opts, want: w })); }
+  if (dishMode && !pool.filter(x => !seen.has(specKey(x.sp))).length) { delete w.kit; pool = candidates(state, { ...opts, want: w }); } // nothing fits the dish exactly: fall back to its ingredients
+  if (!dishMode && !w0.proc && pool.filter(x => !seen.has(specKey(x.sp))).length < n) pool = pool.concat(candidates(state, { ...opts, want: lock || vegLock ? { main: lock ? w.main : undefined, qty: w.qty, veg: w.veg, lock: w.lock } : {}, allowSlow: lock ? true : opts.allowSlow, quick: false, spicy: false, mood: null, onlyStockMains: false, maxTime: opts.maxTime ? opts.maxTime + 20 : null }));
   { const sc = pool.map(x => x.s).sort((a, b) => b - a), ref = sc.length ? sc[0] - 4 : 4;
-    let pc = []; try { if (!opts.noProc && (w.proc || (!w.kit && !w.method && !w.tag && !opts.methods))) pc = P.candidates(state, { ...opts, want: w }, ref); } catch (e) { console.warn('process', e); }
+    let pc = []; try { if (!opts.noProc && !dishMode && (w.proc || (!w.kit && !w.method && !w.tag && !opts.methods))) pc = P.candidates(state, { ...opts, want: w }, ref); } catch (e) { console.warn('process', e); }
+    // a process dish asked for (lasagne, korma, paella): the rest are its relatives, not random dinners
+    if (w0.proc && w0.proc.proc) { const rel = (RELATED[P.famOf(w0.proc.proc)] || '').split(' '); pool = pool.filter(x => rel.includes(x.sp.method)); }
     // asked for a base (quinoa, couscous, noodles...): a process dish only counts if it's built on it
     if (w.base && !w.proc) { const bs = [].concat(w.base); pc = pc.filter(x => x.r.ings.some(i => bs.includes(C.standinOf(i.item)))); }
     if (pc.length) pool = pool.concat(pc).sort((a, b) => b.s - a.s); }
@@ -1090,7 +1108,7 @@ export function options(state, opts = {}, n = 3) {
   while (picked.length < n && pool.length) {
     let best = null, bv = -1e9;
     const usedNow = new Map(); for (const p of picked) for (const id of spItems(p.sp)) usedNow.set(id, (usedNow.get(id) || 0) + 1);
-    for (const x of pool.slice(0, 400)) { const pen = picked.reduce((a, p) => a + simSp(x.sp, p.sp), 0); let v = x.s - pen * 1.6 + (w.base && !w.proc && [].concat(w.base).includes(x.sp.base) ? 3 : 0);
+    for (const x of pool.slice(0, 400)) { const pen = picked.reduce((a, p) => a + simSp(x.sp, p.sp), 0); let v = x.s - pen * 1.6 + (w.base && !w.proc && [].concat(w.base).includes(x.sp.base) ? 3 : 0) - (w0.proc ? 0 : picked.filter(p => p.sp.proc && p.sp.proc === x.sp.proc).length * 3); // an ingredient search shows different kinds of dish, not three curries
       if (opts.useStock && opts.stock) for (const id of spItems(x.sp)) { if (!(opts.stock.get(id) > 0) || ['garlic', 'onion'].includes(id) || (ITEM[id] && ITEM[id].staple)) continue; const n = usedNow.get(id) || 0; v += n ? -0.9 * n : 0.7 / (1 + (opts.recent ? recentUse(state, id) * 0.7 : 0)); }
       if (v > bv) { bv = v; best = x; } }
     pool = pool.filter(x => x !== best);
@@ -1101,7 +1119,7 @@ export function options(state, opts = {}, n = 3) {
     if (!r || r.unsuited || !safeFor(state, r)) continue;
     if (titles.has(r.title)) continue; titles.add(r.title); seen.add(specKey(best.sp)); best.r = r; picked.push(best);
   }
-  AS = null;
+  AS = null; WANTED = null;
   return picked.map(x => x.r);
 }
 // Process dishes (bakes, pies, curries, risotto, soups, roasts) for a collection
@@ -1247,17 +1265,20 @@ export function suggestBasket(state, n = 3) {
 // Understand "rice dish with mince and onions, no mushrooms, quick" in terms of parts
 const MEATW = new Set(['chicken', 'beef', 'pork', 'lamb', 'turkey', 'fish', 'prawn', 'prawns', 'salmon', 'steak', 'sausage', 'sausages', 'halloumi', 'chickpea', 'bean', 'veggie', 'egg']);
 const DISH_SKIP = new Set(['&', 'and', 'with', 'style', 'the', 'a', 'of', 'spaghetti', 'pasta', 'dinner', 'traybake', 'wraps', 'buns', 'bowl', 'rice', 'pittas', 'flatbreads', 'mash', 'potatoes', 'jacket', 'sandwiches']);
+// builder dishes that are relatives of each process family
+const RELATED = { bake: 'bake pasta', pie: 'pie bake', curry: 'curry', risotto: 'risotto', soup: 'soup noodlesoup', roast: 'roast braise', stirfry: 'stirfry friedrice', stew: 'simmer braise', crumbed: 'panfry', onepot: 'friedrice simmer', batter: 'bake', quiche: '', dumplings: '', wellington: 'roast' };
+const GENERIC_DISH = new Set(['burgers', 'burger', 'curry', 'wraps', 'wrap', 'pasta', 'stew', 'pie', 'salad', 'soup', 'bake', 'casserole', 'noodles', 'stir', 'fry', 'roast', 'sandwich', 'sandwiches', 'bowl', 'fried', 'traybake', 'kebab', 'skewers']);
 export function namedDish(clean) {
   const has = w => clean.includes(' ' + w + ' ') || clean.includes(' ' + w.replace(/s$/, '') + ' ');
   let best = null, bestN = 0;
   for (const x of NAMED) {
     const ws = norm(x.n).split(/\s+/).filter(Boolean), key = ws.filter(w => !DISH_SKIP.has(w) && !MEATW.has(w)), meat = ws.filter(w => MEATW.has(w));
     if (!key.length || !key.every(has)) continue;
-    const other = meat.length && !meat.some(has) && [...MEATW].some(w => has(w)); // "chicken curry" is not "lamb curry": keep your meat, borrow the dish
+    const other = meat.length && !meat.some(has) && ([...MEATW].some(w => has(w)) || key.every(k => GENERIC_DISH.has(k))); // "chicken curry" is not "lamb curry", and plain "burgers" isn't "chicken burgers": keep your meat, borrow the dish
     const n = key.length * 2 + meat.filter(has).length + ws.filter(w => DISH_SKIP.has(w) && has(w)).length * 0.5 - (other ? 0.5 : 0);
     if (n > bestN) { best = other ? { ...x, other: true } : x; bestN = n; }
   }
-  return best;
+  return best ? { ...best, score: bestN } : null;
 }
 export function parseWant(state, text) {
   const as = {}, mi = ph => { const id = C.matchIngredient(ph); if (id && ITEM[id] && ITEM[id].standin && !(ITEM[id].prof || {}).off) { as[ITEM[id].standin] = id; return ITEM[id].standin; } return id; };
@@ -1318,12 +1339,15 @@ export function parseWant(state, text) {
   if (/\bquick|fast|easy|20 min/.test(clean)) mods.quick = true; if (/\bcheap|budget|thrifty/.test(clean)) mods.cheap = true; if (/\bhealthy|light|lighter|healthier/.test(clean)) mods.healthy = true;
   if (/\bspicy|hot|kick/.test(clean)) mods.spicy = true; if (/\bveggie|vegetarian|meat free|meatless/.test(clean)) mods.veggie = true; if (/\bcomfort|cosy|cozy/.test(clean)) mods.mood = 'comfort';
   // A dish you named ("chilli con carne", "bolognese", "tikka masala") sets the flavour and the way it's cooked
-  { const nd = namedDish(clean); if (nd) { want.kit = nd.kit.split(' ')[0]; want.method = nd.method.split(' ')[0]; if (!nd.other) want.named = nd.n; if (nd.base && !want.base) want.base = [].concat(nd.base)[0];
+  // the whole text is read for a dish name too: "bbq pulled pork" must not lose "pulled pork" to the ingredient pass first
+  { const ndC = namedDish(clean), ndT0 = namedDish(t), ndT = ndT0 && !ndT0.other ? ndT0 : null, nd = ndT && (!ndC || ndT.score > ndC.score) ? ndT : ndC; if (nd) { want.kit = nd.kit.split(' ')[0]; want.method = nd.method.split(' ')[0]; if (!nd.other) { want.named = nd.n; want.namedScore = nd.score; } if (nd.base && !want.base) want.base = [].concat(nd.base)[0];
     const ndMain = [].concat(nd.main).join(' ').split(' ');
     const ok = mainList().filter(id => ndMain.includes(id) || (MAINS[id] && MAINS[id].methods.includes(want.method)));
-    if (want.main && !ok.length) { const g = MAINS[mainList()[0]] && MAINS[mainList()[0]].grp; const alt = ndMain.find(id => MAINS[id] && MAINS[id].grp === g) || Object.keys(MAINS).find(id => MAINS[id].grp === g && !LIGHT.has(id) && !MAINS[id].ready && MAINS[id].methods.includes(want.method)); if (alt) want.main = alt; }
+    // you named the dish and its meat ("chicken burgers"): the dish's meat wins over a product the words also matched (beef burger patties)
+    if (!nd.other && want.main && !Array.isArray(want.main) && !ndMain.includes(want.main) && ndMain.some(id => MAINS[id] && t.includes(' ' + MAINS[id].grp))) { const inS = ndMain.filter(id => (stock.get(id) || 0) > 0); want.main = inS[0] || ndMain[0]; }
+    else if (want.main && !ok.length) { const g = MAINS[mainList()[0]] && MAINS[mainList()[0]].grp; const alt = ndMain.find(id => MAINS[id] && MAINS[id].grp === g) || Object.keys(MAINS).find(id => MAINS[id].grp === g && !LIGHT.has(id) && !MAINS[id].ready && MAINS[id].methods.includes(want.method)); if (alt) want.main = alt; }
     else if (want.main) want.main = ok.length === 1 ? ok[0] : ok;
-    else if (!nd.other) { const inS = ndMain.filter(id => (stock.get(id) || 0) > 0); want.main = inS[0] || ndMain[0]; } } }
+    else if (!nd.other) { const inS = ndMain.filter(id => (stock.get(id) || 0) > 0); want.main = inS[0] || ndMain[0]; want.mainFromDish = true; } } }
   // keep only mains that can be cooked the way you asked, rather than dropping the way you asked
   if (want.main && want.method && Array.isArray(want.main)) { const ok = want.main.filter(id => MAINS[id].methods.includes(want.method)); if (ok.length) want.main = ok.length === 1 ? ok[0] : ok; }
   if (want.main && want.method && !Array.isArray(want.main) && !MAINS[want.main].methods.includes(want.method) && LIGHT.has(want.main)) { const g = MAINS[want.main].grp, alt = Object.keys(MAINS).find(id => MAINS[id].grp === g && !LIGHT.has(id) && !MAINS[id].ready && MAINS[id].methods.includes(want.method)); if (alt) want.main = alt; }
@@ -1332,6 +1356,16 @@ export function parseWant(state, text) {
   if (want.main && want.method && !mainList().some(id => MAINS[id].methods.includes(want.method))) delete want.method;
   if (Object.keys(as).length) want.as = as;
   { const pd = P.detect(text); if (pd) { if (pd.proc) want.proc = pd; if (pd.course) want.course = pd.course; } }
+  // a cooking process with a specific style ("katsu curry", "paella") is more specific than a named builder dish
+  if (want.proc && want.proc.style) { delete want.named; delete want.kit; delete want.method; if (want.mainFromDish) { delete want.main; delete want.lock; } }
+  // ...but a specific named dish ("chicken noodle soup") beats a whole family ("soup")
+  else if (want.proc && want.named && (want.namedScore || 0) >= 4) delete want.proc;
+  // the meat you said, as the cut this dish uses: "chicken kiev" -> chicken breast, "beef wellington" -> beef fillet/joint
+  if (want.proc && want.main && !Array.isArray(want.main)) { const F = P.FAMILIES[want.proc.proc], st = F && F.styles && want.proc.style ? F.styles[want.proc.style] : null;
+    const allowed = st && st.only ? st.only.split(' ') : st && st.mains ? st.mains.split(' ') : F ? F.mains : [];
+    if (allowed.length && !allowed.includes(want.main)) { const g = MAINS[want.main] && MAINS[want.main].grp, alt = allowed.find(id => MAINS[id] && MAINS[id].grp === g) || allowed.find(id => ITEM[id] && ITEM[want.main] && ITEM[id].cat === ITEM[want.main].cat);
+      if (alt) want.main = alt; else { delete want.main; delete want.lock; } } }
+  if (want.named || want.proc) want.dish = true; // a dish was asked for, not just an ingredient
   want.text = ' ' + norm(text) + ' ';
   return { want, exclude, mods };
 }

@@ -9,8 +9,11 @@ import * as G from './builder.js';
 import * as RT from './ratios.js';
 
 /* ---------------- amounts ---------------- */
+// typical weight of one, for things bought by the piece: a recipe may say "50 g pepper" and the list needs "1 pepper"
+const PIECE_G = { pepper: 160, pineapple: 900, cabbage: 900, tomato: 100, sausages: 65, 'veggie-sausages': 60, lemon: 100, lime: 60, apple: 150, banana: 120, cucumber: 300, courgette: 200, aubergine: 250, avocado: 170, 'sweet-potato': 250, mango: 300, orange: 150, pears: 170, leek: 200, 'red-onion': 150, broccoli: 350, cauliflower: 700, butternut: 1000, 'corn-cob': 250, chilli: 15, eggs: 55, buns: 60, wraps: 50, pitta: 60, naan: 100, melon: 1200, kiwi: 80, plums: 60, 'spring-onion': 15, fennel: 250, beetroot: 120, parsnip: 150, celery: 40 };
 function qty(id, pp, serves, unit) {
   const it = ITEM[id]; let q = pp * serves;
+  if (it.u === 'pc' && unit !== '' && unit !== 'tsp' && unit !== 'tbsp' && pp > 6) q = q / (PIECE_G[id] || 150); // grams given for a counted thing
   if (unit === 'tsp' || unit === 'tbsp') return { q: Math.max(0.5, Math.round(q * 2) / 2), u: unit };
   if (it.u === 'pc' || unit === '') return { q: Math.max(id === 'garlic' ? 1 : 0.5, Math.round(q * 2) / 2), u: '' };
   const step = q > 300 ? 50 : q > 60 ? 10 : 5; return { q: Math.max(step, Math.round(q / step) * step), u: unit || it.u };
@@ -74,7 +77,7 @@ const TQ = {
 const PICK = (d, opts) => opts.find(id => d.has(id) && d.ok(id)) || opts.find(id => d.ok(id));
 const pickHave = (d, opts, n = 1) => opts.filter(id => d.has(id) && d.ok(id)).slice(0, n);
 
-const FAMILIES = {
+export const FAMILIES = {
   /* ---- layered bakes ---- */
   lasagne: { n: 'Lasagne', fam: 'bake', area: 'Italian', words: 'lasagne|lasagna', mains: ['beef-mince', 'pork-mince', 'turkey-mince', 'lentils', 'mushroom'], needs: ['lasagne', 'milk', 'flour', 'butter', 'chopped-tomatoes'], gear: ['oven', 'hob', 'dish'], slow: true,
     title: (d, m) => m === 'lentils' ? 'Lentil lasagne' : m === 'mushroom' ? 'Mushroom lasagne' : m === 'beef-mince' ? 'Lasagne' : `${ITEM[m].n.replace(/ mince$/i, '')} lasagne`,
@@ -191,9 +194,11 @@ const FAMILIES = {
       korma: { n: 'korma', words: 'korma', spices: [['garam-masala', 0.5], ['turmeric', 0.25], ['cinnamon', 0.15]], tom: null, finish: 'cream', nuts: true, mains: 'chicken-thigh chicken-breast chickpeas cauliflower prawns', spice: 0 },
       rogan: { n: 'rogan josh', words: 'rogan josh|rogan', spices: [['paprika', 1], ['garam-masala', 0.5], ['cumin', 0.25], ['cinnamon', 0.15], ['chilli-powder', 0.25]], tom: 'chopped-tomatoes', finish: 'yogurt', mains: 'lamb diced-beef chicken-thigh', spice: 2 },
       madras: { n: 'madras', words: 'madras', spices: [['chilli-powder', 0.5], ['cumin', 0.5], ['ground-coriander', 0.5], ['turmeric', 0.25], ['garam-masala', 0.25]], tom: 'chopped-tomatoes', finish: 'lemon', mains: 'diced-beef lamb chicken-thigh chickpeas', spice: 3 },
+      butter: { n: 'butter masala', words: 'butter chicken|makhani|murgh makhani|butter masala', spices: [['garam-masala', 0.5], ['paprika', 0.5], ['cumin', 0.25], ['chilli-powder', 0.1]], tom: 'passata', finish: 'cream', mains: 'chicken-thigh chicken-breast halloumi chickpeas', spice: 0 },
+      jalfrezi: { n: 'jalfrezi', words: 'jalfrezi', spices: [['cumin', 0.5], ['turmeric', 0.25], ['ground-coriander', 0.25], ['chilli-powder', 0.4], ['garam-masala', 0.25]], tom: 'chopped-tomatoes', finish: 'lemon', mains: 'chicken-thigh chicken-breast lamb prawns halloumi', spice: 2 },
       chana: { n: 'chana masala', words: 'chana', spices: [['cumin', 0.5], ['ground-coriander', 0.5], ['garam-masala', 0.5], ['turmeric', 0.25], ['chilli-powder', 0.25]], tom: 'chopped-tomatoes', finish: 'lemon', mains: 'chickpeas', spice: 1 } },
     title: (d, m, x) => { const s = FAMILIES.indian.styles[x.style], w = { 'chicken-thigh': 'Chicken', 'chicken-breast': 'Chicken', lamb: 'Lamb', 'beef-brisket': 'Beef', 'diced-beef': 'Beef', chickpeas: 'Chickpea', halloumi: 'Halloumi', prawns: 'Prawn', cauliflower: 'Cauliflower' }[m];
-      return x.style === 'chana' ? 'Chana masala' : `${w} ${s.n}`; },
+      return x.style === 'chana' ? 'Chana masala' : x.style === 'butter' ? (w === 'Chicken' ? 'Butter chicken' : `${w} makhani`) : `${w} ${s.n}`; },
     make(d, m, x) {
       const S = FAMILIES.indian.styles[x.style], cu = d.comp('curry', 'serve'), slow = { lamb: 75, 'beef-brisket': 90, 'diced-beef': 90 }[m];
       if (!x.quick && d.ok('yogurt') && /chicken|lamb|halloumi/.test(m) && x.style !== 'korma') { const y = d.use('yogurt', 30), mm = d.use(m, m === 'halloumi' ? 110 : 150);
@@ -538,12 +543,20 @@ const MORE = {
       T(c, 'Add the garlic and aromatics for 30 seconds, return the meat, then pour in the sauce and toss', 2, { cue: 'the sauce bubbles, turns glossy and coats everything' });
       T(c, `Serve straight away over the ${r.name}${d.ok('spring-onion') ? ' with sliced ' + d.use('spring-onion', 1, '') : ''}${S.nuts && d.ok('nuts') ? ' and the nuts' : ''}`, 1);
       return c; } },
-  stew: { n: 'Stew', fam: 'stew', area: 'Irish', words: 'stew|beef stew|casserole', mains: ['lamb', 'diced-beef', 'beef-brisket', 'beef-mince', 'chicken-thigh'], needs: ['onion', 'stock'], gear: ['hob', 'pot'], slow: true,
-    styles: { irish: { n: 'Irish stew', words: 'irish stew|lamb stew', only: 'lamb diced-beef' }, guinness: { n: 'Beef & Guinness stew', words: 'guinness|beef and guinness|stout stew', only: 'diced-beef beef-brisket', need: 'stout' }, chilli: { n: 'Chilli con carne', words: 'chilli con carne|chili con carne|con carne|chili', only: 'beef-mince diced-beef', spice: 2, fast: true }, goulash: { n: 'Goulash', words: 'goulash', only: 'diced-beef beef-brisket' }, casserole: { n: 'Chicken casserole', words: 'chicken casserole|chicken stew', only: 'chicken-thigh', fast: true } },
-    title: (d, m, x) => x.style === 'irish' && m !== 'lamb' ? 'Irish beef stew' : MORE.stew.styles[x.style].n,
+  stew: { n: 'Stew', fam: 'stew', area: 'Irish', words: 'stew|beef stew|casserole|coddle', mains: ['lamb', 'diced-beef', 'beef-brisket', 'beef-mince', 'chicken-thigh', 'sausages'], needs: ['onion', 'stock'], gear: ['hob', 'pot'], slow: true,
+    styles: { coddle: { n: 'Dublin coddle', words: 'coddle|dublin coddle', only: 'sausages', need: 'bacon' }, irish: { n: 'Irish stew', words: 'irish stew|lamb stew', only: 'lamb diced-beef' }, guinness: { n: 'Beef & Guinness stew', words: 'guinness|beef and guinness|stout stew', only: 'diced-beef beef-brisket', need: 'stout' }, chilli: { n: 'Chilli con carne', words: 'chilli con carne|chili con carne|con carne|chili', only: 'beef-mince diced-beef', spice: 2, fast: true }, goulash: { n: 'Goulash', words: 'goulash', only: 'diced-beef beef-brisket' }, casserole: { n: 'Chicken casserole', words: 'chicken casserole|chicken stew', only: 'chicken-thigh', fast: true } },
+    title: (d, m, x) => x.style === 'irish' && m !== 'lamb' ? 'Irish beef stew' : x.style === 'casserole' && m === 'sausages' ? 'Sausage casserole' : MORE.stew.styles[x.style].n,
     make(d, m, x) {
       const c = d.comp('stew', 'serve'), st = x.style, mince = m === 'beef-mince';
       const mm = d.use(m, mince ? 125 : st === 'casserole' ? 170 : 160);
+      if (st === 'coddle') {
+        const ra = d.use('bacon', 50), on = d.use('onion', 0.5, ''), p = d.use('potato', 250);
+        T(c, `Cut the ${ra} into pieces and leave the ${mm} whole (traditionally they aren't browned; brown them first if you like more colour)`, 3);
+        T(c, `Layer the ${on}, sliced, the ${p}, in thick slices, the sausages and rashers in a heavy pot, seasoning each layer with plenty of black pepper and ${d.ok('parsley') ? 'chopped ' + d.use('parsley', 4) : 'parsley'}`, 5);
+        T(c, `Pour over ${d.use('stock', 0.3, '')} made up with 250 ml hot water per person, to just below the top layer`, 2);
+        TQ.simmer(d, c, 70, 'lid on, on the lowest heat (or in the oven at 160°C)', 'the potatoes on the bottom have broken down and thickened the broth and the top ones are tender');
+        T(c, `Serve in bowls with ${d.has('soda-bread') ? d.use('soda-bread', 1.5, '', 'slices of soda bread') : 'buttered brown bread'} to mop up the juices`, 1);
+        return c; }
       if (st === 'irish') { T(c, `Season the ${mm} and brown it in batches in a heavy pot with a little oil`, 10, { cue: '~browning adds depth; traditionalists skip it, but it\'s better for it' });
         const ve = [d.use('onion', 0.5, ''), d.use('carrot', 80), d.ok('parsnip') && d.has('parsnip') ? d.use('parsnip', 60) : null].filter(Boolean), p = d.use('potato', 250);
         T(c, `Add the ${list(ve)}, cut into chunks, and half the ${p}, cut small (they break down and thicken the stew)`, 4);
@@ -609,7 +622,108 @@ const MORE = {
       T(fin, 'Pour in a few tablespoons of water, lid on straight away, and steam', 6, { passive: true, cue: 'the water has gone and the wrappers look translucent', verb: 'steam' });
       T(fin, 'Lid off and fry another minute to re-crisp the bottoms', 1, { cue: 'they release from the pan' });
       T(fin, `Serve with a dip of soy, ${d.ok('vinegar') ? d.use('vinegar', 5, 'ml') : 'vinegar'} and ${d.ok('chilli-flakes') ? 'a pinch of chilli flakes' : 'a little chilli'}`, 2);
-      return fin; } }
+      return fin; } },
+  crumbed: { n: 'Crumbed', fam: 'crumbed', area: 'European', words: 'schnitzel|escalope|katsu|katsu curry|parmigiana|parmo|chicken parm|kiev|kyiv|goujons|tenders|fish and chips|fish chips|fish n chips|battered fish', mains: ['chicken-breast', 'pork-chop', 'white-fish', 'turkey-breast'], needs: ['flour', 'eggs'], gear: ['hob', 'pan'],
+    styles: { schnitzel: { n: 'schnitzel', words: 'schnitzel|escalope|wiener', only: 'pork-chop chicken-breast turkey-breast' }, katsu: { n: 'katsu curry', words: 'katsu|katsu curry', only: 'chicken-breast pork-chop' }, parmigiana: { n: 'parmigiana', words: 'parmigiana|parmo|chicken parm|parm', only: 'chicken-breast' },
+      kiev: { n: 'Kiev', words: 'kiev|kyiv', only: 'chicken-breast' }, goujons: { n: 'goujons', words: 'goujons|tenders|strips', only: 'chicken-breast white-fish' }, fishchips: { n: 'fish & chips', words: 'fish and chips|fish chips|fish n chips|battered fish|chipper', only: 'white-fish' } },
+    title: (d, m, x) => { const w = { 'chicken-breast': 'Chicken', 'pork-chop': 'Pork', 'white-fish': 'Fish', 'turkey-breast': 'Turkey' }[m];
+      return ({ schnitzel: `${w} schnitzel`, katsu: `${w} katsu curry`, parmigiana: 'Chicken parmigiana', kiev: 'Chicken Kiev', goujons: `${w} goujons with chips`, fishchips: 'Fish & chips' })[x.style]; },
+    make(d, m, x) {
+      const st = x.style, c = d.comp(st === 'katsu' ? 'katsu' : st === 'fishchips' ? 'fish' : 'crumbed', 'serve');
+      // sides first so they're ready together
+      let side = null;
+      if (st === 'katsu') { side = d.comp('rice', 'serve'); TQ.rice(d, side, d.ok('basmati') ? 'basmati' : 'rice');
+        const sa = d.comp('katsu sauce', 'serve'); TQ.sweat(d, sa, [['onion', 50], ['carrot', 40]].filter(([id]) => d.ok(id)));
+        T(sa, `Stir in ${d.use('curry-powder', 1, 'tsp')} and ${d.use('flour', 5)} and cook for a minute, then whisk in ${d.use('stock', 0.25, '')} made up with 150 ml hot water per person, ${d.use('soy-sauce', 5, 'ml')} and ${d.ok('honey') ? d.use('honey', 5) : 'a little sugar'}`, 3);
+        TQ.simmer(d, sa, 15, 'lid off', 'thick and glossy; blitz it smooth if you like'); }
+      if (st === 'fishchips' || st === 'goujons' || (st === 'schnitzel' && d.has('potato'))) { side = d.comp('chips', 'serve');
+        T(side, `Cut the ${d.use('potato', 250)} into chunky chips (skin on is fine), rinse, dry well and toss with a little oil and salt`, 6, { cue: '~drying them is what makes them crisp' });
+        T(side, 'Roast them at 220°C (200°C fan)', 35, { passive: true, oven: 220, cue: 'golden and crisp, turned once halfway', verb: 'roast' }); }
+      if (st === 'parmigiana') { const sa = d.comp('tomato sauce', 'final'); TQ.garlic(d, sa, 1); T(sa, `Add the ${d.use(d.ok('passata') ? 'passata' : 'chopped-tomatoes', 100)} with ${d.ok('basil') ? 'a few basil leaves' : 'a pinch of oregano'}, salt and pepper`, 1); TQ.simmer(d, sa, 12, 'lid off', 'thick'); }
+      const mm = d.use(m, m === 'white-fish' ? 160 : 150);
+      if (st === 'kiev') { const gb = d.comp('garlic butter', 'final'); T(gb, `Mash ${d.use('butter', 20)}, softened, with ${d.use('garlic', 1, '')}, crushed, and chopped ${d.ok('parsley') ? d.use('parsley', 3) : 'parsley'}; shape into a log and freeze`, 20, { hands: 4, passive: false, cue: '~frozen butter melts inside instead of leaking out' });
+        T(c, `Cut a deep pocket into the side of each ${mm.replace(/s$/, '')}, push in a slice of the frozen garlic butter and press the edges closed`, 5); }
+      else if (st !== 'fishchips' && m !== 'white-fish') T(c, `Put the ${mm} between two sheets of baking paper and bash with a rolling pin to an even 1 cm thickness${st === 'goujons' ? ', then cut into strips' : ''}`, 5, { cue: '~even thickness means it cooks through before the crumb burns' });
+      if (st === 'fishchips') {
+        T(c, `Whisk ${d.use('flour', 50)} with ${d.ok('baking-powder') ? d.use('baking-powder', 0.25, 'tsp') : 'a pinch of baking powder'} and salt, then whisk in about 75 ml per person of ice-cold ${d.ok('beer') ? d.use('beer', 75, 'ml') : 'sparkling water'}`, 3, { cue: 'like thick cream; cold, fizzy batter fries lightest and crispest. A few lumps are fine' });
+        T(c, `Pat the ${mm} dry, dust in flour, dip in the batter and lower into oil heated to 180°C (a cube of bread browns in 30 seconds) in a deep pan, no more than half full`, 4, { cue: '~never leave hot oil; dry fish and a hot pan stop it going greasy' });
+        T(c, 'Fry, turning once', 6, { cue: 'deep golden and the fish flakes at the thickest point', verb: 'fries' });
+        T(c, `Drain on kitchen paper and salt straight away. Serve with the chips, ${d.ok('lemon') ? 'lemon wedges' : 'vinegar'}${d.ok('peas') ? ' and ' + d.use('peas', 70) + ', cooked and crushed with butter and mint' : ''}`, 2);
+        return c; }
+      const fl = d.use('flour', 15), eg = d.use('eggs', 0.5, ''), cr = d.use('breadcrumbs', 30);
+      T(c, `Set out three plates: the ${fl} seasoned with salt and pepper, the ${eg} beaten, and the ${cr}${st === 'parmigiana' && d.ok('parmesan') ? ' mixed with grated ' + d.use('parmesan', 10) : ''}. Coat each piece in flour, then egg, then crumbs, pressing them on`, 6, { cue: '~flour helps the egg stick; egg glues the crumb' });
+      if (st === 'kiev') { T(c, 'Chill the crumbed Kievs while the oven heats', 15, { passive: true, verb: 'chill' }); T(c, 'Brown them in a little oil on both sides', 4, { cue: 'golden' }); TQ.bake(c, 200, 22, 'piping hot right through (75°C in the middle); the butter stays inside if the pocket was sealed', 'Finish in the oven'); }
+      else { T(c, `Shallow-fry in a 5 mm layer of oil over a medium-high heat, ${m === 'white-fish' || st === 'goujons' ? '2–3' : '3–4'} minutes a side`, m === 'white-fish' || st === 'goujons' ? 6 : 8, { cue: m === 'white-fish' ? 'golden and the fish flakes' : 'deep golden and cooked through with no pink (75°C in the middle)' });
+        T(c, 'Drain on kitchen paper and salt straight away', 1); }
+      if (st === 'parmigiana') { T(c, `Lay the chicken in a dish, spoon over the tomato sauce, top with torn ${d.use('mozzarella', 60)} and grill`, 5, { cue: 'the cheese is bubbling and blistered' }); T(c, `Serve with ${d.has('spaghetti') ? d.use('spaghetti', 80) + ', cooked' : d.has('pasta') ? d.use('pasta', 80) + ', cooked' : 'a green salad'}`, 1); }
+      if (st === 'katsu') T(c, 'Slice the katsu into strips, lay over the rice and pour the sauce alongside so the crumb stays crisp', 2);
+      if (st === 'schnitzel') T(c, `Serve with lemon wedges${d.ok('lemon') ? (d.use('lemon', 0.25, ''), '') : ''}${side ? ' and the chips' : ' and a potato salad or a green salad'}`, 1);
+      if (st === 'goujons') T(c, `Serve with the chips and ${d.ok('mayo') ? d.use('mayo', 20) + ' for dipping' : 'ketchup'}`, 1);
+      return c; } },
+  onepot: { n: 'One-pot rice', fam: 'onepot', area: 'World', words: 'paella|jambalaya|jollof|jollof rice|arroz con pollo|pilau|pilaf|biryani', mains: ['chicken-thigh', 'prawns', 'chorizo', 'sausages', 'lamb', 'chicken-drum'], needs: ['onion', 'stock'], gear: ['hob', 'pan'],
+    styles: { paella: { n: 'paella', words: 'paella', only: 'chicken-thigh prawns chorizo' }, jambalaya: { n: 'jambalaya', words: 'jambalaya', only: 'chicken-thigh sausages prawns chorizo' }, jollof: { n: 'jollof rice', words: 'jollof|jollof rice', only: 'chicken-thigh chicken-drum' },
+      arroz: { n: 'arroz con pollo', words: 'arroz con pollo|arroz', only: 'chicken-thigh' }, pilau: { n: 'pilau', words: 'pilau|pilaf|biryani|pulao', only: 'chicken-thigh lamb' } },
+    title: (d, m, x) => { const w = { 'chicken-thigh': 'Chicken', 'chicken-drum': 'Chicken', prawns: 'Prawn', chorizo: 'Chorizo', sausages: 'Sausage', lamb: 'Lamb' }[m];
+      return ({ paella: m === 'chicken-thigh' && d.ings.some(i => i.item === 'chorizo') ? 'Chicken & chorizo paella' : `${w} paella`, jambalaya: `${w} jambalaya`, jollof: 'Jollof rice with chicken', arroz: 'Arroz con pollo', pilau: `${w} pilau` })[x.style]; },
+    make(d, m, x) {
+      const st = x.style, c = d.comp(st, 'serve'), rice = d.ok(st === 'pilau' ? 'basmati' : 'rice') ? (st === 'pilau' ? 'basmati' : 'rice') : 'rice';
+      const mm = d.use(m, m === 'prawns' ? 100 : m === 'chorizo' ? 60 : 150), prawnLast = m === 'prawns';
+      if (st === 'jollof') {
+        T(c, `Blend ${d.use('chopped-tomatoes', 100)}, ${d.use('pepper', 0.5, '')}, ${d.use('onion', 0.25, '')} and ${d.ok('chilli') ? d.use('chilli', 0.25, '') + ' (scotch bonnet if you can get it)' : 'a pinch of chilli'} until smooth`, 3, { cue: '~this pepper base is the heart of jollof' });
+        T(c, `Season the ${mm} with salt, ${d.use('curry-powder', 0.5, 'tsp')} and ${d.use('thyme', 1)}, and brown in oil in a wide heavy pot; lift out`, 10, { cue: 'golden all over' }); }
+      else if (!prawnLast) T(c, `Season and brown the ${mm}${m === 'chorizo' || m === 'sausages' ? ', sliced,' : ''} in a wide pan with a little oil; lift out`, 8, { cue: 'well browned; it finishes cooking in the rice' });
+      if (st === 'paella' && m !== 'chorizo' && d.has('chorizo')) T(c, `Fry ${d.use('chorizo', 30)}, sliced, until it releases its red oil`, 2);
+      if (st === 'jollof') { TQ.sweat(d, c, [['onion', 40]]); T(c, `Stir in ${d.use('tomato-puree', 10)} and fry it hard, then add the blended pepper base`, 2); TQ.simmer(d, c, 15, 'lid off, stirring often', 'thick, darker, and the oil rises to the top; this "fry-down" is what gives jollof its depth'); }
+      else if (st === 'jambalaya') { TQ.sweat(d, c, [['onion', 60], ['pepper', 50], ['celery', 25]].filter(([id]) => d.ok(id))); TQ.garlic(d, c, 2, [[d.ok('cajun-spice') ? 'cajun-spice' : 'paprika', 1, 'tsp']]); T(c, `Add the ${d.use('chopped-tomatoes', 80)}`, 1); }
+      else if (st === 'pilau') { TQ.sweat(d, c, [['onion', 80]], 'butter'); TQ.garlic(d, c, 2, [['cumin', 0.5, 'tsp'], ['garam-masala', 0.5, 'tsp'], ['cinnamon', 0.1, 'tsp']]); }
+      else { TQ.sweat(d, c, [['onion', 50], ['pepper', 50]].filter(([id]) => d.ok(id))); TQ.garlic(d, c, 2, [['paprika', 0.75, 'tsp'], ...(st === 'arroz' ? [['cumin', 0.25, 'tsp']] : [])]); T(c, `Add ${d.use('chopped-tomatoes', 60)} and cook until jammy`, 4); }
+      const r = d.use(rice, 75);
+      T(c, `Stir in the ${r}${st === 'pilau' ? ', rinsed until the water runs clear,' : ''} to coat it in everything`, 2, { cue: '~coating each grain helps it stay separate' });
+      const liq = st === 'paella' ? 250 : st === 'pilau' ? 150 : 180;
+      T(c, `Return the ${prawnLast ? 'pan to the heat' : 'meat'}, pour in ${d.use('stock', 0.3, '')} made up with ${liq} ml hot water per person${st === 'paella' ? ', a pinch of saffron or ' + d.use('turmeric', 0.25, 'tsp') : st === 'arroz' ? ' and ' + d.use('turmeric', 0.25, 'tsp') : st === 'jollof' ? ' and a bay leaf' : ''}, season and bring to the boil`, 3);
+      if (st === 'paella') T(c, 'Spread the rice evenly and then leave it alone: no stirring from here', 20, { passive: true, cue: 'the liquid is absorbed and you hear it crackle; that crackle is the crispy base, the socarrat', verb: 'cooks' });
+      else T(c, 'Lid on, lowest heat, and leave it alone', 20, { passive: true, cue: 'the liquid is absorbed and the rice is tender; don\'t lift the lid', verb: 'steams' });
+      if (prawnLast || (st !== 'pilau' && d.has('prawns') && m !== 'prawns' && st !== 'jollof')) T(c, `Push the ${prawnLast ? mm : d.use('prawns', 50)} into the top${d.ok('peas') ? ' with ' + d.use('peas', 40) : ''}, cover and cook`, 5, { passive: true, cue: 'the prawns are pink', verb: 'steams' });
+      else if (d.ok('peas') && ['paella', 'arroz'].includes(st)) T(c, `Scatter over ${d.use('peas', 40)}, cover and cook`, 3, { passive: true, verb: 'steams' });
+      T(c, `Rest off the heat for 5 minutes, then ${st === 'paella' ? 'serve from the pan with lemon wedges' + (d.ok('lemon') ? (d.use('lemon', 0.25, ''), '') : '') : st === 'pilau' ? 'fluff with a fork and serve with ' + (d.ok('yogurt') ? d.use('yogurt', 40) : 'yogurt') : 'fluff with a fork' + (d.ok('parsley') && st !== 'jollof' ? ' and scatter with parsley' : '')}`, 5, { passive: true, verb: 'rests' });
+      return c; } },
+  batter: { n: 'Toad in the hole', fam: 'batter', area: 'British', words: 'toad in the hole|toad in hole|yorkshire pudding|yorkshires|toad', mains: ['sausages', 'veggie-sausages'], needs: ['flour', 'eggs', 'milk'], gear: ['oven'],
+    title: (d, m) => m === 'veggie-sausages' ? 'Veggie toad in the hole' : 'Toad in the hole',
+    make(d, m) {
+      const c = d.comp('toad', 'serve'), R = d.ratio('popover', 55 * d.serves);
+      T(c, `Whisk the ${R.flour}, ${R.eggs}, ${R.milk} and a pinch of salt into a smooth batter and leave it to stand`, 4, { cue: '~resting lets the flour swell, so it rises higher' });
+      T(c, `Put the ${d.use(m, 2.5, '')} in a roasting tin with ${d.use('oil', 10, 'ml')} and roast at 220°C (200°C fan)`, 15, { passive: true, oven: 220, cue: 'browning, and the fat is smoking hot', verb: 'roast' });
+      T(c, 'Working quickly, pour the batter around the sausages into the sizzling fat and shut the oven', 2, { cue: '~the fat must sizzle when the batter hits it, or it won\'t rise' });
+      TQ.bake(c, 220, 25, 'risen high, deep golden and crisp at the edges. Don\'t open the oven door for the first 20 minutes');
+      const g = d.comp('onion gravy', 'serve'); TQ.sweat(d, g, [['onion', 80]], 'butter');
+      T(g, `Stir in ${d.ok('gravy') ? d.use('gravy', 15) + ' granules made up with 150 ml hot water per person' : d.use('stock', 0.3, '') + ' with ' + d.use('flour', 5) + ' and 150 ml hot water per person'}`, 2); TQ.simmer(d, g, 8, 'lid off', 'thick and glossy');
+      T(c, `Serve straight from the oven with the onion gravy${d.has('peas') ? ' and ' + d.use('peas', 70) : ''}`, 1);
+      return c; } },
+  macncheese: { n: 'Mac & cheese', fam: 'bake', area: 'American', words: 'mac and cheese|mac n cheese|mac cheese|macaroni cheese|macaroni and cheese|mac & cheese', mains: ['cheddar', 'bacon'], needs: ['pasta', 'cheddar', 'milk', 'butter', 'flour'], gear: ['hob', 'oven'],
+    title: (d, m) => m === 'bacon' ? 'Bacon mac & cheese' : 'Macaroni cheese',
+    make(d, m) {
+      const c = d.comp('mac & cheese', 'serve'), pa = d.use('pasta', 90);
+      T(c, `Boil the ${pa} for 2 minutes less than the packet says, drain`, 10, { passive: true, cue: '~it finishes softening in the sauce and the oven', verb: 'boils' });
+      if (m === 'bacon') T(c, `Fry ${d.use('bacon', 40)}, chopped, until crisp`, 6);
+      TQ.roux(d, c, 'cheddar', 1.2);
+      T(c, `Stir in ${d.ok('mustard') ? d.use('mustard', 2) : 'a little mustard'} and the pasta${m === 'bacon' ? ' and bacon' : ''}, tip into a dish and top with ${d.ok('breadcrumbs') ? d.use('breadcrumbs', 10) : 'more cheese'}`, 3, { cue: '~mustard makes cheese taste cheesier' });
+      TQ.bake(c, 200, 20, 'bubbling at the edges and golden on top');
+      return c; } },
+  wellington: { n: 'Wellington', fam: 'wellington', area: 'British', words: 'wellington|beef wellington|mushroom wellington', mains: ['beef-roast', 'mushroom'], needs: ['puff-pastry', 'mushroom', 'eggs'], gear: ['hob', 'oven'], slow: true,
+    title: (d, m) => m === 'mushroom' ? 'Mushroom Wellington' : 'Beef Wellington',
+    make(d, m) {
+      const c = d.comp('wellington', 'serve'), beef = m === 'beef-roast';
+      const mm = beef ? d.use('beef-roast', 180, undefined, 'beef fillet (centre cut)') : null;
+      if (beef) { T(c, `Season the ${mm} and sear it all over in a smoking-hot pan`, 5, { cue: 'deep brown on every side, still raw inside' }); T(c, `Brush it all over with ${d.ok('mustard') ? d.use('mustard', 5) : 'English mustard'} while hot, then cool`, 15, { hands: 2, cue: '~mustard seasons the outside and helps everything stick' }); }
+      const du = d.comp('duxelles', 'final');
+      T(du, `Blitz or very finely chop ${d.use('mushroom', beef ? 120 : 250)} with ${d.use('garlic', 0.5, '')} and ${d.ok('thyme') ? d.use('thyme', 1) : 'thyme'}, then fry in a dry pan`, 15, { cue: 'every drop of water is gone and it\'s a dark, dry paste; wet duxelles makes soggy pastry' });
+      T(du, 'Spread on a plate to cool completely', 15, { passive: true, verb: 'cools' });
+      if (beef) T(c, `Overlap ${d.ok('deli-meat') ? d.use('deli-meat', 30, undefined, 'Parma ham') : 'thin slices of ham'} on cling film, spread the duxelles over and roll it tightly around the beef. Chill`, 20, { hands: 5, passive: false, cue: '~chilling sets the shape so it doesn\'t sag in the oven' });
+      else T(c, `Mix the duxelles with ${d.ok('spinach') ? d.use('spinach', 60) + ', wilted and squeezed dry,' : ''} ${d.ok('nuts') ? d.use('nuts', 20) + ', chopped,' : ''} and ${d.ok('cheddar') ? d.use('cheddar', 25) : 'a little cheese'}, and shape into a firm log. Chill`, 20, { hands: 5, passive: false });
+      T(c, `Wrap in the ${d.use('puff-pastry', 0.35, '')}, seal the seam underneath and brush with ${d.use('eggs', 0.25, '')}, beaten. Score lightly and chill again`, 15, { hands: 5, passive: false, cue: '~cold pastry going into a hot oven puffs best' });
+      TQ.bake(c, 220, beef ? 35 : 30, beef ? 'deep golden; 50°C in the centre for medium-rare, 55°C for medium' : 'deep golden and crisp underneath');
+      TQ.rest(c, 10, 'the Wellington');
+      return c; } }
 };
 Object.assign(FAMILIES, MORE);
 Object.assign(FAMILIES, BRK, SWEET);
@@ -656,10 +770,10 @@ function writeSteps(tasks) {
 }
 
 /* ---------------- building and choosing ---------------- */
-function variantsOf(fid, state) {
+function variantsOf(fid, state, askedStyle) {
   const F = FAMILIES[fid], have = id => ITEM[id] && C.pantryQty(state, id) > 0 && G.okItem(state, id);
   if (fid === 'indian') return Object.entries(F.styles).flatMap(([sid, s]) => s.mains.split(' ').map(m => ({ main: m, x: { style: sid } })));
-  if (fid === 'stirfry' || fid === 'stew') return Object.entries(F.styles).flatMap(([sid, st]) => F.mains.filter(m => !st.only || st.only.split(' ').includes(m)).filter(() => !st.need || (ITEM[st.need] && C.pantryQty(state, st.need) > 0)).map(m => ({ main: m, x: { style: sid } })));
+  if (fid === 'stirfry' || fid === 'stew' || fid === 'crumbed' || fid === 'onepot') return Object.entries(F.styles).flatMap(([sid, st]) => F.mains.filter(m => !st.only || st.only.split(' ').includes(m)).filter(() => !st.need || sid === askedStyle || (ITEM[st.need] && C.pantryQty(state, st.need) > 0)).map(m => ({ main: m, x: { style: sid } })));
   if (fid === 'chickenpie') return F.mains.flatMap(m => [{ main: m, x: { leek: false, bacon: false } }, { main: m, x: { leek: true, bacon: false } }, { main: m, x: { leek: false, bacon: true } }]);
   const mains = F.mains, V = xs => mains.flatMap(m => xs.map(x => ({ main: m, x })));
   if (fid === 'pancakes') return V([{}, ...[['berries', 'berries'], ['banana', 'banana & honey'], ['bacon', 'crispy bacon & syrup']].filter(([id]) => have(id)).map(([, t]) => ({ top: t }))]);
@@ -673,6 +787,7 @@ function variantsOf(fid, state) {
   if (fid === 'pizza') { const t = ['ham', 'mushroom', 'pepper', 'chorizo', 'olives', 'red-onion', 'spinach', 'cooked-chicken', 'bacon', 'sweetcorn'].filter(have).slice(0, 3);
     return V([{}, ...(t.length ? [{ ids: t, top: t.slice(0, 2).map(id => ({ bacon: 'bacon', 'cooked-chicken': 'chicken', 'red-onion': 'red onion', olives: 'olive' })[id] || ITEM[id].n.toLowerCase().replace(/^(sliced|cooked|tinned) /, '').replace(/s$/, '')).join(' & ') }] : [])]); }
   return mains.map(m => ({ main: m, x: {} })); }
+export const famOf = fid => (FAMILIES[fid] || {}).fam || fid;
 export const isDinnerFam = fid => !!FAMILIES[fid] && FAMILIES[fid].course.split(' ').some(c => c === 'dinner' || c === 'lunch');
 export function build(state, sp, serves) {
   const F = FAMILIES[sp.proc]; if (!F) return null;
@@ -682,7 +797,7 @@ export function build(state, sp, serves) {
   for (const i of d.ings) i.raw = i.raw || `${i.q}${i.u ? (['g', 'ml'].includes(i.u) ? '' : ' ') + i.u : ''} ${i.name}`;
   const id = 'p:' + sp.proc + ':' + sp.main + ':' + Object.values(sp.px || {}).map(v => v === true ? 1 : v === false ? 0 : v).join('');
   const r = C.normalizeRecipe({ id, src: 'built', title, serves: d.serves, course: F.course || 'dinner', makes: F.makes || null, time: sch.total, cat: 'Built', area: F.area, ings: d.ings, steps, spec: { ...sp }, proc: sp.proc, timeline: sch.tasks.map(t => ({ at: t.at, t: t.t, comp: t.comp, passive: t.passive, oven: t.oven })), comps: d.comps.map(c => c.name) });
-  r.active = sch.handsOn; if (sch.total > 60) r.slowish = true;
+  r.active = Math.min(sch.handsOn, sch.total); if (sch.total > 60) r.slowish = true;
   r.ratioNotes = d.ratios.map(k => `${RT.RATIOS[k].n}: ${RT.RATIOS[k].why}.`);
   if (d.leftover && ITEM[d.leftover.item]) { r.leftover = d.leftover; r.steps.push(`Leftovers: wrap the rest of the meat (about ${Math.round(d.leftover.g / 50) * 50} g) and refrigerate within 2 hours. It makes quick meals later in the week.`); }
   return r;
@@ -712,13 +827,12 @@ export function candidates(state, opts, ref = 4) {
     { const course = w.course || (asked ? null : 'dinner'); if (course && !F.course.split(' ').includes(course) && !(asked && asked.proc === fid)) continue; }
     if (F.gear.some(g => gear[g] === false)) continue;
     if (!F.needs.every(id => ITEM[id] && G.okItem(state, id))) continue;
-    for (const v of variantsOf(fid, state)) {
+    for (const v of variantsOf(fid, state, asked && asked.proc === fid ? asked.style : null)) {
       const m = v.main; if (!ITEM[m] || !G.okItem(state, m)) continue;
       if ((opts.useStock || opts.onlyStockMains) && !asked && !(stock.get(m) > 0) && ![].concat(w.main || []).includes(m) && isDinnerFam(fid) && !(ITEM[m] && ITEM[m].staple)) continue;
       const wm = asked && asked.style && w.named && !/ (beef|lamb|chicken|pork|prawn|tofu|steak|fish) /.test(w.text || '') ? [] : [].concat(w.main || []); if (wm.length && !wm.includes(m) && !(asked && asked.proc === fid && !isDinnerFam(fid))) continue;
-      if (fid === 'indian') { const s = F.styles[v.x.style]; if (s.spice > spiceCap) continue; if (asked && asked.style && asked.style !== v.x.style) continue; }
+      if (fid === 'indian') { const s = F.styles[v.x.style]; if (s.spice > spiceCap) continue; }
       if ((fid === 'stirfry' || fid === 'stew') && F.styles[v.x.style].spice > spiceCap) continue;
-      if ((fid === 'stew' || fid === 'stirfry') && asked && asked.style && asked.style !== v.x.style) continue;
       if (fid === 'stew' && !opts.allowSlow && !asked && !F.styles[v.x.style].fast) continue;
       if (fid === 'chickenpie') { if (v.x.leek && !(stock.get('leek') > 0)) continue; if (v.x.bacon && !(stock.get('bacon') > 0)) continue; if (!v.x.leek && !G.okItem(state, 'mushroom')) continue; }
       if (opts.vegOnly && G.MAINS[m] && !['chickpeas', 'halloumi', 'tofu', 'lentils'].includes(m) && ITEM[m].cat !== 'veg') continue;
@@ -737,7 +851,9 @@ export function candidates(state, opts, ref = 4) {
       let s = ref + (have.length / Math.max(1, fresh.length) - 0.5) * 3 + (stock.get(m) > 0 ? 1.5 : -0.6);
       for (const i of fresh) { const u = urg.get(i.item); if (u != null && u <= 3) s += 0.8; }
       s += (T.main && T.main[m] ? Math.tanh(T.main[m] / 3) : 0);
-      if (asked) s += 6 + (wm.includes(m) ? 2 : 0);
+      if (asked) s += 6 + (wm.includes(m) ? 2 : 0) + (asked.style ? (v.x.style === asked.style ? 8 : 0) : asked.proc === fid ? 4 : 0);
+      { const typed = (w.text || '').trim().replace(/'/g, ''), tt = r.title.toLowerCase().replace(/'/g, ''); if (typed.length > 3 && (tt === typed || tt.includes(typed))) s += 8; } // you typed its name // the exact dish asked for leads; its relatives follow
+      if (/^veggie-/.test(m) && !(stock.get(m) > 0) && !opts.vegOnly && !((state.settings || {}).diet || []).some(x => ['vegetarian', 'vegan'].includes(x))) s -= 3; // plant-based versions lead only for veggies or if you have them
       if (wm.includes(m)) s += 1.5; if ((w.veg || []).some(vid => r.ings.some(i => i.item === vid))) s += 1;
       if (opts.quick && r.time > 40) s -= 2;
       if (F.fam === 'soup' && !asked) s -= 1.2;
