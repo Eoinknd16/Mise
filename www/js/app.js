@@ -1,5 +1,6 @@
 // Mise — UI layer. Plain ES modules, string templates, event delegation. No build step.
 import * as C from './core.js';
+import * as D from './diary.js';
 import * as M from './smart.js';
 import * as G from './builder.js';
 import * as F from './flavour.js';
@@ -54,9 +55,9 @@ const stars = (n, act, key) => `<div class="stars" role="group" aria-label="Rati
 const shopsOpts = sel => S.settings.shops.concat(SHOPS.filter(s => !S.settings.shops.includes(s))).map(s => `<option${s === sel ? ' selected' : ''}>${esc(s)}</option>`).join('');
 
 /* ================= Router ================= */
-const TITLES = { plan: 'This week', recipes: 'Saved meals', list: 'Shopping list', pantry: 'Pantry', more: 'Menu', make: 'What can I make?', builder: 'Mise', receipts: 'Receipts', deals: 'Deals', insights: 'Stats', settings: 'Settings', install: 'Install', quiz: 'Taste quiz', add: 'Your recipe', tastes: 'Your tastes', discover: 'Discover', swipe: 'Teach Mise your taste', week: 'Plan the week', lab: 'Flavour lab', ing: 'Ingredient' };
-const TAB_OF = { make: 'pantry', lab: 'builder' };
-const SUBPAGE = { ing: 'builder', lab: 'builder', swipe: 'discover', week: 'plan', recipes: 'more', tastes: 'more', add: 'recipes', make: 'pantry', receipts: 'more', deals: 'more', insights: 'more', settings: 'more', install: 'more', quiz: 'more', more: 'builder' };
+const TITLES = { diary: 'Diary', goals: 'Diet mode', progress: 'Progress', plan: 'This week', recipes: 'Saved meals', list: 'Shopping list', pantry: 'Pantry', more: 'Menu', make: 'What can I make?', builder: 'Mise', receipts: 'Receipts', deals: 'Deals', insights: 'Stats', settings: 'Settings', install: 'Install', quiz: 'Taste quiz', add: 'Your recipe', tastes: 'Your tastes', discover: 'Discover', swipe: 'Teach Mise your taste', week: 'Plan the week', lab: 'Flavour lab', ing: 'Ingredient' };
+const TAB_OF = { make: 'pantry', lab: 'builder', goals: 'diary', progress: 'diary' };
+const SUBPAGE = { goals: 'diary', progress: 'diary', ing: 'builder', lab: 'builder', swipe: 'discover', week: 'plan', recipes: 'more', tastes: 'more', add: 'recipes', make: 'pantry', receipts: 'more', deals: 'more', insights: 'more', settings: 'more', install: 'more', quiz: 'more', more: 'builder' };
 const OLD_ROUTES = { meals: 'recipes', saved: 'recipes', home: 'builder' };
 function checkShared() { const shared = M.readShareLink(location.hash); if (!shared) return false; ui.importing = shared; history.replaceState(null, '', location.pathname + '#recipes'); ui.route = 'recipes'; render(true); setTimeout(() => openSheet(`<h2>${esc(shared.title)}</h2><p class="small muted">Someone shared this recipe with you. ${shared.ings.length} ingredients, ${shared.steps.length} steps.</p><button class="btn primary block" data-act="importKeep">Save to my recipes</button>`), 200); return true; }
 function route() {
@@ -227,7 +228,7 @@ function renderRecipeSheet() {
   // actions
   if (entry && entry.leftover) h += `<p class="small muted" style="margin:12px 0 0">Leftovers from ${fmtDay(entry.leftover)}. Nothing extra on your list.</p><div class="row" style="margin-top:8px"><button class="btn grow" data-act="freezeLeft" data-date="${ctx.date}" data-idx="${ctx.idx}">Freeze it instead</button><button class="btn" data-act="swap" data-date="${ctx.date}" data-idx="${ctx.idx}">Cook something else</button></div>`;
   else if (entry) h += `${entry.cooked ? '' : '<button class="btn primary block r-cta" data-act="cookFromSheet">Start cooking</button>'}<div class="row" data-tour="sheetActions" style="margin-top:8px"><button class="btn grow" data-act="${entry.cooked ? 'uncook' : 'cook'}" data-date="${ctx.date}" data-idx="${ctx.idx}">${entry.cooked ? 'Mark not cooked' : 'I cooked this'}</button><button class="btn" data-act="swap" data-date="${ctx.date}" data-idx="${ctx.idx}">Swap</button><button class="btn" data-act="removeMeal" data-date="${ctx.date}" data-idx="${ctx.idx}">Remove</button></div>`;
-  else h += `<div class="r-plan" data-tour="daypick"><div class="small muted" style="margin-bottom:6px;font-weight:600">Add to ${ui.weekOffset === 1 ? 'next' : 'this'} week</div><div class="daypick">${C.weekDates(ui.weekOffset).map(d => { const n = (S.plan[d] || []).length; return `<button data-act="addToDay" data-date="${d}">${DOW[(new Date(d + 'T12:00').getDay() + 6) % 7]}<span>${n ? n + ' planned' : new Date(d + 'T12:00').getDate()}</span></button>`; }).join('')}</div>${r.stub ? '' : '<button class="btn block" data-act="cookFromSheet" style="margin-top:8px">Cook it now</button>'}</div>`;
+  else h += `<div class="r-plan" data-tour="daypick"><div class="small muted" style="margin-bottom:6px;font-weight:600">Add to ${ui.weekOffset === 1 ? 'next' : 'this'} week</div><div class="daypick">${C.weekDates(ui.weekOffset).map(d => { const n = (S.plan[d] || []).length; return `<button data-act="addToDay" data-date="${d}">${DOW[(new Date(d + 'T12:00').getDay() + 6) % 7]}<span>${n ? n + ' planned' : new Date(d + 'T12:00').getDate()}</span></button>`; }).join('')}</div>${r.stub ? '' : '<button class="btn block" data-act="cookFromSheet" style="margin-top:8px">Cook it now</button><button class="btn block ghost" data-act="dLogRecipe" style="margin-top:6px">Log a serving to my diary</button>'}</div>`;
   // why it works
   if (!r.stub) { const w = C.whyRecipe(S, r), tp = M.tipsFor(S, r, ctx && ctx.date);
     if (w.length || tp.length || r.blocks || (r.ratioNotes || []).length) h += `<details class="r-sec r-why"${r.exp ? ' open' : ''}><summary><h3>Why this works</h3></summary>${w.length ? `<div class="why">${w.map(([v, t]) => `<span class="${v < 0 ? 'neg' : ''}">${v < 0 ? '−' : '+'} ${esc(t)}</span>`).join('')}</div>` : ''}${(r.ratioNotes || []).map(t => `<div class="note"><b>The ratio.</b> ${esc(t)}</div>`).join('')}${tp.map(t => `<div class="note">${esc(t)}</div>`).join('')}${r.blocks ? blocksBox(r) : ''}</details>`; }
@@ -403,6 +404,7 @@ function offQty(p, it) {
 async function scanFound(code) {
   code = String(code).replace(/\D/g, ''); if (!code || code === SC.last) return;
   SC.busy = true; SC.last = code; if (navigator.vibrate) navigator.vibrate(60);
+  if (SC.mode === 'diary') return dScanFound(code);
   const msg = $('#scanMsg'), box = $('#scanRes'); if (msg) msg.textContent = 'Looking up ' + code + '…';
   const known = (S.barcodes || {})[code];
   let prod = null, item = null, qty = null;
@@ -475,6 +477,284 @@ function viewInstall() {
   <div class="card"><h2>iPhone</h2><p style="margin:0">Open this page in Safari, tap <b>Share → Add to Home Screen</b>. It works offline and opens full screen.</p></div>
   <div class="card"><h3>Your data</h3><p class="small muted" style="margin:0">Everything is stored on this device. Use <a href="#settings">Settings → Back up</a> to move it to another phone.</p></div>`;
 }
+
+/* ================= Diary ================= */
+const dDay = () => ui.dDate || C.today();
+const dShift = (d, n) => new Date(Date.parse(d + 'T12:00') + n * 864e5).toISOString().slice(0, 10);
+const dLabel = d => d === C.today() ? 'Today' : d === dShift(C.today(), -1) ? 'Yesterday' : d === dShift(C.today(), 1) ? 'Tomorrow' : `${DOW[M.wdOf(d)]} ${fmtShort(d)}`;
+const kc = n => Math.round(n).toLocaleString('en-IE');
+const g1 = n => (Math.round(n * 10) / 10).toLocaleString('en-IE');
+const kgTxt = kg => { const u = (S.settings.units || {}).w || 'kg'; if (u === 'st') { const lb = kg * 2.20462, st = Math.floor(lb / 14); return `${st} st ${Math.round(lb - st * 14)} lb`; } if (u === 'lb') return `${Math.round(kg * 2.20462)} lb`; return `${g1(kg)} kg`; };
+function dRing(eaten, budget) {
+  const pct = budget ? Math.min(1.25, eaten / budget) : 0, R = 52, Cc = 2 * Math.PI * R, over = budget && eaten > budget;
+  return `<svg viewBox="0 0 128 128" class="d-ring" aria-hidden="true"><circle cx="64" cy="64" r="${R}" fill="none" stroke="var(--line)" stroke-width="11"/><circle cx="64" cy="64" r="${R}" fill="none" stroke="${over ? 'var(--hot)' : 'var(--accent)'}" stroke-width="11" stroke-linecap="round" stroke-dasharray="${Math.min(1, pct) * Cc} ${Cc}" transform="rotate(-90 64 64)"/></svg>`;
+}
+function dBar(label, have, goal, unit, cls) {
+  const pct = goal ? Math.min(100, have / goal * 100) : 0, over = goal && have > goal * 1.05 && cls === 'max';
+  return `<div class="d-mac"><div class="row between tiny"><b>${label}</b><span class="muted">${g1(have)}${goal ? ' / ' + Math.round(goal) : ''} ${unit}</span></div><div class="bar${over ? ' over' : ''}"><i style="width:${pct}%"></i></div></div>`;
+}
+function viewDiary() {
+  D.ensure(S); const d = dDay(), T = D.totals(S, d), tg = D.targetFor(S, d), dd = D.day(S, d), set = S.diary.settings, G0 = S.diary.goal;
+  const exBack = Math.round(T.ex * (set.exerciseBack ?? 0.5)), budget = tg ? tg.kcal + exBack : 0, left = budget - T.food.kcal;
+  let h = `<div class="weekhead"><button class="icon-btn" data-act="dDay" data-val="-1" aria-label="Previous day">${ICON.left}</button><div class="grow" style="text-align:center"><b>${dLabel(d)}</b>${tg && tg.cycled ? `<div class="tiny muted">${tg.cycled === 'high' ? 'Higher day' : 'Lower day'}</div>` : ''}</div><button class="icon-btn" data-act="dDay" data-val="1" aria-label="Next day">${ICON.right || '›'}</button></div>`;
+  if (!G0) h += `<div class="nudge"><div class="small"><b>Turn on diet mode</b>: tell Mise your goal (lose, maintain, build muscle or gain) and it works out your daily calories and macros, then adjusts them as it learns how your body responds.</div><a class="btn sm primary" href="#goals">Set my goal</a></div>`;
+  // summary
+  h += `<div class="card d-sum"><div class="d-ringwrap">${dRing(T.food.kcal, budget)}<div class="d-ringtxt"><b>${tg ? kc(Math.abs(left)) : kc(T.food.kcal)}</b><span>${tg ? (left >= 0 ? 'kcal left' : 'kcal over') : 'kcal eaten'}</span></div></div>
+    <div class="grow">${tg ? `<div class="d-eq tiny"><span><b>${kc(tg.kcal)}</b>goal</span><i>−</i><span><b>${kc(T.food.kcal)}</b>food</span><i>+</i><span><b>${kc(exBack)}</b>exercise</span></div>` : ''}
+    ${dBar('Protein', T.food.p, tg && tg.p, 'g')}${dBar('Carbs', T.food.c, tg && tg.c, 'g', S.diary.goal && S.diary.goal.style === 'keto' ? 'max' : '')}${dBar('Fat', T.food.f, tg && tg.f, 'g')}</div></div>`;
+  h += `<details class="d-more"><summary class="small">Fibre ${g1(T.food.fib)} g · sugars ${g1(T.food.sug)} g · salt ${g1(T.food.salt)} g</summary><div class="nut">${D.NK.filter(k => k !== 'kcal').map(k => `<div><span>${D.NLABEL[k]}</span><b>${g1(T.food[k])} ${D.NUNIT[k]}${tg && tg[k] ? `<span class="tiny muted"> / ${tg[k]}${['sug', 'sat', 'salt'].includes(k) ? ' max' : ''}</span>` : ''}</b></div>`).join('')}</div><p class="tiny muted" style="margin:6px 0 0">Targets: fibre 14 g per 1,000 kcal; free sugars and saturates under 10% of energy; salt under 6 g (HSE and WHO guidance). Packaged foods give sugar as total sugars.</p></details>`;
+  const fx = D.fasting(S, d); if (fx && d === C.today()) h += `<div class="note">${fx.state === 'fasting' ? `Fasting: your eating window opens in ${hm(fx.mins)}` : fx.state === 'eating' ? `Eating window: ${hm(fx.mins)} left` : 'Eating window closed for today'}${fx.outside ? ` · ${fx.outside} item${fx.outside > 1 ? 's' : ''} logged outside it` : ''}</div>`;
+  // meals
+  for (const [m, mn] of D.MEALS) {
+    const es = dd.entries.filter(e => e.meal === m), mt = T.byMeal[m];
+    h += `<section class="card d-meal"><div class="row between"><h3 style="margin:0">${mn}</h3><div class="row"><span class="small muted">${es.length ? kc(mt.kcal) + ' kcal' : ''}</span><button class="icon-btn sm" data-act="dMealMenu" data-val="${m}" aria-label="${mn} options">⋯</button></div></div>
+      ${es.map(e => `<button class="d-row" data-act="dEntry" data-val="${e.id}"><div class="grow"><div>${esc(e.food.name)}${e.food.approx ? ' <span class="tiny muted">≈</span>' : ''}</div><div class="tiny muted">${esc([e.food.brand, dQtyTxt(e)].filter(Boolean).join(' · '))}</div></div><div class="d-k">${kc(e.n.kcal)}</div></button>`).join('')}
+      <div class="row"><button class="btn sm ghost grow" data-act="dAdd" data-val="${m}">+ Add food</button><button class="btn sm ghost" data-act="dScan" data-val="${m}" aria-label="Scan a barcode">${ICON.scan || 'Scan'}</button></div></section>`;
+  }
+  // what fits the rest of the day
+  if (tg && d === C.today() && left > 350 && !dd.entries.some(e => e.meal === 'dinner')) h += `<button class="note link" data-act="dFits">${kc(left)} kcal and ${Math.max(0, Math.round(tg.p - T.food.p))} g protein left: <b>what can I cook that fits?</b></button>`;
+  // water
+  const wGoal = set.water || 2000, glasses = Math.round((dd.water || 0) / 250);
+  h += `<div class="card d-water"><div class="row between"><h3 style="margin:0">Water</h3><span class="small muted">${g1((dd.water || 0) / 1000)} of ${g1(wGoal / 1000)} L</span></div>
+    <div class="d-glasses">${Array.from({ length: Math.max(8, Math.ceil(wGoal / 250)) }, (_, i) => `<span class="${i < glasses ? 'on' : ''}"></span>`).join('')}</div>
+    <div class="row"><button class="btn sm" data-act="dWater" data-val="-250">− 250 ml</button><button class="btn sm primary grow" data-act="dWater" data-val="250">+ 250 ml glass</button><button class="btn sm" data-act="dWater" data-val="500">+ 500 ml</button></div></div>`;
+  // exercise
+  h += `<section class="card d-meal"><div class="row between"><h3 style="margin:0">Exercise</h3><span class="small muted">${T.ex ? kc(T.ex) + ' kcal burned' : ''}</span></div>${(dd.ex || []).map((x, i) => `<button class="d-row" data-act="dExDel" data-val="${i}"><div class="grow">${esc(x.name)}<div class="tiny muted">${x.mins ? x.mins + ' min' : ''}</div></div><div class="d-k">${kc(x.kcal)}</div></button>`).join('')}<button class="btn sm ghost block" data-act="dExercise">+ Add exercise</button>${T.ex ? `<p class="tiny muted" style="margin:6px 0 0">${Math.round((set.exerciseBack ?? 0.5) * 100)}% of exercise calories are added to your budget (change in Diet mode). Trackers tend to overestimate.</p>` : ''}</section>`;
+  h += `<div class="card"><label class="f">Notes<textarea data-change="dNote" rows="2" placeholder="How you felt, sleep, training…">${esc(dd.note || '')}</textarea></label>
+    <label class="d-check small"><input type="checkbox" data-change="dDone" ${dd.done ? 'checked' : ''}> <span>I logged everything today<br><span class="tiny muted">Helps the coach learn what you really burn</span></span></label></div>`;
+  h += `<div class="more-grid"><a href="#progress">${ICON.spark}<b>Progress</b><span>Weight trend, weekly report, coach</span></a><a href="#goals"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/></svg><b>Diet mode</b><span>${G0 ? esc(dGoalName(G0)) + ' · ' + kc(G0.t.kcal) + ' kcal' : 'Set your goal'}</span></a></div>`;
+  return h;
+}
+// with diet mode on, suggestions show what a serving costs you in calories and protein
+function dietTag(r) { if (!S.diary || !S.diary.goal) return ''; try { const n = M.nutrition(S, r, r.serves); return n && n.kcal ? ` · ${kc(n.kcal)} kcal · ${n.protein} g protein` : ''; } catch (e) { return ''; } }
+const dGoalName = g => (D.GOALS.find(x => x[0] === g.goal) || [0, 'Goal'])[1] + (g.rate && ['lose', 'gain', 'muscle'].includes(g.goal) ? ` ${g1(g.rate)} kg/wk` : '');
+const dQtyTxt = e => { const u = (D.unitsFor(e.food).find(x => x.u === e.unit) || {}); return e.unit === 'g' || e.unit === 'ml' ? `${g1(e.qty)} ${e.unit}` : `${g1(e.qty)} × ${(u.label || e.unit).replace(/^one /, '')}`; };
+
+// ---- add food sheet ----
+function dAddSheet() {
+  const a = ui.dAdd, tab = a.tab || 'search', mealName = (D.MEALS.find(x => x[0] === a.meal) || [0, ''])[1];
+  let h = `<h2>Add to ${mealName.toLowerCase()}</h2><div class="seg" role="group">${[['search', 'Search'], ['recent', 'Recent'], ['mine', 'My foods'], ['recipes', 'Recipes'], ['quick', 'Quick add']].map(([k, n]) => `<button data-act="dTab" data-val="${k}" aria-pressed="${tab === k}">${n}</button>`).join('')}</div>`;
+  if (tab === 'search') {
+    h += `<form class="row" data-form="dSearch" style="margin:10px 0 6px"><input id="dQ" value="${esc(a.q || '')}" placeholder="Search foods, e.g. porridge, chicken breast" autocomplete="off" aria-label="Search foods"><button class="btn" type="submit">Search</button></form>
+      <button class="btn block" data-act="dScan" data-val="${a.meal}">${ICON.scan || ''} Scan a barcode</button>`;
+    if (a.q) {
+      const loc = a.res || [];
+      h += loc.length ? `<div class="d-list">${loc.map((x, i) => dFoodRow(x.food, i, x.tag)).join('')}</div>` : `<p class="small muted">Nothing on this phone matches. Try the shop products below, or add it yourself.</p>`;
+      h += a.offBusy ? `<p class="small muted">Searching shop products…</p>` : a.off ? (a.off.length ? `<h3 class="small" style="margin:12px 0 4px">Shop products <span class="tiny muted">from Open Food Facts</span></h3><div class="d-list">${a.off.map((f, i) => dFoodRow(f, 'o' + i, 'off')).join('')}</div>` : `<p class="small muted">No shop products found for that.</p>`) : `<button class="btn sm ghost block" data-act="dOff">Search shop products (Open Food Facts)</button>`;
+      h += `<button class="btn sm ghost block" data-act="dCustom">Can't find it? Add it yourself</button>`;
+    }
+  }
+  if (tab === 'recent') { const R = D.recent(S, a.meal); h += R.length ? `<div class="d-list">${R.map((r, i) => dFoodRow(r.food, 'r' + i, S.diary.fav[r.food.k] ? 'fav' : '', r)).join('')}</div>` : '<p class="small muted" style="margin-top:10px">Foods you log show up here, with the amount you usually have.</p>'; }
+  if (tab === 'mine') {
+    const ms = Object.values(S.diary.meals), cs = Object.values(S.diary.custom);
+    h += `<h3 class="small" style="margin:12px 0 4px">Saved meals</h3>${ms.length ? `<div class="d-list">${ms.map(m => `<button class="d-row" data-act="dLogMeal" data-val="${m.id}"><div class="grow">${esc(m.name)}<div class="tiny muted">${m.items.length} items</div></div><div class="d-k">${kc(D.sum(m.items.map(i => D.nutrientsOf(i.food, i.qty, i.unit))).kcal)}</div></button>`).join('')}</div>` : '<p class="tiny muted">Save a whole meal from its ⋯ menu in the diary, then add it here in one tap.</p>'}
+      <h3 class="small" style="margin:12px 0 4px">Your foods</h3>${cs.length ? `<div class="d-list">${cs.map((f, i) => dFoodRow(f, 'c' + i, 'yours')).join('')}</div>` : ''}<button class="btn sm ghost block" data-act="dCustom">+ New food</button>`;
+  }
+  if (tab === 'recipes') {
+    const rs = Object.values(S.recipes || {}).sort((x, y) => (y.lastCooked || y.added || 0) - (x.lastCooked || x.added || 0)).slice(0, 40);
+    const plan = (S.plan[dDay()] || []).map(e => S.recipes[e.id]).filter(Boolean);
+    h += plan.length ? `<h3 class="small" style="margin:12px 0 4px">Planned for ${dLabel(dDay()).toLowerCase()}</h3><div class="d-list">${plan.map((r, i) => { const f = D.recipeFood(S, r); return f ? dFoodRow(f, 'p' + i, 'recipe') : ''; }).join('')}</div>` : '';
+    h += `<h3 class="small" style="margin:12px 0 4px">Your recipes</h3><div class="d-list">${rs.map((r, i) => { const f = D.recipeFood(S, r); return f ? dFoodRow(f, 'x' + i, 'recipe') : ''; }).join('') || '<p class="tiny muted">Recipes you save or cook show up here, per serving.</p>'}</div>`;
+  }
+  if (tab === 'quick') h += `<form data-form="dQuick" class="d-form" style="margin-top:10px"><label class="f">Name (optional)<input id="qN" placeholder="e.g. Chipper, work canteen lunch"></label><div class="row"><label class="f grow">Calories<input id="qK" inputmode="decimal" required></label><label class="f grow">Protein g<input id="qP" inputmode="decimal"></label></div><div class="row"><label class="f grow">Carbs g<input id="qC" inputmode="decimal"></label><label class="f grow">Fat g<input id="qF" inputmode="decimal"></label></div><button class="btn primary block" type="submit">Add</button></form>`;
+  return h;
+}
+function dFoodRow(f, i, tag, rec) {
+  ui.dRows = ui.dRows || {}; ui.dRows[i] = f;
+  const u0 = rec ? { u: rec.unit } : null, q0 = rec ? rec.qty : null, def = dDefault(f);
+  const n = D.nutrientsOf(f, q0 ?? def.qty, (u0 || def).u);
+  const tagTxt = { recent: 'recent', yours: 'yours', meal: 'meal', recipe: 'recipe', mise: '', usda: '', off: '', fav: '★' }[tag] || '';
+  return `<button class="d-row" data-act="dPick" data-val="${i}"><div class="grow"><div>${esc(f.name)}${f.approx ? ' <span class="tiny muted">≈</span>' : ''}${tagTxt ? ` <span class="tag">${tagTxt}</span>` : ''}${f.grade ? ` <span class="ns ns-${esc(f.grade)}">${esc(String(f.grade).toUpperCase())}</span>` : ''}</div><div class="tiny muted">${esc([f.brand, `${g1(q0 ?? def.qty)} ${((D.unitsFor(f).find(x => x.u === (u0 || def).u) || {}).label || '').replace(/^one /, '')}`].filter(Boolean).join(' · '))}</div></div><div class="d-k">${kc(n.kcal)}</div></button>`;
+}
+function dDefault(f) { const us = D.unitsFor(f), sv = us.find(x => x.u === 'serving'), pc = us.find(x => x.u === 'piece'); if (sv) return { qty: 1, u: 'serving' }; if (pc) return { qty: 1, u: 'piece' }; return { qty: 100, u: us[0].u }; }
+// ---- portion sheet ----
+function dFoodSheet() {
+  const p = ui.dPort, f = p.food, us = D.unitsFor(f), n = D.nutrientsOf(f, +p.qty || 0, p.unit), fav = S.diary.fav[f.k];
+  return `<h2 style="margin-bottom:2px">${esc(f.name)}</h2><div class="small muted">${esc([f.brand, f.src === 'off' ? 'Open Food Facts' : f.src === 'usda' ? 'USDA' : f.src === 'mise' ? 'Mise' : f.src === 'recipe' ? 'Mise recipe' : f.src === 'custom' ? 'Your food' : ''].filter(Boolean).join(' · '))}${f.approx ? ' · approximate (cooks like ' + esc((ITEM[(ITEM[f.item] || {}).standin] || {}).n || 'a similar food') + ')' : ''}</div>
+    ${f.grade ? `<div class="row" style="margin-top:6px"><span class="ns ns-${esc(f.grade)}">Nutri-Score ${esc(String(f.grade).toUpperCase())}</span>${f.nova ? `<span class="tag">NOVA ${esc(f.nova)}</span>` : ''}</div>` : ''}
+    <div class="row" style="margin-top:12px"><label class="f" style="width:96px">Amount<input id="dQty" inputmode="decimal" value="${esc(p.qty)}" data-in="dQty"></label><label class="f grow">Unit<select data-change="dUnit">${us.map(u => `<option value="${u.u}" ${u.u === p.unit ? 'selected' : ''}>${esc(u.label)}</option>`).join('')}</select></label></div>
+    <label class="f">Meal<select data-change="dMeal">${D.MEALS.map(([k, nm]) => `<option value="${k}" ${k === p.meal ? 'selected' : ''}>${nm}</option>`).join('')}</select></label>
+    <div id="dPrev">${dPrev(n)}</div>
+    <div class="row" style="margin-top:10px">${p.edit ? `<button class="btn" data-act="dDel">Remove</button>` : ''}<button class="btn" data-act="dFav" aria-pressed="${!!fav}">${fav ? '★ Favourite' : '☆ Favourite'}</button><button class="btn primary grow" data-act="dLog">${p.edit ? 'Save' : 'Add'}</button></div>
+    ${f.src === 'off' && f.code ? `<p class="tiny muted" style="margin-top:8px">Product data © Open Food Facts contributors (ODbL). Something wrong? <a href="https://world.openfoodfacts.org/product/${esc(f.code)}" target="_blank" rel="noopener">Fix it on Open Food Facts</a>.</p>` : ''}`;
+}
+function dPrev(n) { return `<div class="d-prev"><div><b>${kc(n.kcal)}</b><span>kcal</span></div><div><b>${g1(n.p)}</b><span>protein</span></div><div><b>${g1(n.c)}</b><span>carbs</span></div><div><b>${g1(n.f)}</b><span>fat</span></div></div><div class="tiny muted" style="text-align:center">fibre ${g1(n.fib)} g · sugars ${g1(n.sug)} g · salt ${g1(n.salt)} g</div>`; }
+function dOpenFood(f, meal, qty, unit, edit) { const def = dDefault(f); const r = S.diary.foods[f.k]; ui.dPort = { food: f, meal, qty: qty ?? (r ? r.qty : def.qty), unit: unit || (r ? r.unit : def.u), edit }; if (!D.unitsFor(f).some(u => u.u === ui.dPort.unit)) { ui.dPort.unit = def.u; ui.dPort.qty = def.qty; } setSheetOrOpen(dFoodSheet()); }
+function dCustomSheet(pre = {}) {
+  return `<h2>${pre.code ? 'New product' : 'Add a food'}</h2>${pre.code ? `<p class="small muted">Barcode ${esc(pre.code)} isn't in Open Food Facts with nutrition yet. Copy the label and Mise remembers it.</p>` : ''}<form data-form="dCustomSave" class="d-form">
+    <label class="f">Name<input id="cuN" required value="${esc(pre.name || '')}"></label><label class="f">Brand<input id="cuB" value="${esc(pre.brand || '')}"></label>
+    <div class="row"><label class="f grow">Values are per<select id="cuPer"><option value="100">100 g</option><option value="100ml">100 ml (drinks)</option><option value="serving">serving</option></select></label><label class="f grow">Serving size (g)<input id="cuS" inputmode="decimal"></label></div>
+    <div class="row"><label class="f grow">Calories<input id="cuK" inputmode="decimal" required></label><label class="f grow">Protein g<input id="cuP" inputmode="decimal"></label></div>
+    <div class="row"><label class="f grow">Carbs g<input id="cuC" inputmode="decimal"></label><label class="f grow">of which sugars g<input id="cuSu" inputmode="decimal"></label></div>
+    <div class="row"><label class="f grow">Fat g<input id="cuF" inputmode="decimal"></label><label class="f grow">of which saturates g<input id="cuSa" inputmode="decimal"></label></div>
+    <div class="row"><label class="f grow">Fibre g<input id="cuFi" inputmode="decimal"></label><label class="f grow">Salt g<input id="cuSl" inputmode="decimal"></label></div>
+    <input type="hidden" id="cuCode" value="${esc(pre.code || '')}"><p class="tiny muted">Labels in Ireland give energy in kJ and kcal: use the kcal number.</p><button class="btn primary block" type="submit">Save and add</button></form>`;
+}
+const MET = [['Walking', 3.5], ['Brisk walking', 4.5], ['Running', 9.8], ['Cycling', 7.5], ['Weights / gym', 5], ['Swimming', 7], ['Football / GAA', 7], ['Hiking', 6], ['Yoga / pilates', 3], ['HIIT class', 8], ['Gardening', 4], ['Dancing', 5]];
+function dExSheet() {
+  const kg = S.diary.goal && S.diary.goal.p ? S.diary.goal.p.kg : 75;
+  return `<h2>Add exercise</h2><form data-form="dExSave" class="d-form"><label class="f">What<select id="exT">${MET.map(([n, m], i) => `<option value="${i}">${n}</option>`).join('')}<option value="x">Other (type calories)</option></select></label>
+    <div class="row"><label class="f grow">Minutes<input id="exM" inputmode="numeric" value="30"></label><label class="f grow">or calories<input id="exK" inputmode="numeric" placeholder="from your watch"></label></div>
+    <p class="tiny muted">Estimated from your weight (${g1(kg)} kg) and typical effort. A watch or app's number works too.</p><button class="btn primary block" type="submit">Add</button></form>`;
+}
+function dMealMenu(m) {
+  const mn = (D.MEALS.find(x => x[0] === m) || [0, ''])[1], d = dDay(), y = dShift(d, -1), has = D.day(S, d).entries.some(e => e.meal === m), yHas = D.day(S, y).entries.some(e => e.meal === m);
+  return `<h2>${mn}</h2><div class="stack">${yHas ? `<button class="btn block" data-act="dCopyY" data-val="${m}">Copy yesterday's ${mn.toLowerCase()}</button>` : ''}${has ? `<button class="btn block" data-act="dSaveMeal" data-val="${m}">Save as a meal</button><button class="btn block" data-act="dCopyT" data-val="${m}">Copy to ${d === C.today() ? 'tomorrow' : 'today'}</button><button class="btn block" data-act="dClear" data-val="${m}">Clear ${mn.toLowerCase()}</button>` : '<p class="small muted">Nothing logged here yet.</p>'}</div>`;
+}
+// ---- what fits the rest of the day ----
+function dFitsSheet() {
+  const d = dDay(), T = D.totals(S, d), tg = D.targetFor(S, d), left = tg.kcal + Math.round(T.ex * (S.diary.settings.exerciseBack ?? 0.5)) - T.food.kcal - 150, pLeft = Math.max(0, tg.p - T.food.p);
+  let out = []; try { out = G.options(S, { stock: G.pantryStock(S), serves: S.settings.household, useStock: true }, 10); } catch (e) {}
+  const rows = out.map(r => { const n = M.nutrition(S, r, r.serves); if (!n || !n.kcal) return null; const portion = Math.max(0.6, Math.min(1.6, Math.round(left / n.kcal * 10) / 10)); const k = n.kcal * portion, p = n.protein * portion;
+    const fit = -Math.abs(left - k) / 200 + Math.min(p, pLeft) / 12 - (k > left * 1.1 ? 3 : 0); return { r, n, portion, k, p, fit }; }).filter(Boolean).sort((a, b) => b.fit - a.fit).slice(0, 5);
+  ui.dFits = rows;
+  return `<h2>Dinners that fit</h2><p class="small muted">About ${kc(left)} kcal and ${Math.round(pLeft)} g protein left for dinner (keeping 150 kcal for a snack), from what's in your kitchen.</p>
+    ${rows.map((x, i) => `<div class="card flat"><div class="row between"><div class="grow"><b>${esc(x.r.title)}</b><div class="tiny muted">${x.portion === 1 ? '1 serving' : g1(x.portion) + ' servings'} · ${kc(x.k)} kcal · ${Math.round(x.p)} g protein</div></div></div><div class="row" style="margin-top:6px"><button class="btn sm" data-act="dFitOpen" data-val="${i}">See it</button><button class="btn sm primary" data-act="dFitLog" data-val="${i}">Log for dinner</button></div></div>`).join('') || '<p class="small">Add a few things to your kitchen and Mise can suggest dinners that fit.</p>'}`;
+}
+// ---- barcode in the diary ----
+async function dScanFound(code) {
+  const msg = $('#scanMsg'); if (msg) msg.textContent = 'Looking up ' + code + '…';
+  const mine = Object.values(S.diary.custom).find(f => f.code === code), cached = (S.diary.off || {})[code];
+  let food = mine || cached || null;
+  if (!food) { try { const r = await fetch(`https://world.openfoodfacts.org/api/v2/product/${code}.json?fields=${D.OFF_FIELDS}`); const j = await r.json(); if (j && j.status === 1) { food = D.offFood(j.product, code); if (!food) { scanStop(); setSheet(dCustomSheet({ code, name: j.product.product_name || '', brand: (j.product.brands || '').split(',')[0] })); return; } S.diary.off = S.diary.off || {}; S.diary.off[code] = food; save(); } } catch (e) { if (msg) msg.textContent = "Couldn't reach Open Food Facts (offline?). Type it in instead."; SC.busy = false; return; } }
+  scanStop();
+  if (food) dOpenFood(food, ui.dScanMeal || 'snacks');
+  else setSheet(dCustomSheet({ code }));
+}
+async function dOffSearch(q) {
+  const a = ui.dAdd; a.offBusy = true; setSheet(dAddSheet());
+  try { const r = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=20&sort_by=unique_scans_n&fields=code,${D.OFF_FIELDS}`); const j = await r.json();
+    a.off = (j.products || []).map(p => D.offFood(p, p.code)).filter(Boolean).slice(0, 15); } catch (e) { a.off = []; toast("Couldn't reach Open Food Facts"); }
+  a.offBusy = false; if (ui.dAdd === a) setSheet(dAddSheet());
+}
+const DA = {
+  dDay: el => { ui.dDate = dShift(dDay(), +el.dataset.val); render(); },
+  dAdd: el => { ui.dAdd = { meal: el.dataset.val, tab: 'search' }; openSheet(dAddSheet()); setTimeout(() => { const i = $('#dQ'); if (i) i.focus(); }, 80); },
+  dTab: el => { ui.dAdd.tab = el.dataset.val; setSheet(dAddSheet()); },
+  dPick: el => { const f = (ui.dRows || {})[el.dataset.val]; if (!f) return; if (f.src === 'meal') { D.logMeal(S, dDay(), ui.dAdd.meal, f.meal); save(); closeSheet(); render(); toast('Meal added'); return; } dOpenFood(f, ui.dAdd ? ui.dAdd.meal : 'snacks'); },
+  dOff: () => { if (ui.dAdd && ui.dAdd.q) dOffSearch(ui.dAdd.q); },
+  dCustom: () => setSheet(dCustomSheet({ name: ui.dAdd && ui.dAdd.q || '' })),
+  dLog: () => { const p = ui.dPort, q = parseFloat(String(($('#dQty') || {}).value || p.qty).replace(',', '.')); if (!(q > 0)) { toast('Enter an amount'); return; }
+    if (p.edit) D.edit(S, dDay(), p.edit, q, p.unit, p.meal); else D.log(S, dDay(), p.meal, p.food, q, p.unit); save(); closeSheet(); render(); toast(p.edit ? 'Updated' : `Added to ${p.meal}`); },
+  dDel: () => { D.remove(S, dDay(), ui.dPort.edit); save(); closeSheet(); render(); toast('Removed'); },
+  dFav: () => { const k = ui.dPort.food.k; if (S.diary.fav[k]) delete S.diary.fav[k]; else { S.diary.fav[k] = 1; if (!S.diary.foods[k]) S.diary.foods[k] = { food: ui.dPort.food, n: 0, last: Date.now(), qty: ui.dPort.qty, unit: ui.dPort.unit, meals: {} }; } save(); setSheet(dFoodSheet()); },
+  dEntry: el => { const e = D.day(S, dDay()).entries.find(x => x.id === el.dataset.val); if (e) { ui.dAdd = { meal: e.meal }; dOpenFood(e.food, e.meal, e.qty, e.unit, e.id); } },
+  dMealMenu: el => openSheet(dMealMenu(el.dataset.val)),
+  dCopyY: el => { const n = D.copyMeal(S, dShift(dDay(), -1), dDay(), el.dataset.val); save(); closeSheet(); render(); toast(`Copied ${n} item${n > 1 ? 's' : ''}`); },
+  dCopyT: el => { const to = dDay() === C.today() ? dShift(dDay(), 1) : C.today(); const n = D.copyMeal(S, dDay(), to, el.dataset.val); save(); closeSheet(); toast(`Copied ${n} item${n > 1 ? 's' : ''} to ${dLabel(to).toLowerCase()}`); },
+  dClear: el => { const d = D.day(S, dDay()); d.entries = d.entries.filter(e => e.meal !== el.dataset.val); save(); closeSheet(); render(); },
+  dSaveMeal: el => { const m = el.dataset.val; setSheet(`<h2>Save as a meal</h2><form data-form="dSaveMealGo" class="d-form"><input type="hidden" id="smM" value="${m}"><label class="f">Name<input id="smN" required placeholder="e.g. My usual breakfast"></label><button class="btn primary block" type="submit">Save</button></form>`); },
+  dLogMeal: el => { D.logMeal(S, dDay(), ui.dAdd.meal, el.dataset.val); save(); closeSheet(); render(); toast('Meal added'); },
+  dWater: el => { const d = D.day(S, dDay()); d.water = Math.max(0, (d.water || 0) + +el.dataset.val); save(); render(); },
+  dExercise: () => openSheet(dExSheet()),
+  dExDel: el => { const d = D.day(S, dDay()); d.ex.splice(+el.dataset.val, 1); save(); render(); toast('Exercise removed'); },
+  dScan: el => { ui.dScanMeal = el.dataset.val || 'snacks'; SC.mode = 'diary'; setSheetOrOpen(scanSheet()); scanStart(); },
+  dFits: () => openSheet(dFitsSheet()),
+  dFitOpen: el => { const x = ui.dFits[+el.dataset.val]; if (x) { saveBuilt(x.r); closeSheet(false, () => openRecipe(x.r.id)); } },
+  dFitLog: el => { const x = ui.dFits[+el.dataset.val]; if (!x) return; saveBuilt(x.r); const f = D.recipeFood(S, x.r); D.log(S, dDay(), 'dinner', f, x.portion, 'serving'); save(); closeSheet(); render(); toast(`Logged ${x.r.title}`); },
+  dLogRecipe: () => { const r = ui.sheetRecipe; if (!r) return; D.ensure(S); const f = D.recipeFood(S, r); if (!f) { toast("Mise can't work out this one's nutrition"); return; } ui.dAdd = { meal: new Date().getHours() < 11 ? 'breakfast' : new Date().getHours() < 16 ? 'lunch' : 'dinner' }; ui.dDate = C.today(); dOpenFood(f, ui.dAdd.meal, 1, 'serving'); },
+};
+const DFORMS = {
+  dSearch: () => { const a = ui.dAdd; a.q = (($('#dQ') || {}).value || '').trim(); a.off = null; a.res = a.q ? D.search(S, a.q) : []; setSheet(dAddSheet()); if (a.q && a.res.length < 4 && navigator.onLine !== false) dOffSearch(a.q); },
+  dQuick: () => { const v = id => parseFloat((($(id) || {}).value || '').replace(',', '.')) || 0; const f = D.quickFood({ name: (($('#qN') || {}).value || '').trim() || 'Quick add', kcal: v('#qK'), p: v('#qP'), c: v('#qC'), f: v('#qF') }); D.log(S, dDay(), ui.dAdd.meal, f, 1, 'serving'); save(); closeSheet(); render(); toast('Added'); },
+  dCustomSave: () => { const v = id => parseFloat((($(id) || {}).value || '').replace(',', '.')) || 0;
+    const f = D.customFood({ name: $('#cuN').value.trim(), brand: $('#cuB').value.trim(), per: $('#cuPer').value, servG: v('#cuS'), kcal: v('#cuK'), p: v('#cuP'), c: v('#cuC'), sug: v('#cuSu'), f: v('#cuF'), sat: v('#cuSa'), fib: v('#cuFi'), salt: v('#cuSl'), code: $('#cuCode').value || null });
+    S.diary.custom[f.k] = f; save(); dOpenFood(f, (ui.dAdd && ui.dAdd.meal) || ui.dScanMeal || 'snacks'); },
+  dExSave: () => { const t = $('#exT').value, mins = +($('#exM').value || 0), typed = +($('#exK').value || 0), kg = S.diary.goal && S.diary.goal.p ? S.diary.goal.p.kg : 75;
+    const name = t === 'x' ? 'Exercise' : MET[+t][0], kcal = typed || (t === 'x' ? 0 : Math.round(MET[+t][1] * kg * mins / 60)); if (!kcal) { toast('Add minutes or calories'); return; }
+    D.day(S, dDay()).ex.push({ name, mins, kcal }); save(); closeSheet(); render(); toast(`${name}: ${kcal} kcal`); },
+  dSaveMealGo: () => { const m = $('#smM').value, n = $('#smN').value.trim(); D.saveMeal(S, n, D.day(S, dDay()).entries.filter(e => e.meal === m)); save(); closeSheet(); toast(`Saved "${n}"`); },
+};
+const DCHANGE = {
+  dUnit: el => { const p = ui.dPort, old = D.unitsFor(p.food).find(u => u.u === p.unit), nu = D.unitsFor(p.food).find(u => u.u === el.value); p.unit = el.value; if (old && nu && old.g && nu.g) p.qty = Math.round(+p.qty * old.g / nu.g * 10) / 10 || 1; if (nu && (nu.u === 'g' || nu.u === 'ml') && old && old.u !== nu.u) p.qty = Math.round(+p.qty); setSheet(dFoodSheet()); },
+  dMeal: el => { ui.dPort.meal = el.value; },
+  dNote: el => { D.day(S, dDay()).note = el.value; save(); },
+  dDone: el => { D.day(S, dDay()).done = el.checked; save(); },
+};
+
+/* ---- Diet mode: goals ---- */
+function viewGoals() {
+  D.ensure(S); const G0 = S.diary.goal || {}, p = ui.gp || (ui.gp = { ...(G0.p || { sex: 'f', age: 35, cm: 168, kg: 75, activity: 'light' }) }), g = ui.gg || (ui.gg = { goal: G0.goal || 'lose', rate: G0.rate || 0.5, style: G0.style || 'balanced', cycle: G0.cycle || null, fast: G0.fast || null, target: G0.target || null, split: G0.split || { p: 30, c: 40, f: 30 } });
+  const U = S.settings.units || (S.settings.units = { w: 'kg', h: 'cm' }); const t = D.plan(p, g);
+  const wIn = U.w === 'st' ? `<div class="row"><input id="gSt" inputmode="numeric" value="${Math.floor(p.kg * 2.20462 / 14)}" data-change="gW" aria-label="Stone"><span class="small">st</span><input id="gLb" inputmode="decimal" value="${Math.round(p.kg * 2.20462 % 14)}" data-change="gW" aria-label="Pounds"><span class="small">lb</span></div>` : U.w === 'lb' ? `<input id="gLbs" inputmode="decimal" value="${Math.round(p.kg * 2.20462)}" data-change="gW" aria-label="Pounds">` : `<input id="gKg" inputmode="decimal" value="${g1(p.kg)}" data-change="gW" aria-label="Kilograms">`;
+  const hIn = U.h === 'ftin' ? `<div class="row"><input id="gFt" inputmode="numeric" value="${Math.floor(p.cm / 30.48)}" data-change="gH" aria-label="Feet"><span class="small">ft</span><input id="gIn" inputmode="numeric" value="${Math.round((p.cm / 2.54) % 12)}" data-change="gH" aria-label="Inches"><span class="small">in</span></div>` : `<input id="gCm" inputmode="numeric" value="${Math.round(p.cm)}" data-change="gH" aria-label="Centimetres">`;
+  const sel = (id, opts, v) => `<select data-change="gSet" data-k="${id}">${opts.map(([k, n]) => `<option value="${k}" ${String(k) === String(v) ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>`;
+  const rates = g.goal === 'lose' ? [[0.25, '0.25 kg a week (gentle)'], [0.5, '0.5 kg a week (recommended)'], [0.75, '0.75 kg a week (faster)'], [1, '1 kg a week (aggressive)']] : g.goal === 'muscle' ? [[0.1, '0.1 kg a week (very lean)'], [0.25, '0.25 kg a week (recommended)'], [0.35, '0.35 kg a week']] : g.goal === 'gain' ? [[0.25, '0.25 kg a week'], [0.5, '0.5 kg a week'], [0.75, '0.75 kg a week']] : null;
+  let h = `<div class="card"><h2>About you</h2>
+    <div class="row"><label class="f grow">Sex (for the energy formula)${sel('sex', [['f', 'Female'], ['m', 'Male']], p.sex)}</label><label class="f" style="width:90px">Age<input inputmode="numeric" value="${p.age}" data-change="gSet" data-k="age"></label></div>
+    <div class="row"><label class="f grow">Height <span class="tiny muted"><a href="#" data-act="gUnitH">${U.h === 'cm' ? 'use ft/in' : 'use cm'}</a></span>${hIn}</label><label class="f grow">Weight <span class="tiny muted"><a href="#" data-act="gUnitW">${U.w === 'kg' ? 'use st/lb' : U.w === 'st' ? 'use lb' : 'use kg'}</a></span>${wIn}</label></div>
+    <label class="f">How active are you?${sel('activity', D.ACTIVITY.map(a => [a[0], a[2]]), p.activity)}</label>
+    ${p.sex === 'f' ? `<label class="d-check small"><input type="checkbox" data-change="gFlag" data-k="pregnant" ${p.pregnant ? 'checked' : ''}> Pregnant</label><label class="d-check small"><input type="checkbox" data-change="gFlag" data-k="breastfeeding" ${p.breastfeeding ? 'checked' : ''}> Breastfeeding</label>` : ''}</div>
+  <div class="card"><h2>Your goal</h2><label class="f">Goal${sel('goal', D.GOALS, g.goal)}</label>${rates ? `<label class="f">Pace${sel('rate', rates, g.rate)}</label>` : ''}
+    <label class="f">Eating style${sel('style', D.STYLES, g.style)}</label>
+    ${g.style === 'custom' ? `<div class="row">${['p', 'c', 'f'].map(k => `<label class="f grow">${{ p: 'Protein', c: 'Carbs', f: 'Fat' }[k]} %<input inputmode="numeric" value="${g.split[k]}" data-change="gSplit" data-k="${k}"></label>`).join('')}</div>` : ''}
+    ${['lose', 'gain', 'muscle'].includes(g.goal) ? `<label class="f">Target weight (optional)<input inputmode="decimal" value="${g.target ? g1(U.w === 'kg' ? g.target : g.target * 2.20462) : ''}" placeholder="${U.w === 'kg' ? 'kg' : 'lb'}" data-change="gTarget"></label>` : ''}</div>`;
+  // result
+  const daysTo = g.target && t.rate ? Math.round(Math.abs(p.kg - g.target) / t.rate * 7) : null, minKg = D.healthyMinKg(p.cm);
+  h += `<div class="card d-result"><h2>Your daily targets</h2><div class="d-prev"><div><b>${kc(t.kcal)}</b><span>kcal</span></div><div><b>${t.p}</b><span>protein g</span></div><div><b>${t.c}</b><span>carbs g</span></div><div><b>${t.f}</b><span>fat g</span></div></div>
+    <p class="small" style="margin:10px 0 4px">You burn about <b>${kc(t.tdee)} kcal</b> a day (${kc(t.bmr)} at rest × your activity). ${t.goal === 'lose' ? `Eating ${kc(t.tdee - t.kcal)} less loses about ${g1(t.rate)} kg a week.` : t.goal === 'maintain' ? 'Eating this keeps your weight steady.' : t.goal === 'recomp' ? 'A small deficit with high protein lets you lose fat while building muscle, if you lift weights.' : `Eating ${kc(t.kcal - t.tdee)} more gains about ${g1(t.rate)} kg a week.`}${daysTo ? ` You'd reach ${kgTxt(g.target)} around <b>${new Date(Date.now() + daysTo * 864e5).toLocaleDateString('en-IE', { day: 'numeric', month: 'long' })}</b>.` : ''}</p>
+    <p class="tiny muted" style="margin:0">Also: fibre ${t.fib} g, water ${(t.water / 1000).toFixed(1)} L, free sugars under ${t.sug} g, saturates under ${t.sat} g, salt under 6 g.</p>
+    ${t.notes.map(n => `<div class="note" style="margin-top:8px">${esc(n)}</div>`).join('')}
+    ${g.target && g.target < minKg ? `<div class="note" style="margin-top:8px">${kgTxt(g.target)} is below the healthy range for your height (from ${kgTxt(minKg)}). Mise will help you get to ${kgTxt(minKg)} and then switch you to maintain.</div>` : ''}</div>`;
+  // advanced
+  const cyc = g.cycle || { days: [], extra: 300 };
+  h += `<details class="card" ${ui.gAdv ? 'open' : ''}><summary><h3 style="display:inline">Advanced</h3></summary>
+    <h4 class="small" style="margin:10px 0 4px">Calorie cycling</h4><p class="tiny muted" style="margin:0 0 6px">Eat more on some days (weekends, training days) and a bit less on the rest. Your weekly total stays the same.</p>
+    <div class="chips wrap">${['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((n, i) => `<button class="chip" data-act="gCycDay" data-val="${i}" aria-pressed="${(cyc.days || []).includes(i)}">${['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][i]}</button>`).join('')}</div>
+    <label class="f">Extra on those days${sel('cycExtra', [[200, '+200 kcal'], [300, '+300 kcal'], [400, '+400 kcal'], [500, '+500 kcal']], cyc.extra)}</label>
+    <h4 class="small" style="margin:12px 0 4px">Eating window (intermittent fasting)</h4>${sel('fast', [['', 'Off'], ['12', '12:12'], ['14', '14:10'], ['16', '16:8'], ['18', '18:6']], g.fast ? String(24 - g.fast.eat) : '')}${g.fast ? `<label class="f">Window opens at<input type="time" value="${g.fast.start}" data-change="gFastStart"></label>` : ''}
+    <h4 class="small" style="margin:12px 0 4px">Exercise calories</h4>${sel('exBack', [[0, "Don't add them (my activity level covers it)"], [0.5, 'Add half (recommended)'], [1, 'Add all of them']], S.diary.settings.exerciseBack ?? 0.5)}</details>`;
+  h += `<button class="btn primary block" data-act="gSave">${G0.t ? 'Update my targets' : 'Start diet mode'}</button>${G0.t ? '<button class="btn ghost block" data-act="gOff">Turn diet mode off</button>' : ''}
+    <p class="tiny muted" style="margin-top:10px">Mise uses the Mifflin-St Jeor formula, then learns your real energy use from your logs and weigh-ins. It never sets a target below 1,200 kcal (women) or 1,500 kcal (men), more than 1% of your weight a week, or a deficit for under-18s, during pregnancy, or with a BMI under 18.5. It's guidance, not medical advice: if you have a health condition, talk to your GP first.</p>`;
+  return h;
+}
+const GA = {
+  gUnitW: () => { const U = S.settings.units; U.w = U.w === 'kg' ? 'st' : U.w === 'st' ? 'lb' : 'kg'; save(); render(); },
+  gUnitH: () => { const U = S.settings.units; U.h = U.h === 'cm' ? 'ftin' : 'cm'; save(); render(); },
+  gCycDay: el => { ui.gAdv = true; const g = ui.gg, i = +el.dataset.val; g.cycle = g.cycle || { days: [], extra: 300 }; g.cycle.days = g.cycle.days.includes(i) ? g.cycle.days.filter(x => x !== i) : [...g.cycle.days, i]; if (g.cycle.days.length >= 7) g.cycle.days = []; render(); },
+  gSave: () => { const g = ui.gg; if (g.target && g.target < D.healthyMinKg(ui.gp.cm)) g.target = Math.round(D.healthyMinKg(ui.gp.cm) * 10) / 10; D.setGoal(S, { ...ui.gp }, { ...g }); D.logWeight(S, C.today(), ui.gp.kg); save(); toast('Diet mode is on'); go('diary'); },
+  gOff: () => { S.diary.goal = null; save(); toast('Diet mode off. Your diary stays.'); go('diary'); },
+};
+const GCHANGE = {
+  gSet: el => { const k = el.dataset.k, v = el.value; if (['cycExtra', 'fast', 'exBack'].includes(k)) ui.gAdv = true; if (['sex', 'activity'].includes(k)) ui.gp[k] = v; else if (k === 'age') ui.gp.age = Math.max(10, Math.min(100, +v || 30)); else if (k === 'cycExtra') { ui.gg.cycle = ui.gg.cycle || { days: [] }; ui.gg.cycle.extra = +v; } else if (k === 'fast') ui.gg.fast = v ? { eat: 24 - +v, start: (ui.gg.fast && ui.gg.fast.start) || '12:00' } : null; else if (k === 'exBack') { S.diary.settings.exerciseBack = +v; save(); } else ui.gg[k] = k === 'rate' ? +v : v; render(); },
+  gFlag: el => { ui.gp[el.dataset.k] = el.checked; render(); },
+  gW: () => { const U = S.settings.units, n = id => parseFloat((($(id) || {}).value || '0').replace(',', '.')) || 0; const kg = U.w === 'st' ? (n('#gSt') * 14 + n('#gLb')) / 2.20462 : U.w === 'lb' ? n('#gLbs') / 2.20462 : n('#gKg'); if (kg > 25 && kg < 350) ui.gp.kg = Math.round(kg * 10) / 10; render(); },
+  gH: () => { const U = S.settings.units, n = id => parseFloat((($(id) || {}).value || '0').replace(',', '.')) || 0; const cm = U.h === 'ftin' ? (n('#gFt') * 12 + n('#gIn')) * 2.54 : n('#gCm'); if (cm > 100 && cm < 250) ui.gp.cm = Math.round(cm); render(); },
+  gSplit: el => { ui.gg.split[el.dataset.k] = +el.value || 0; render(); },
+  gTarget: el => { const v = parseFloat(el.value.replace(',', '.')); const U = S.settings.units; ui.gg.target = v > 0 ? (U.w === 'kg' ? v : v / 2.20462) : null; render(); },
+  gFastStart: el => { if (ui.gg.fast) ui.gg.fast.start = el.value; },
+};
+
+/* ---- Progress: weight trend, weekly report, coach ---- */
+function viewProgress() {
+  D.ensure(S); const tr = D.trend(S), last = tr.slice(-1)[0], wk = D.week(S, C.today()), G0 = S.diary.goal, ci = D.checkin(S);
+  let h = `<div class="card"><h2>Weight</h2><form class="row" data-form="pWeight"><input id="pW" inputmode="decimal" placeholder="Today's weight (${(S.settings.units || {}).w === 'kg' || !(S.settings.units || {}).w ? 'kg' : 'lb'})" aria-label="Today's weight"><button class="btn primary" type="submit">Log</button></form>
+    ${last ? `<div class="d-prev" style="margin-top:10px"><div><b>${kgTxt(last.trend)}</b><span>trend now</span></div>${tr.length > 7 ? `<div><b>${(last.trend - tr[tr.length - 8].trend > 0 ? '+' : '') + g1(last.trend - tr[tr.length - 8].trend)}</b><span>kg this week</span></div>` : ''}${G0 && G0.target ? `<div><b>${kgTxt(Math.abs(last.trend - G0.target))}</b><span>to go</span></div>` : ''}</div>${pChart(tr.slice(-90))}<p class="tiny muted" style="margin:4px 0 0">Dots are your weigh-ins; the line is the trend, which smooths out day-to-day water swings. Weigh at the same time each morning for the clearest picture.</p>` : '<p class="small muted">Log your weight a few times a week. Mise draws the trend and uses it to learn what you really burn.</p>'}</div>`;
+  // coach
+  if (G0) h += `<div class="card"><h2>Coach</h2>${ci && ci.ready ? `<p class="small" style="margin:0 0 6px">Over the last 3 weeks you ate about <b>${kc(ci.avgIn)} kcal</b> a day and your weight trend moved <b>${(ci.kgPerWeek > 0 ? '+' : '') + g1(ci.kgPerWeek)} kg a week</b>. That means you really burn about <b>${kc(ci.est)} kcal</b> a day (the formula guessed ${kc(ci.curTdee)}).</p>
+      ${Math.abs(ci.change) >= 50 ? `<p class="small" style="margin:0 0 8px">To stay on track for ${ci.wantPerWeek ? g1(Math.abs(ci.wantPerWeek)) + ' kg a week' : 'your goal'}, Mise suggests <b>${kc(ci.target.kcal)} kcal</b> (${ci.change > 0 ? '+' : ''}${kc(ci.change)}).</p><button class="btn primary block" data-act="pApply">Use ${kc(ci.target.kcal)} kcal</button>` : '<p class="small" style="margin:0">Your target is spot on. Keep going.</p>'}` : `<p class="small muted" style="margin:0">${esc((ci && ci.need) || 'Log your food and weight for a couple of weeks and Mise works out what your body really burns, then adjusts your target every week.')}</p>${ci && ci.logged != null ? `<div class="bar" style="margin-top:8px"><i style="width:${Math.min(100, ci.logged / 10 * 100)}%"></i></div><p class="tiny muted">${ci.logged} of 10 fully logged days · ${ci.weighed} of 6 weigh-ins</p>` : ''}`}</div>`;
+  // week
+  h += `<div class="card"><h2>Last 7 days</h2>${wk.logged ? `<div class="d-prev"><div><b>${kc(wk.avg.kcal)}</b><span>avg kcal</span></div><div><b>${wk.avg.p}</b><span>avg protein</span></div><div><b>${wk.avg.fib}</b><span>avg fibre</span></div><div><b>${D.streak(S, C.today())}</b><span>day streak</span></div></div>
+    ${pBars(wk.days)}<p class="small" style="margin:8px 0 0">${G0 ? `On target (within 10%) on <b>${wk.onTarget} of ${wk.logged}</b> logged days; protein goal hit on <b>${wk.proteinHit}</b>.` : ''} ${wk.avg.fib < 25 ? `Fibre is low: beans, lentils, oats, wholegrain bread and more veg would help.` : ''}</p>
+    ${wk.top.length ? `<h4 class="small" style="margin:10px 0 4px">Where your calories came from</h4>${wk.top.map(([n, k]) => `<div class="row between small"><span>${esc(n)}</span><b>${kc(k)} kcal</b></div>`).join('')}` : ''}` : '<p class="small muted">Nothing logged this week yet.</p>'}</div>`;
+  h += `<div class="row"><button class="btn grow" data-act="pExport">Export diary (CSV)</button></div>`;
+  return h;
+}
+function pChart(tr) {
+  if (tr.length < 2) return ''; const W = 320, H = 130, pad = 6, vals = tr.flatMap(x => [x.trend, x.kg].filter(v => v != null)), lo = Math.min(...vals) - 0.3, hi = Math.max(...vals) + 0.3;
+  const X = i => pad + i * (W - 2 * pad) / (tr.length - 1), Y = v => H - pad - (v - lo) / (hi - lo) * (H - 2 * pad);
+  return `<svg viewBox="0 0 ${W} ${H}" class="d-chart" role="img" aria-label="Weight trend"><polyline fill="none" stroke="var(--accent)" stroke-width="2.5" points="${tr.map((x, i) => `${X(i).toFixed(1)},${Y(x.trend).toFixed(1)}`).join(' ')}"/>${tr.map((x, i) => x.kg != null ? `<circle cx="${X(i).toFixed(1)}" cy="${Y(x.kg).toFixed(1)}" r="2.6" fill="var(--muted)" opacity=".6"/>` : '').join('')}<text x="${W - pad}" y="12" text-anchor="end" font-size="10" fill="var(--muted)">${g1(hi - 0.3)}</text><text x="${W - pad}" y="${H - 2}" text-anchor="end" font-size="10" fill="var(--muted)">${g1(lo + 0.3)}</text></svg>`;
+}
+function pBars(days) {
+  const mx = Math.max(...days.map(x => Math.max(x.kcal, x.target || 0)), 1), W = 320, H = 110, bw = 30;
+  return `<svg viewBox="0 0 ${W} ${H + 16}" class="d-chart" role="img" aria-label="Calories by day">${days.map((x, i) => { const cx = 14 + i * 44, h0 = x.kcal / mx * H, th = x.target ? x.target / mx * H : 0, over = x.target && x.kcal > x.target * 1.1;
+    return `<rect x="${cx}" y="${H - h0}" width="${bw}" height="${h0}" rx="4" fill="${over ? 'var(--hot)' : 'var(--accent)'}" opacity="${x.n ? 0.85 : 0.15}"/>${th ? `<line x1="${cx - 3}" x2="${cx + bw + 3}" y1="${H - th}" y2="${H - th}" stroke="var(--ink)" stroke-dasharray="3 2"/>` : ''}<text x="${cx + bw / 2}" y="${H + 13}" text-anchor="middle" font-size="10" fill="var(--muted)">${DOW[M.wdOf(x.d)].slice(0, 2)}</text>`; }).join('')}</svg>`;
+}
+const PA = {
+  pApply: () => { const ci = D.checkin(S); if (!ci || !ci.ready) return; const G0 = S.diary.goal; G0.t = { ...G0.t, kcal: ci.target.kcal, p: ci.target.p, c: ci.target.c, f: ci.target.f }; G0.tdee = ci.newTdee; S.diary.checkins.push({ d: C.today(), tdee: ci.newTdee, kcal: ci.target.kcal }); save(); render(); toast(`New target: ${kc(ci.target.kcal)} kcal`); },
+  pExport: () => { const blob = new Blob([D.toCSV(S)], { type: 'text/csv' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `mise-diary-${C.today()}.csv`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); },
+};
+const PFORMS = { pWeight: () => { const U = S.settings.units || {}, v = parseFloat((($('#pW') || {}).value || '').replace(',', '.')); if (!(v > 0)) return; const kg = U.w && U.w !== 'kg' ? v / 2.20462 : v; if (kg < 25 || kg > 350) { toast('That weight looks off'); return; } D.logWeight(S, C.today(), kg); if (S.diary.goal && S.diary.goal.p) S.diary.goal.p.kg = Math.round(kg * 10) / 10; save(); render(); toast(`Logged ${kgTxt(kg)}`); } };
 
 /* ================= Receipts ================= */
 function viewReceipts() {
@@ -603,7 +883,7 @@ function homeBody(B) {
   B.jp = H.jp; B.jpR = (H.jp || []).flatMap(x => [...x.first, ...x.then]);
   h += `<section><div class="sec-h"><h3>${new Date().getHours() < 11 ? 'Breakfast ideas' : 'Ideas from your kitchen'}</h3><button class="btn sm ghost" data-act="homeMore">Show others</button></div>`;
   h += H.list.length ? `<div class="sugs">${H.list.map((x, k) => { const r = x.r, c = C.recipeCost(S, r, r.serves);
-    return `<article class="sug"><button class="sug-main" data-act="homeOpen" data-idx="${k}">${tile(r, 'sug-tile')}<div class="grow"><div class="eyebrow">${esc(G.METHODS[r.spec.method] ? (G.METHODS[r.spec.method] || { n: "dinner" }).n : 'dinner')} · ${timeLabel(r)} · ${C.eur(c.perServe)} each</div><h3>${esc(r.title)}</h3><p class="reason">${esc(x.why)}</p></div></button>
+    return `<article class="sug"><button class="sug-main" data-act="homeOpen" data-idx="${k}">${tile(r, 'sug-tile')}<div class="grow"><div class="eyebrow">${esc(G.METHODS[r.spec.method] ? (G.METHODS[r.spec.method] || { n: "dinner" }).n : 'dinner')} · ${timeLabel(r)} · ${C.eur(c.perServe)} each${dietTag(r)}</div><h3>${esc(r.title)}</h3><p class="reason">${esc(x.why)}</p></div></button>
       <div class="row"><button class="btn primary sm grow" data-act="homeTonight" data-idx="${k}">Cook tonight</button><button class="btn sm grow" data-act="homeOpen" data-idx="${k}">See it</button></div></article>`; }).join('')}</div>`
     : `<div class="card"><p class="small muted" style="margin:0">${H.err ? "Something went wrong building ideas. Try typing what you fancy above." : "Nothing fits right now. Try typing what you fancy, or add a main like chicken or mince to your pantry."}</p></div>`;
   h += `</section>`;
@@ -638,7 +918,7 @@ function viewBuilder() {
       <button class="btn block" data-act="jpPlan" data-val="${J.id}" style="margin-top:8px">Plan it: roast + ${J.then.length ? Math.min(3, J.then.length) : 0} leftover nights</button></section>`; }).join('');
   if (B.res) h += B.res.length ? B.res.map((r, k) => { if (r.exp) return expCard(r, k); const like = G.likeThis(S, r), c = C.recipeCost(S, r, r.serves), why = C.whyRecipe(S, r).filter(w => w[0] > 0).slice(0, 2);
     const fresh = [...new Set(r.ings.map(i => i.item).filter(id => id && ITEM[id] && !(ITEM[id].staple && C.stapleHave(S, id))))], haveN = fresh.filter(id => C.pantryQty(S, id) > 0), buy = fresh.filter(id => !haveN.includes(id));
-    return `<div class="card fs"><button class="mealbtn" data-act="makeOpen" data-idx="${k}" style="width:100%">${tile(r, 'fs-tile')}<div class="grow"><div class="eyebrow">${esc((G.METHODS[r.spec.method] || { n: 'dinner' }).n)} · ${timeLabel(r)} · ${C.eur(c.perServe)} each</div><h3 style="margin:2px 0 0;white-space:normal">${esc(r.title)}</h3>${like ? `<div class="tiny muted">Like the ${esc(like)} you liked</div>` : ''}</div></button>
+    return `<div class="card fs"><button class="mealbtn" data-act="makeOpen" data-idx="${k}" style="width:100%">${tile(r, 'fs-tile')}<div class="grow"><div class="eyebrow">${esc((G.METHODS[r.spec.method] || { n: 'dinner' }).n)} · ${timeLabel(r)} · ${C.eur(c.perServe)} each${dietTag(r)}</div><h3 style="margin:2px 0 0;white-space:normal">${esc(r.title)}</h3>${like ? `<div class="tiny muted">Like the ${esc(like)} you liked</div>` : ''}</div></button>
       ${r.leftover ? `<div class="small"><b>Feeds ${r.leftover.feeds}.</b> Leaves ~${r.leftover.g} g for ${r.leftover.portions} more portion${r.leftover.portions > 1 ? 's' : ''}</div>` : ''}
       <p class="small muted" style="margin:0">${esc(r.ings.filter(i => i.u !== 'taste' && !(ITEM[i.item] || {}).staple).slice(0, 8).map(i => i.name).join(' · '))}</p>
       ${S.pantry.length ? `<div class="small"><b style="color:var(--accent)">Uses ${haveN.length} thing${haveN.length !== 1 ? 's' : ''} you have</b> · ${buy.length ? `buy: ${esc(buy.map(id => ITEM[id].n.toLowerCase()).join(', '))}` : 'nothing to buy'}</div>` : ''}${why.length ? `<div class="why" style="margin:0">${why.map(w => `<span>+ ${esc(w[1])}</span>`).join('')}</div>` : ''}
@@ -986,7 +1266,7 @@ function setSheet(html) { $('#sheetBody').innerHTML = `<button class="sheet-x" d
 let afterClose = null;
 function closeSheet(fromPop, then) {
   const w = $('#sheet'); if (w.hidden) { if (then) then(); return; }
-  w.hidden = true; document.body.style.overflow = ''; ui.sheetCtx = null; scanStop();
+  w.hidden = true; document.body.style.overflow = ''; ui.sheetCtx = null; scanStop(); SC.mode = 'pantry';
   if (!fromPop && history.state && history.state.sheet) { afterClose = then || null; history.back(); } else if (then) then();
 }
 function go(hash) { closeSheet(false, () => { if (location.hash !== '#' + hash) location.hash = hash; else render(true); }); }
@@ -1093,7 +1373,7 @@ const A = {
   pFilter: el => { ui.pFilter = el.dataset.val; render(); },
   unlockOpen: () => { openSheet(unlockSheet(null)); setTimeout(() => { ui.unlock = G.unlockers(S, 6, { serves: S.settings.household || 2 }); setSheet(unlockSheet(ui.unlock)); }, 30); },
   unlockAdd: el => { const id = el.dataset.val; if (!S.list.extras.some(x => x.item === id)) S.list.extras.push({ item: id, name: ITEM[id].n, qty: ITEM[id].packs[0] }); save(); toast(ITEM[id].n + ' added to your list'); if (ui.unlock) setSheet(unlockSheet(ui.unlock)); },
-  scanOpen: () => { openSheet(scanSheet()); scanStart(); },
+  scanOpen: () => { SC.mode = 'pantry'; openSheet(scanSheet()); scanStart(); },
   scanAdd: () => { const c = SC.cur; if (c && c.item) scanSave(c.item, c.qty || ITEM[c.item].packs[0]); },
   scanNext: () => { SC.cur = null; SC.busy = false; SC.last = null; const b = $('#scanRes'); if (b) b.innerHTML = ''; const m = $('#scanMsg'); if (m) m.textContent = 'Point the camera at a barcode.'; },
   freezerDel: el => { S.freezer = M.freezer(S).filter(f => f.id !== el.dataset.key); save(); render(); },
@@ -1289,7 +1569,7 @@ const A = {
   cookTimer: el => { const k = ui.cook; const sec = +el.dataset.sec; k.timers.push({ label: el.dataset.label, end: Date.now() + sec * 1000, left: sec }); renderCook(); toast('Timer started'); },
   cookTimerX: el => { ui.cook.timers.splice(+el.dataset.idx, 1); renderCook(); },
   cookVoice: () => cookVoice(),
-  cookFinish: () => { const k = ui.cook; cookModeClose(); setTimeout(() => { if (k.ctx && S.plan[k.ctx.date] && S.plan[k.ctx.date][k.ctx.idx]) A.cook({ dataset: { date: k.ctx.date, idx: k.ctx.idx } }); else { M.logCook(S, k.r, k.serves); C.markCooked(S, k.r.id, k.r, C.today()); save(); reactionSheet(k.r, null, C.today()); } }, 80); },
+  cookFinish: () => { const k = ui.cook; cookModeClose(); setTimeout(() => { if (k.ctx && S.plan[k.ctx.date] && S.plan[k.ctx.date][k.ctx.idx]) A.cook({ dataset: { date: k.ctx.date, idx: k.ctx.idx } }); else { M.logCook(S, k.r, k.serves); C.markCooked(S, k.r.id, k.r, C.today()); save(); reactionSheet(k.r, null, C.today()); } if (S.diary && S.diary.goal) setTimeout(() => toast('Tip: log a serving from the recipe to keep your diary right'), 2600); }, 80); },
   reactPick: el => { ui.react.v = el.dataset.val; renderReaction(); },
   reactChip: el => { const k = ui.react, c = el.dataset.val; k.chips = k.chips.includes(c) ? k.chips.filter(x => x !== c) : [...k.chips, c]; renderReaction(); },
   reactSkip: () => closeSheet(),
@@ -1443,6 +1723,7 @@ async function fillAutoImages() {
 }
 
 /* ================= Global events ================= */
+Object.assign(A, DA, GA, PA);
 document.addEventListener('click', ev => {
   const el = ev.target.closest('[data-act]');
   if (!el) return;
@@ -1463,9 +1744,11 @@ document.addEventListener('input', ev => {
   const el = ev.target;
   if (el.dataset.in === 'recQuery') { ui.recQuery = el.value; if (ui.recTab !== 'online') { render(); const i = $('#recSearch'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }
   if (el.dataset.in === 'pickQuery') { ui.pickQuery = el.value; renderPicker(true); }
+  if (el.dataset.in === 'dQty' && ui.dPort) { ui.dPort.qty = el.value; const b = $('#dPrev'); if (b) b.innerHTML = dPrev(D.nutrientsOf(ui.dPort.food, parseFloat(String(el.value).replace(',', '.')) || 0, ui.dPort.unit)); }
   if (el.dataset.in === 'bDesc') { ui.bDesc = el.value; }
   if (el.dataset.setting && el.type !== 'range' && el.tagName !== 'SELECT') { const k = el.dataset.setting; S.settings[k] = el.type === 'number' ? (parseFloat(el.value) || 0) : el.value; save(); }
 });
+Object.assign(CHANGE, DCHANGE, GCHANGE);
 document.addEventListener('change', ev => {
   const el = ev.target;
   if (el.dataset.change && CHANGE[el.dataset.change]) CHANGE[el.dataset.change](el);
@@ -1480,6 +1763,7 @@ document.addEventListener('change', ev => {
 });
 document.addEventListener('submit', ev => {
   const f = ev.target.dataset.form; if (!f) return; ev.preventDefault();
+  if (DFORMS[f]) { DFORMS[f](); return; } if (PFORMS[f]) { PFORMS[f](); return; }
   if (f === 'likeSearch') { ui.like.q = (($('#likeQ') || {}).value || '').trim(); setSheet(likeSheet()); return; }
   if (f === 'discoSearch') { const v = (($('#discoQ') || {}).value || '').trim(); if (v) { discoSearch(v); render(); } return; }
   if (f === 'addExtra') { addTyped('extra', '#extraName', (id, txt) => S.list.extras.push({ item: id, name: id ? ITEM[id].n : txt }), true); return; }
@@ -2131,7 +2415,7 @@ function viewAdd() {
 function fillDraftFrom(r) { const e = ui.editDraft; e.title = r.title; e.serves = r.serves; e.time = r.time; e.ing = r.ings.map(i => i.raw || `${i.q} ${i.u} ${i.name}`).join('\n'); e.steps = r.steps.join('\n'); if (r.img) e.img = r.img; e.url = r.url; }
 function readAddForm() { const e = ui.editDraft; e.title = $('#arTitle').value.trim(); e.serves = +$('#arServes').value || 2; e.time = +$('#arTime').value || 30; e.ing = $('#arIng').value; e.steps = $('#arSteps').value; e.batch = $('#arBatch').checked; return e; }
 
-const VIEWS = { make: () => { ui.make = { text: '', chips: ['have'], res: null }; makeRun(false); history.replaceState(null, '', '#builder'); ui.route = 'builder'; return viewBuilder(); }, week: viewWeek, discover: viewDisco, swipe: viewDiscover, tastes: viewTastes, add: viewAdd, quiz: viewQuiz, plan: viewPlan, recipes: viewRecipes, list: viewList, pantry: viewPantry, more: viewMore, receipts: viewReceipts, builder: viewBuilder, lab: viewLab, ing: viewIng, deals: viewDeals, insights: viewInsights, settings: viewSettings, install: viewInstall };
+const VIEWS = { diary: viewDiary, goals: viewGoals, progress: viewProgress, make: () => { ui.make = { text: '', chips: ['have'], res: null }; makeRun(false); history.replaceState(null, '', '#builder'); ui.route = 'builder'; return viewBuilder(); }, week: viewWeek, discover: viewDisco, swipe: viewDiscover, tastes: viewTastes, add: viewAdd, quiz: viewQuiz, plan: viewPlan, recipes: viewRecipes, list: viewList, pantry: viewPantry, more: viewMore, receipts: viewReceipts, builder: viewBuilder, lab: viewLab, ing: viewIng, deals: viewDeals, insights: viewInsights, settings: viewSettings, install: viewInstall };
 async function syncLib(manual) {
   if (ui.libBusy) return; ui.libBusy = 0.01; if (ui.route === 'settings') render();
   try { const before = C.libraryInfo().count; const n = await C.syncLibrary(S, f => { ui.libBusy = Math.max(0.01, f); if (ui.route === 'settings') { const y = scrollY; render(); scrollTo(0, y); } }); ui.libBusy = 0; refreshRecipes(); if (manual || !before) toast(`${n} recipes ready, even offline`); }

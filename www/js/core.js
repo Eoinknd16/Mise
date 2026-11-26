@@ -136,7 +136,7 @@ export const eur = n => '€' + (Math.round(n * 100) / 100).toFixed(2);
 /* ================= Ingredient matching ================= */
 const DESCRIPTORS = new Set('fresh chopped diced sliced finely roughly thinly minced crushed grated peeled large small medium ripe boneless skinless organic lean extra cold warm hot softened melted beaten dried cooked uncooked raw frozen tinned canned drained rinsed halved quartered torn shredded to serve for of a an the and or into pieces piece chunks cubed approx about handful pack packet tin tins can cans jar bunch good quality plus more few some little splash'.split(' '));
 // every writing system works: Latin accents are dropped (jalapeño = jalapeno), other scripts are kept
-const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').normalize('NFC').replace(/[^\p{L}\p{M}\p{N} ]+/gu, ' ').replace(/\s+/g, ' ').trim();
+export const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').normalize('NFC').replace(/[^\p{L}\p{M}\p{N} ]+/gu, ' ').replace(/\s+/g, ' ').trim();
 const sing = w => w.length > 3 && w.endsWith('ies') ? w.slice(0, -3) + 'y' : w.length > 4 && /(oes|ches|shes)$/.test(w) ? w.slice(0, -2) : w.length > 3 && w.endsWith('s') && !w.endsWith('ss') ? w.slice(0, -1) : w;
 const PHRASES = []; // [normalized phrase, itemId]
 for (const it of CATALOG) if (!it.id.startsWith('other-')) for (const p of [it.n, it.id.replace(/-/g, ' '), ...it.al]) { const n = norm(p); if (n) PHRASES.push([n, it.id], [n.split(' ').map(sing).join(' '), it.id]); }

@@ -194,6 +194,10 @@ export function blocks(dish) {
 }
 
 // ---------- nutrition from USDA SR28 ----------
+// raw USDA rows for the Diary's food search
+export const NUTCOLS = () => NUT ? NUT.cols : [];
+export const usdaRows = () => NUT ? NUT.foods : [];
+export function usdaRow(ndb) { if (!NUT) return null; NUT.idx = NUT.idx || new Map(NUT.foods.map(r => [r[0], r])); return NUT.idx.get(ndb) || null; }
 export function nutritionOf(id) {
   if (!NUT) return null; const ndb = NUTMAP[id] || NUTMAP[sd(id)]; if (!ndb) return null;
   NUT.idx = NUT.idx || new Map(NUT.foods.map(r => [r[0], r]));
